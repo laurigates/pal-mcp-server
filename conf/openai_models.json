@@ -26,6 +26,57 @@
   },
   "models": [
     {
+      "model_name": "gpt-5.5",
+      "friendly_name": "OpenAI (GPT-5.5)",
+      "aliases": [
+        "gpt5.5",
+        "gpt-5.5",
+        "5.5"
+      ],
+      "intelligence_score": 19,
+      "description": "GPT-5.5 (1M context, 128K output) - OpenAI's frontier model (released Apr 2026) with adaptive reasoning and vision",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "max_image_size_mb": 20.0,
+      "use_openai_response_api": true,
+      "default_reasoning_effort": "high",
+      "allow_code_generation": true,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "gpt-5.3-codex",
+      "friendly_name": "OpenAI (GPT-5.3 Codex)",
+      "aliases": [
+        "gpt5.3-codex",
+        "gpt-5.3-codex",
+        "codex-5.3",
+        "5.3-codex"
+      ],
+      "intelligence_score": 19,
+      "description": "GPT-5.3 Codex (400K context, 128K output) - Most capable agentic coding model combining Codex + GPT-5 training stacks",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": false,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "max_image_size_mb": 20.0,
+      "use_openai_response_api": true,
+      "default_reasoning_effort": "high",
+      "allow_code_generation": true,
+      "temperature_constraint": "fixed"
+    },
+    {
       "model_name": "gpt-5",
       "friendly_name": "OpenAI (GPT-5)",
       "aliases": [
