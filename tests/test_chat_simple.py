@@ -132,8 +132,9 @@ class TestChatTool:
         assert "AGENT'S TURN:" in formatted
         assert "Evaluate this perspective" in formatted
 
-    def test_format_response_multiple_generated_code_blocks(self, tmp_path):
+    def test_format_response_multiple_generated_code_blocks(self, tmp_path, monkeypatch):
         """All generated-code blocks should be combined and saved to pal_generated.code."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
         tool = ChatTool()
         tool._model_context = SimpleNamespace(capabilities=SimpleNamespace(allow_code_generation=True))
 
@@ -148,7 +149,7 @@ class TestChatTool:
 
         formatted = tool.format_response(response, request)
 
-        saved_path = tmp_path / "pal_generated.code"
+        saved_path = tmp_path / "pal_artifacts" / "pal_generated.code"
         saved_content = saved_path.read_text(encoding="utf-8")
 
         assert "print('world')" in saved_content
@@ -157,8 +158,9 @@ class TestChatTool:
         assert "<GENERATED-CODE>print('hello')" in formatted
         assert str(saved_path) in formatted
 
-    def test_format_response_single_generated_code_block(self, tmp_path):
+    def test_format_response_single_generated_code_block(self, tmp_path, monkeypatch):
         """Single <GENERATED-CODE> block should be saved and removed from narrative."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
         tool = ChatTool()
         tool._model_context = SimpleNamespace(capabilities=SimpleNamespace(allow_code_generation=True))
 
@@ -170,7 +172,7 @@ class TestChatTool:
 
         formatted = tool.format_response(response, request)
 
-        saved_path = tmp_path / "pal_generated.code"
+        saved_path = tmp_path / "pal_artifacts" / "pal_generated.code"
         saved_content = saved_path.read_text(encoding="utf-8")
 
         assert "print('only-once')" in saved_content
@@ -178,8 +180,9 @@ class TestChatTool:
         assert "print('only-once')" not in formatted
         assert "Closing thoughts after code." in formatted
 
-    def test_format_response_ignores_unclosed_generated_code(self, tmp_path):
+    def test_format_response_ignores_unclosed_generated_code(self, tmp_path, monkeypatch):
         """Unclosed generated-code tags should be ignored to avoid accidental clipping."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
         tool = ChatTool()
         tool._model_context = SimpleNamespace(capabilities=SimpleNamespace(allow_code_generation=True))
 
@@ -189,12 +192,13 @@ class TestChatTool:
 
         formatted = tool.format_response(response, request)
 
-        saved_path = tmp_path / "pal_generated.code"
+        saved_path = tmp_path / "pal_artifacts" / "pal_generated.code"
         assert not saved_path.exists()
         assert "print('oops')" in formatted
 
-    def test_format_response_ignores_orphaned_closing_tag(self, tmp_path):
+    def test_format_response_ignores_orphaned_closing_tag(self, tmp_path, monkeypatch):
         """Stray closing tags should not trigger extraction."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
         tool = ChatTool()
         tool._model_context = SimpleNamespace(capabilities=SimpleNamespace(allow_code_generation=True))
 
@@ -204,12 +208,13 @@ class TestChatTool:
 
         formatted = tool.format_response(response, request)
 
-        saved_path = tmp_path / "pal_generated.code"
+        saved_path = tmp_path / "pal_artifacts" / "pal_generated.code"
         assert not saved_path.exists()
         assert "</GENERATED-CODE> just text" in formatted
 
-    def test_format_response_preserves_narrative_after_generated_code(self, tmp_path):
+    def test_format_response_preserves_narrative_after_generated_code(self, tmp_path, monkeypatch):
         """Narrative content after generated code must remain intact in the formatted output."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
         tool = ChatTool()
         tool._model_context = SimpleNamespace(capabilities=SimpleNamespace(allow_code_generation=True))
 
@@ -320,6 +325,139 @@ class TestChatRequestModel:
         assert hasattr(request, "thinking_mode")
         assert hasattr(request, "continuation_id")
         assert hasattr(request, "images")  # From base model too
+
+
+class TestChatArtifactContainment:
+    """Security tests for artifact write containment (issues #4 and #5)."""
+
+    @pytest.mark.asyncio
+    async def test_workspace_relative_path_succeeds(self, tmp_path, monkeypatch):
+        """A working directory under PAL_WORKSPACE_ROOT should pass validation."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
+        nested = tmp_path / "project" / "src"
+        nested.mkdir(parents=True)
+
+        tool = ChatTool()
+        error = tool._validate_file_paths(ChatRequest(prompt="hi", working_directory_absolute_path=str(nested)))
+        assert error is None
+
+    @pytest.mark.asyncio
+    async def test_etc_path_is_rejected(self, tmp_path, monkeypatch):
+        """A working directory under /etc must be refused at validation time."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
+        tool = ChatTool()
+
+        with pytest.raises(ToolExecutionError) as exc_info:
+            await tool.execute(
+                {
+                    "prompt": "test",
+                    "absolute_file_paths": [],
+                    "images": [],
+                    "working_directory_absolute_path": "/etc",
+                }
+            )
+
+        payload = json.loads(exc_info.value.payload)
+        assert payload["status"] == "error"
+        assert "pal workspace" in payload["content"].lower()
+
+    @pytest.mark.asyncio
+    async def test_ssh_dir_is_rejected(self, tmp_path, monkeypatch):
+        """A working directory under ~/.ssh must be refused at validation time."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
+        ssh_dir = tmp_path / "fake_home" / ".ssh"
+        ssh_dir.mkdir(parents=True)
+        # Construct a request that targets the dir *outside* the workspace
+        # root so containment is exercised even though the path exists.
+        outside_root = tmp_path.parent / "outside_workspace"
+        outside_root.mkdir(exist_ok=True)
+        target_ssh = outside_root / ".ssh"
+        target_ssh.mkdir(exist_ok=True)
+
+        tool = ChatTool()
+        with pytest.raises(ToolExecutionError) as exc_info:
+            await tool.execute(
+                {
+                    "prompt": "test",
+                    "absolute_file_paths": [],
+                    "images": [],
+                    "working_directory_absolute_path": str(target_ssh),
+                }
+            )
+
+        payload = json.loads(exc_info.value.payload)
+        assert payload["status"] == "error"
+        assert "pal workspace" in payload["content"].lower()
+
+    @pytest.mark.asyncio
+    async def test_dotdot_traversal_is_rejected(self, tmp_path, monkeypatch):
+        """A path that uses .. to escape the workspace root must be refused."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path / "workspace"))
+        (tmp_path / "workspace").mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        # Use a literal path that .resolve() will normalise to ``outside``.
+        traversal = tmp_path / "workspace" / ".." / "outside"
+
+        tool = ChatTool()
+        with pytest.raises(ToolExecutionError) as exc_info:
+            await tool.execute(
+                {
+                    "prompt": "test",
+                    "absolute_file_paths": [],
+                    "images": [],
+                    "working_directory_absolute_path": str(traversal),
+                }
+            )
+
+        payload = json.loads(exc_info.value.payload)
+        assert payload["status"] == "error"
+        assert "pal workspace" in payload["content"].lower()
+
+    def test_artifact_filename_is_fixed_regardless_of_working_directory(self, tmp_path, monkeypatch):
+        """The artifact name and sandbox dir must NOT vary with the client path.
+
+        Even when the client supplies a deep, custom-named working directory
+        inside the workspace root, the artifact always lands at
+        ``<workspace_root>/pal_artifacts/pal_generated.code``. This prevents
+        model-shaped or client-shaped path values from influencing where the
+        write-back instruction points.
+        """
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
+        deep_dir = tmp_path / "deep" / "nested" / "custom-name"
+        deep_dir.mkdir(parents=True)
+
+        tool = ChatTool()
+        tool._model_context = SimpleNamespace(capabilities=SimpleNamespace(allow_code_generation=True))
+
+        response = "<GENERATED-CODE>print('hi')</GENERATED-CODE>"
+        request = ChatRequest(prompt="Test", working_directory_absolute_path=str(deep_dir))
+
+        formatted = tool.format_response(response, request)
+
+        # Fixed sandbox + fixed filename, NOT the deep client-supplied dir.
+        expected_path = tmp_path / "pal_artifacts" / "pal_generated.code"
+        assert expected_path.exists()
+        assert expected_path.read_text(encoding="utf-8").strip() == response
+
+        # The agent-facing instruction references the fixed path, not the
+        # client-supplied directory.
+        assert str(expected_path) in formatted
+        assert "custom-name" not in formatted
+
+        # Nothing should have been written under the client's directory.
+        assert not (deep_dir / "pal_generated.code").exists()
+
+    def test_persist_directly_rejects_path_outside_workspace(self, tmp_path, monkeypatch):
+        """Calling _persist_generated_code_block directly must still enforce containment."""
+        monkeypatch.setenv("PAL_WORKSPACE_ROOT", str(tmp_path / "workspace"))
+        (tmp_path / "workspace").mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+
+        tool = ChatTool()
+        with pytest.raises(PermissionError):
+            tool._persist_generated_code_block("dummy", str(outside))
 
 
 if __name__ == "__main__":

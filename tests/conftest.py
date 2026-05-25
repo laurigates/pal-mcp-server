@@ -32,6 +32,14 @@ env_config.reload_env({"PAL_MCP_FORCE_ENV_OVERRIDE": "false"})
 # This prevents all tests from failing due to missing model parameter
 os.environ["DEFAULT_MODEL"] = "gemini-2.5-flash"
 
+# Widen the PAL workspace root for the test session so that existing tests
+# which point ``working_directory_absolute_path`` at arbitrary ``tmp_path``
+# values (typically ``/private/var/folders/...`` on macOS or ``/tmp/...``)
+# continue to pass the workspace-containment check introduced for
+# issues #4 / #5. Tests that specifically exercise the containment logic
+# override ``PAL_WORKSPACE_ROOT`` via ``monkeypatch`` to tighten the root.
+os.environ.setdefault("PAL_WORKSPACE_ROOT", "/")
+
 # Force reload of config module to pick up the env var
 import config  # noqa: E402
 

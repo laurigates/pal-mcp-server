@@ -21,8 +21,18 @@ if TYPE_CHECKING:
 from config import TEMPERATURE_BALANCED
 from systemprompts import CHAT_PROMPT, GENERATE_CODE_PROMPT
 from tools.shared.base_models import COMMON_FIELD_DESCRIPTIONS, ToolRequest
+from tools.shared.exceptions import ToolExecutionError
 
 from .simple.base import SimpleTool
+
+# Fixed sandbox sub-directory under PAL_WORKSPACE_ROOT where generated
+# code artifacts are written. Both the directory name and the filename are
+# fixed (not derived from model output or client-supplied paths) to prevent
+# indirect prompt-injection attacks that try to redirect the write to a
+# sensitive location or smuggle attacker-chosen filenames into the
+# agent-facing instruction.
+PAL_ARTIFACT_SANDBOX_DIRNAME = "pal_artifacts"
+PAL_ARTIFACT_FILENAME = "pal_generated.code"
 
 # Field descriptions matching the original Chat tool exactly
 CHAT_FIELD_DESCRIPTIONS = {
@@ -231,6 +241,20 @@ class ChatTool(SimpleTool):
                     "Error: 'working_directory_absolute_path' must reference an existing directory. "
                     f"Received: {working_directory}"
                 )
+
+            # Containment check: reject working directories that resolve
+            # outside the configured PAL_WORKSPACE_ROOT. This blocks
+            # path-traversal attempts (e.g. ``/etc``, ``~/.ssh``, ``../..``)
+            # before any model is invoked or any file is written.
+            resolved = Path(expanded).resolve()
+            workspace_root = self._resolve_workspace_root()
+            if not resolved.is_relative_to(workspace_root):
+                return (
+                    "Error: 'working_directory_absolute_path' must reside within the PAL workspace "
+                    f"root '{workspace_root}'. Received: {working_directory} "
+                    f"(resolved to {resolved}). Set the PAL_WORKSPACE_ROOT environment variable on "
+                    "the server process to widen the allowed root if needed."
+                )
         return None
 
     def format_response(self, response: str, request: ChatRequest, model_info: dict | None = None) -> str:
@@ -248,6 +272,24 @@ class ChatTool(SimpleTool):
                 target_directory = request.working_directory_absolute_path
                 try:
                     artifact_path = self._persist_generated_code_block(block, target_directory)
+                except PermissionError as exc:
+                    # Containment violation: do NOT fall back to inlining the model's
+                    # code into the response. That fallback is itself the
+                    # indirect-prompt-injection sink we are defending against.
+                    # Surface a hard error so the caller sees the failure.
+                    logger.error("Refusing to persist generated code block: %s", exc)
+                    from tools.models import ToolOutput
+
+                    error_output = ToolOutput(
+                        status="error",
+                        content=(
+                            "Refused to write generated code artifact: the requested "
+                            "working_directory_absolute_path is outside the PAL workspace root. "
+                            f"Details: {exc}"
+                        ),
+                        content_type="text",
+                    )
+                    raise ToolExecutionError(error_output.model_dump_json()) from exc
                 except Exception as exc:  # pragma: no cover - rare filesystem failures
                     logger.error("Failed to persist generated code block: %s", exc, exc_info=True)
                     warning = (
@@ -333,13 +375,64 @@ class ChatTool(SimpleTool):
 
         return block, remainder, len(matches)
 
-    def _persist_generated_code_block(self, block: str, working_directory: str) -> Path:
-        expanded = os.path.expanduser(working_directory)
-        target_dir = Path(expanded).resolve()
-        if not target_dir.is_dir():
-            raise FileNotFoundError(f"Absolute working directory path '{working_directory}' does not exist")
+    @staticmethod
+    def _resolve_workspace_root() -> Path:
+        """Resolve the PAL workspace root.
 
-        target_file = target_dir / "pal_generated.code"
+        The root defaults to the server process's current working directory
+        and may be overridden via the ``PAL_WORKSPACE_ROOT`` environment
+        variable. Every artifact write is confined under this directory.
+
+        The lookup happens at call time (not at import time) so that tests
+        and deployments can override the value by setting the env var
+        before invoking the tool.
+        """
+
+        configured = os.environ.get("PAL_WORKSPACE_ROOT") or os.getcwd()
+        return Path(os.path.expanduser(configured)).resolve()
+
+    def _persist_generated_code_block(self, block: str, working_directory: str) -> Path:
+        """Persist the generated code block under a fixed sandbox path.
+
+        The destination is intentionally NOT derived from ``working_directory``
+        or any model-supplied value. It is always
+        ``<PAL_WORKSPACE_ROOT>/<PAL_ARTIFACT_SANDBOX_DIRNAME>/<PAL_ARTIFACT_FILENAME>``
+        so that an attacker who can shape the LLM's output cannot influence
+        either the filename or the directory the calling agent is told to
+        read back. The ``working_directory`` argument is still validated
+        against the workspace root via :meth:`_validate_file_paths`, but the
+        artifact path is fixed.
+        """
+
+        workspace_root = self._resolve_workspace_root()
+
+        # working_directory has already been validated by _validate_file_paths
+        # to live inside the workspace root. We keep the resolution here as a
+        # defence in depth so that direct callers (e.g. tests) cannot bypass
+        # containment by calling _persist_generated_code_block directly.
+        expanded = os.path.expanduser(working_directory)
+        resolved_working_dir = Path(expanded).resolve()
+        if not resolved_working_dir.is_dir():
+            raise FileNotFoundError(f"Absolute working directory path '{working_directory}' does not exist")
+        if not resolved_working_dir.is_relative_to(workspace_root):
+            raise PermissionError(
+                f"working_directory '{working_directory}' resolves outside the PAL workspace root "
+                f"'{workspace_root}'. Refusing to write artifact."
+            )
+
+        sandbox_dir = workspace_root / PAL_ARTIFACT_SANDBOX_DIRNAME
+        sandbox_dir.mkdir(parents=True, exist_ok=True)
+
+        target_file = sandbox_dir / PAL_ARTIFACT_FILENAME
+        # Final belt-and-braces check: the resolved target file must still
+        # live under the sandbox dir. This catches any symlink shenanigans
+        # planted by a prior write.
+        if not target_file.resolve().is_relative_to(sandbox_dir.resolve()):
+            raise PermissionError(
+                f"Refusing to write artifact: resolved target {target_file.resolve()} escapes sandbox "
+                f"{sandbox_dir.resolve()}."
+            )
+
         if target_file.exists():
             try:
                 target_file.unlink()
