@@ -55,6 +55,9 @@ async def test_chat_codegen_saves_file(monkeypatch, tmp_path):
         m.setenv("GOOGLE_GENAI_CLIENT_MODE", client_mode)
         m.setenv("GOOGLE_GENAI_REPLAYS_DIRECTORY", str(REPLAYS_ROOT))
         m.setenv("GOOGLE_GENAI_REPLAY_ID", CASSETTE_REPLAY_ID)
+        # Confine artifact writes to the test-managed tmp_path so the
+        # workspace-containment check passes for this integration test.
+        m.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
 
         # Clear other provider keys to avoid unintended routing
         for key in ["OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "CUSTOM_API_KEY"]:
@@ -65,7 +68,9 @@ async def test_chat_codegen_saves_file(monkeypatch, tmp_path):
 
         working_dir = tmp_path / "codegen"
         working_dir.mkdir()
-        preexisting = working_dir / "pal_generated.code"
+        sandbox_dir = tmp_path / "pal_artifacts"
+        sandbox_dir.mkdir(exist_ok=True)
+        preexisting = sandbox_dir / "pal_generated.code"
         preexisting.write_text("stale contents", encoding="utf-8")
 
         chat_tool = ChatTool()
@@ -102,7 +107,7 @@ async def test_chat_codegen_saves_file(monkeypatch, tmp_path):
     payload = json.loads(result[0].text)
     assert payload["status"] in {"success", "continuation_available"}
 
-    artifact_path = working_dir / "pal_generated.code"
+    artifact_path = tmp_path / "pal_artifacts" / "pal_generated.code"
     assert artifact_path.exists()
     saved = artifact_path.read_text()
     assert "<GENERATED-CODE>" in saved
