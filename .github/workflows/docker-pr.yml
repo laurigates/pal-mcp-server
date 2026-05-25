@@ -5,8 +5,8 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - '**.py'
-      - 'requirements*.txt'
       - 'pyproject.toml'
+      - 'uv.lock'
       - 'Dockerfile'
       - 'docker-compose.yml'
       - '.dockerignore'
