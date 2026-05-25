@@ -82,9 +82,27 @@ class CustomProvider(OpenAICompatibleProvider):
         if CustomProvider._registry is None:
             CustomProvider._registry = CustomEndpointModelRegistry()
             # Log loaded models and aliases only on first load
-            models = self._registry.list_models()
-            aliases = self._registry.list_aliases()
+            registry = CustomProvider._registry
+            models = registry.list_models()
+            aliases = registry.list_aliases()
             logging.info(f"Custom provider loaded {len(models)} models with {len(aliases)} aliases")
+
+    # ------------------------------------------------------------------
+    # Registry accessor (lazy materialisation)
+    # ------------------------------------------------------------------
+    @classmethod
+    def _get_registry(cls) -> CustomEndpointModelRegistry:
+        """Return the shared model registry, materialising it on first access.
+
+        The class-level ``_registry`` attribute is typed as ``Optional`` to allow
+        deferred construction, but every code path that needs it must see a
+        non-Optional reference. This accessor performs the lazy initialisation
+        once and guarantees a concrete registry to callers, eliminating the
+        ``Optional[...]`` from the call sites.
+        """
+        if cls._registry is None:
+            cls._registry = CustomEndpointModelRegistry()
+        return cls._registry
 
     # ------------------------------------------------------------------
     # Capability surface
@@ -100,7 +118,7 @@ class CustomProvider(OpenAICompatibleProvider):
         if builtin is not None:
             return builtin
 
-        registry_entry = self._registry.resolve(canonical_name)
+        registry_entry = self._get_registry().resolve(canonical_name)
         if registry_entry:
             registry_entry.provider = ProviderType.CUSTOM
             return registry_entry
@@ -127,7 +145,8 @@ class CustomProvider(OpenAICompatibleProvider):
         if cache_key in self._alias_cache:
             return self._alias_cache[cache_key]
 
-        config = self._registry.resolve(model_name)
+        registry = self._get_registry()
+        config = registry.resolve(model_name)
         if config:
             if config.model_name != model_name:
                 logging.debug("Resolved model alias '%s' to '%s'", model_name, config.model_name)
@@ -140,7 +159,7 @@ class CustomProvider(OpenAICompatibleProvider):
             base_model = model_name.split(":")[0]
             logging.debug(f"Stripped version tag from '{model_name}' -> '{base_model}'")
 
-            base_config = self._registry.resolve(base_model)
+            base_config = registry.resolve(base_model)
             if base_config:
                 logging.debug("Resolved base model '%s' to '%s'", base_model, base_config.model_name)
                 resolved = base_config.model_name
@@ -166,12 +185,11 @@ class CustomProvider(OpenAICompatibleProvider):
     def get_all_model_capabilities(self) -> dict[str, ModelCapabilities]:
         """Expose registry capabilities for models marked as custom."""
 
-        if not self._registry:
-            return {}
+        registry = self._get_registry()
 
         capabilities = {}
-        for model in self._registry.list_models():
-            config = self._registry.resolve(model)
+        for model in registry.list_models():
+            config = registry.resolve(model)
             if config:
                 capabilities[model] = config
         return capabilities
