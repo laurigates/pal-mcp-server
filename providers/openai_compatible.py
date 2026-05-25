@@ -3,6 +3,7 @@
 import copy
 import ipaddress
 import logging
+from typing import Any
 from urllib.parse import urlparse
 
 from openai import OpenAI
@@ -30,7 +31,7 @@ class OpenAICompatibleProvider(ModelProvider):
     DEFAULT_HEADERS = {}
     FRIENDLY_NAME = "OpenAI Compatible"
 
-    def __init__(self, api_key: str, base_url: str = None, **kwargs):
+    def __init__(self, api_key: str, base_url: str | None = None, **kwargs):
         """Initialize the provider with API key and optional base URL.
 
         Args:
@@ -272,10 +273,11 @@ class OpenAICompatibleProvider(ModelProvider):
                     # Create httpx client with minimal config to avoid proxy conflicts
                     # Note: proxies parameter was removed in httpx 0.28.0
                     # Check for test transport injection
-                    if hasattr(self, "_test_transport"):
+                    test_transport: httpx.BaseTransport | None = getattr(self, "_test_transport", None)
+                    if test_transport is not None:
                         # Use custom transport for testing (HTTP recording/replay)
                         http_client = httpx.Client(
-                            transport=self._test_transport,
+                            transport=test_transport,
                             timeout=timeout_config,
                             follow_redirects=True,
                         )
@@ -287,7 +289,7 @@ class OpenAICompatibleProvider(ModelProvider):
                         )
 
                     # Keep client initialization minimal to avoid proxy parameter conflicts
-                    client_kwargs = {
+                    client_kwargs: dict[str, Any] = {
                         "api_key": self.api_key,
                         "http_client": http_client,
                     }
@@ -317,7 +319,7 @@ class OpenAICompatibleProvider(ModelProvider):
                         e,
                     )
                     try:
-                        minimal_kwargs = {"api_key": self.api_key}
+                        minimal_kwargs: dict[str, Any] = {"api_key": self.api_key}
                         if self.base_url:
                             minimal_kwargs["base_url"] = self.base_url
                         self._client = OpenAI(**minimal_kwargs)
@@ -416,7 +418,7 @@ class OpenAICompatibleProvider(ModelProvider):
         if capabilities and capabilities.default_reasoning_effort:
             effort = capabilities.default_reasoning_effort
 
-        completion_params = {
+        completion_params: dict[str, Any] = {
             "model": model_name,
             "input": input_messages,
             "reasoning": {"effort": effort},
@@ -440,7 +442,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
         # Retry logic with progressive delays
         max_retries = 4
-        retry_delays = [1, 3, 5, 8]
+        retry_delays: list[float] = [1.0, 3.0, 5.0, 8.0]
         attempt_counter = {"value": 0}
 
         def _attempt() -> ModelResponse:
@@ -456,7 +458,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
             content = self._safe_extract_output_text(response)
 
-            usage = None
+            usage: dict[str, int] = {}
             if hasattr(response, "usage"):
                 usage = self._extract_usage(response)
             elif hasattr(response, "input_tokens") and hasattr(response, "output_tokens"):
@@ -582,7 +584,7 @@ class OpenAICompatibleProvider(ModelProvider):
         # Prepare completion parameters
         # Always disable streaming for OpenRouter
         # MCP doesn't use streaming, and this avoids issues with O3 model access
-        completion_params = {
+        completion_params: dict[str, Any] = {
             "model": resolved_model,
             "messages": messages,
             "stream": False,
@@ -632,7 +634,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
         # Retry logic with progressive delays
         max_retries = 4  # Total of 4 attempts
-        retry_delays = [1, 3, 5, 8]  # Progressive delays: 1s, 3s, 5s, 8s
+        retry_delays: list[float] = [1.0, 3.0, 5.0, 8.0]  # Progressive delays: 1s, 3s, 5s, 8s
         attempt_counter = {"value": 0}
 
         def _attempt() -> ModelResponse:
@@ -786,9 +788,11 @@ class OpenAICompatibleProvider(ModelProvider):
 
             except (json.JSONDecodeError, ValueError, SyntaxError, AttributeError):
                 # Fall back to checking hasattr for OpenAI SDK exception objects
-                if hasattr(error, "response") and hasattr(error.response, "json"):
+                response_obj = getattr(error, "response", None)
+                json_method = getattr(response_obj, "json", None)
+                if callable(json_method):
                     try:
-                        response_data = error.response.json()
+                        response_data = json_method()
                         if "error" in response_data:
                             error_info = response_data["error"]
                             error_type = error_info.get("type")
