@@ -3,7 +3,6 @@
 import copy
 import ipaddress
 import logging
-from typing import Optional
 from urllib.parse import urlparse
 
 from openai import OpenAI
@@ -103,7 +102,7 @@ class OpenAICompatibleProvider(ModelProvider):
                         f"Model '{requested_name}' is not allowed by restriction policy. Allowed models: {sorted(self.allowed_models)}"
                     )
 
-    def _parse_allowed_models(self) -> Optional[set[str]]:
+    def _parse_allowed_models(self) -> set[str] | None:
         """Parse allowed models from environment variable.
 
         Returns:
@@ -390,8 +389,8 @@ class OpenAICompatibleProvider(ModelProvider):
         model_name: str,
         messages: list,
         temperature: float,
-        max_output_tokens: Optional[int] = None,
-        capabilities: Optional[ModelCapabilities] = None,
+        max_output_tokens: int | None = None,
+        capabilities: ModelCapabilities | None = None,
         **kwargs,
     ) -> ModelResponse:
         """Generate content using the /v1/responses endpoint for reasoning models."""
@@ -500,10 +499,10 @@ class OpenAICompatibleProvider(ModelProvider):
         self,
         prompt: str,
         model_name: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.3,
-        max_output_tokens: Optional[int] = None,
-        images: Optional[list[str]] = None,
+        max_output_tokens: int | None = None,
+        images: list[str] | None = None,
         **kwargs,
     ) -> ModelResponse:
         """Generate content using the OpenAI-compatible API.
@@ -524,7 +523,7 @@ class OpenAICompatibleProvider(ModelProvider):
         if not self.validate_model_name(model_name):
             raise ValueError(f"Model '{model_name}' not in allowed models list. Allowed models: {self.allowed_models}")
 
-        capabilities: Optional[ModelCapabilities]
+        capabilities: ModelCapabilities | None
         try:
             capabilities = self.get_capabilities(model_name)
         except Exception as exc:
@@ -830,7 +829,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
         return any(indicator in error_str for indicator in retryable_indicators)
 
-    def _process_image(self, image_path: str) -> Optional[dict]:
+    def _process_image(self, image_path: str) -> dict | None:
         """Process an image for OpenAI-compatible API."""
         try:
             if image_path.startswith("data:"):

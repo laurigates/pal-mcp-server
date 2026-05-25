@@ -14,7 +14,7 @@ Key Features:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
@@ -56,7 +56,7 @@ class ThinkDeepWorkflowRequest(WorkflowRequest):
         default_factory=list,
         description="Key concepts/methods: 'concept_name' or 'ClassName.methodName'. Focus on core insights, decision points.",
     )
-    hypothesis: Optional[str] = Field(
+    hypothesis: str | None = Field(
         default=None,
         description="Current theory based on evidence. Revise in later steps.",
     )
@@ -73,22 +73,22 @@ class ThinkDeepWorkflowRequest(WorkflowRequest):
 
     # Expert analysis configuration - keep these fields available for configuring the final assistant model
     # in expert analysis (commented out exclude=True)
-    temperature: Optional[float] = Field(
+    temperature: float | None = Field(
         default=None,
         description="Creative thinking temp (0-1, default 0.7)",
         ge=0.0,
         le=1.0,
     )
-    thinking_mode: Optional[str] = Field(
+    thinking_mode: str | None = Field(
         default=None,
         description="Depth: minimal/low/medium/high/max. Default 'high'.",
     )
     # Context files and investigation scope
-    problem_context: Optional[str] = Field(
+    problem_context: str | None = Field(
         default=None,
         description="Additional context about problem/goal. Be expressive.",
     )
-    focus_areas: Optional[list[str]] = Field(
+    focus_areas: list[str] | None = Field(
         default=None,
         description="Focus aspects (architecture, performance, security, etc.)",
     )
@@ -272,7 +272,7 @@ additional insights or alternative perspectives.
 
 ANALYSIS SCOPE:
 - Problem Context: {self._get_problem_context(request)}
-- Focus Areas: {', '.join(self._get_focus_areas(request))}
+- Focus Areas: {", ".join(self._get_focus_areas(request))}
 - Investigation Confidence: {request.confidence}
 - Steps Completed: {request.step_number} of {request.total_steps}
 
@@ -280,7 +280,7 @@ THINKING SUMMARY:
 {request.findings}
 
 KEY INSIGHTS AND CONTEXT:
-{', '.join(request.relevant_context) if request.relevant_context else 'No specific context identified'}
+{", ".join(request.relevant_context) if request.relevant_context else "No specific context identified"}
 
 VALIDATION OBJECTIVES:
 1. Assess the depth and quality of the thinking process
@@ -548,7 +548,7 @@ but also acknowledge strong insights and valid conclusions.
         assistant_response: str,
         request,
         status: str = "pause_for_thinkdeep",
-        continuation_id: Optional[str] = None,
+        continuation_id: str | None = None,
         **kwargs,
     ) -> dict:
         """

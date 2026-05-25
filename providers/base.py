@@ -3,7 +3,8 @@
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
@@ -43,7 +44,7 @@ class ModelProvider(ABC):
         """Initialize the provider with API key and optional configuration."""
         self.api_key = api_key
         self.config = kwargs
-        self._sorted_capabilities_cache: Optional[list[tuple[str, ModelCapabilities]]] = None
+        self._sorted_capabilities_cache: list[tuple[str, ModelCapabilities]] | None = None
 
     # ------------------------------------------------------------------
     # Provider identity & capability surface
@@ -148,9 +149,9 @@ class ModelProvider(ABC):
         self,
         prompt: str,
         model_name: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.3,
-        max_output_tokens: Optional[int] = None,
+        max_output_tokens: int | None = None,
         **kwargs,
     ) -> ModelResponse:
         """Generate content using the model.
@@ -244,7 +245,7 @@ class ModelProvider(ABC):
         operation: Callable[[], Any],
         *,
         max_attempts: int,
-        delays: Optional[list[float]] = None,
+        delays: list[float] | None = None,
         log_prefix: str = "",
     ):
         """Execute ``operation`` with retry semantics.
@@ -267,7 +268,7 @@ class ModelProvider(ABC):
 
         attempts = max_attempts
         delays = delays or []
-        last_exc: Optional[Exception] = None
+        last_exc: Exception | None = None
 
         for attempt_index in range(attempts):
             try:
@@ -340,12 +341,12 @@ class ModelProvider(ABC):
     # ------------------------------------------------------------------
     # Preference / registry hooks
     # ------------------------------------------------------------------
-    def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> Optional[str]:
+    def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> str | None:
         """Get the preferred model from this provider for a given category."""
 
         return None
 
-    def get_model_registry(self) -> Optional[dict[str, Any]]:
+    def get_model_registry(self) -> dict[str, Any] | None:
         """Return the model registry backing this provider, if any."""
 
         return None
@@ -356,8 +357,8 @@ class ModelProvider(ABC):
     def _lookup_capabilities(
         self,
         canonical_name: str,
-        requested_name: Optional[str] = None,
-    ) -> Optional[ModelCapabilities]:
+        requested_name: str | None = None,
+    ) -> ModelCapabilities | None:
         """Return ``ModelCapabilities`` for the canonical model name."""
 
         return self.get_all_model_capabilities().get(canonical_name)

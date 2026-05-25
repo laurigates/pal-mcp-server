@@ -25,7 +25,7 @@ import logging
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from mcp.types import TextContent
 
@@ -70,7 +70,7 @@ class BaseWorkflowMixin(ABC):
         super().__init__()
         self.work_history: list[dict[str, Any]] = []
         self.consolidated_findings: ConsolidatedFindings = ConsolidatedFindings()
-        self.initial_request: Optional[str] = None
+        self.initial_request: str | None = None
 
     # ================================================================================
     # Abstract Methods - Required Implementation by BaseTool or Subclasses
@@ -115,13 +115,13 @@ class BaseWorkflowMixin(ABC):
     def _prepare_file_content_for_prompt(
         self,
         request_files: list[str],
-        continuation_id: Optional[str],
+        continuation_id: str | None,
         context_description: str = "New files",
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         reserve_tokens: int = 1_000,
-        remaining_budget: Optional[int] = None,
-        arguments: Optional[dict[str, Any]] = None,
-        model_context: Optional[Any] = None,
+        remaining_budget: int | None = None,
+        arguments: dict[str, Any] | None = None,
+        model_context: Any | None = None,
     ) -> tuple[str, list[str]]:
         """Prepare file content for prompts. Usually provided by BaseTool."""
         pass
@@ -479,7 +479,7 @@ class BaseWorkflowMixin(ABC):
             self._reference_workflow_files(request)
 
     def _should_embed_files_in_workflow_step(
-        self, step_number: int, continuation_id: Optional[str], is_final_step: bool
+        self, step_number: int, continuation_id: str | None, is_final_step: bool
     ) -> bool:
         """
         Determine whether to embed file content based on workflow context.
@@ -894,7 +894,7 @@ class BaseWorkflowMixin(ABC):
         except AttributeError:
             return []
 
-    def get_request_hypothesis(self, request: Any) -> Optional[str]:
+    def get_request_hypothesis(self, request: Any) -> str | None:
         """Get hypothesis from request. Override for custom field mapping."""
         try:
             return request.hypothesis
@@ -945,7 +945,7 @@ class BaseWorkflowMixin(ABC):
         except AttributeError:
             return "flash"
 
-    def get_request_continuation_id(self, request: Any) -> Optional[str]:
+    def get_request_continuation_id(self, request: Any) -> str | None:
         """Get continuation ID from request. Override for custom continuation handling."""
         try:
             return request.continuation_id

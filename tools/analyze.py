@@ -17,7 +17,7 @@ Key features:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -108,14 +108,14 @@ class AnalyzeWorkflowRequest(WorkflowRequest):
     )
 
     # Optional images for visual context
-    images: Optional[list[str]] = Field(default=None, description=ANALYZE_WORKFLOW_FIELD_DESCRIPTIONS["images"])
+    images: list[str] | None = Field(default=None, description=ANALYZE_WORKFLOW_FIELD_DESCRIPTIONS["images"])
 
     # Analyze-specific fields (only used in step 1 to initialize)
     # Note: Use relevant_files field instead of files for consistency across workflow tools
-    analysis_type: Optional[Literal["architecture", "performance", "security", "quality", "general"]] = Field(
+    analysis_type: Literal["architecture", "performance", "security", "quality", "general"] | None = Field(
         "general", description=ANALYZE_WORKFLOW_FIELD_DESCRIPTIONS["analysis_type"]
     )
-    output_format: Optional[Literal["summary", "detailed", "actionable"]] = Field(
+    output_format: Literal["summary", "detailed", "actionable"] | None = Field(
         "detailed", description=ANALYZE_WORKFLOW_FIELD_DESCRIPTIONS["output_format"]
     )
 
@@ -509,14 +509,14 @@ class AnalyzeTool(WorkflowTool):
             next_steps = (
                 f"STOP! Do NOT call {self.get_name()} again yet. Based on your findings, you've identified areas that need "
                 f"deeper analysis. MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\\n"
-                + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                 + f"\\n\\nOnly call {self.get_name()} again with step_number: {step_number + 1} AFTER "
                 + "completing these analysis tasks."
             )
         else:
             next_steps = (
                 f"WAIT! Your analysis needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\\n"
-                + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                 + f"\\n\\nREMEMBER: Ensure you have identified all significant architectural insights and strategic "
                 f"opportunities across all areas. Document findings with specific file references and "
                 f"code examples where applicable, then call {self.get_name()} with step_number: {step_number + 1}."

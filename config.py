@@ -8,16 +8,39 @@ constants used throughout the application.
 Configuration values can be overridden by environment variables where appropriate.
 """
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
 from utils.env import get_env
 
-# Version and metadata
-# These values are used in server responses and for tracking releases
-# IMPORTANT: This is the single source of truth for version and author info
-# Semantic versioning: MAJOR.MINOR.PATCH
-__version__ = "9.8.2"
-# Last update date in ISO format
+
+def _read_version() -> str:
+    """Return the installed package version, or parse pyproject.toml as a source-tree fallback."""
+    try:
+        return _pkg_version("pal-mcp-server")
+    except PackageNotFoundError:
+        pass
+
+    try:
+        import tomllib  # Python 3.11+
+    except ModuleNotFoundError:
+        import tomli as tomllib  # type: ignore[no-redef]
+
+    from pathlib import Path
+
+    pyproject = Path(__file__).resolve().parent / "pyproject.toml"
+    try:
+        with pyproject.open("rb") as f:
+            return tomllib.load(f)["project"]["version"]
+    except (OSError, KeyError):
+        return "0.0.0+unknown"
+
+
+# Version and metadata used in server responses.
+# __version__ is derived from pyproject.toml (the single source of truth, bumped by release-please).
+# __updated__ and __author__ are maintained by hand; bump __updated__ when releasing a notable change.
+__version__ = _read_version()
 __updated__ = "2025-12-15"
-# Primary maintainer
 __author__ = "Fahad Gilani"
 
 # Model configuration

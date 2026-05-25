@@ -17,7 +17,7 @@ Key features:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -85,27 +85,27 @@ class CodeReviewRequest(WorkflowRequest):
         default_factory=list, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["issues_found"]
     )
     # Deprecated confidence field kept for backward compatibility only
-    confidence: Optional[str] = Field("low", exclude=True)
-    review_validation_type: Optional[Literal["external", "internal"]] = Field(
+    confidence: str | None = Field("low", exclude=True)
+    review_validation_type: Literal["external", "internal"] | None = Field(
         "external", description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS.get("review_validation_type", "")
     )
 
     # Optional images for visual context
-    images: Optional[list[str]] = Field(default=None, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["images"])
+    images: list[str] | None = Field(default=None, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["images"])
 
     # Code review-specific fields (only used in step 1 to initialize)
-    review_type: Optional[Literal["full", "security", "performance", "quick"]] = Field(
+    review_type: Literal["full", "security", "performance", "quick"] | None = Field(
         "full", description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["review_type"]
     )
-    focus_on: Optional[str] = Field(None, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["focus_on"])
-    standards: Optional[str] = Field(None, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["standards"])
-    severity_filter: Optional[Literal["critical", "high", "medium", "low", "all"]] = Field(
+    focus_on: str | None = Field(None, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["focus_on"])
+    standards: str | None = Field(None, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["standards"])
+    severity_filter: Literal["critical", "high", "medium", "low", "all"] | None = Field(
         "all", description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["severity_filter"]
     )
 
     # Override inherited fields to exclude them from schema (except model which needs to be available)
-    temperature: Optional[float] = Field(default=None, exclude=True)
-    thinking_mode: Optional[str] = Field(default=None, exclude=True)
+    temperature: float | None = Field(default=None, exclude=True)
+    thinking_mode: str | None = Field(default=None, exclude=True)
 
     @model_validator(mode="after")
     def validate_step_one_requirements(self):
@@ -567,7 +567,7 @@ class CodeReviewTool(WorkflowTool):
                     "next_steps": (
                         "You are on step 1 of MAXIMUM 2 steps for continuation. CRITICAL: Quickly review the code NOW. "
                         "MANDATORY ACTIONS:\\n"
-                        + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                        + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                         + "\\n\\nSet next_step_required=True and step_number=2 for the next call to trigger expert analysis."
                     )
                 }
@@ -576,14 +576,14 @@ class CodeReviewTool(WorkflowTool):
                 next_steps = (
                     "Continuing previous conversation with internal validation only. The analysis will build "
                     "upon the prior findings without external model validation. REQUIRED ACTIONS:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                 )
             else:
                 # Normal flow for new reviews
                 next_steps = (
                     f"MANDATORY: DO NOT call the {self.get_name()} tool again immediately. You MUST first examine "
                     f"the code files thoroughly using appropriate tools. CRITICAL AWARENESS: You need to:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                     + f"\\n\\nOnly call {self.get_name()} again AFTER completing your investigation. "
                     f"When you call {self.get_name()} next time, use step_number: {step_number + 1} "
                     f"and report specific files examined, issues found, and code quality assessments discovered."
@@ -613,7 +613,7 @@ class CodeReviewTool(WorkflowTool):
                 next_steps = (
                     f"STOP! Do NOT call {self.get_name()} again yet. You are on step 2 of {request.total_steps} minimum required steps. "
                     f"MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                     + f"\\n\\nRemember: You MUST set next_step_required=True until step {request.total_steps}. "
                     + f"Only call {self.get_name()} again with step_number: {step_number + 1} AFTER completing these code review tasks."
                 )
@@ -629,7 +629,7 @@ class CodeReviewTool(WorkflowTool):
                 # Later steps - final verification
                 next_steps = (
                     f"WAIT! Your code review needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                     + f"\\n\\nREMEMBER: Ensure you have identified all significant issues across all severity levels and "
                     f"verified the completeness of your review. Document findings with specific file references and "
                     f"line numbers where applicable, then call {self.get_name()} with step_number: {step_number + 1}."
