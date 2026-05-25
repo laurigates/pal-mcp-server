@@ -30,7 +30,7 @@ from typing import Any
 from mcp.types import TextContent
 
 from config import MCP_PROMPT_SIZE_LIMIT
-from utils.conversation_memory import add_turn, create_thread
+from utils.conversation_memory import ConversationMemoryStorageError, add_turn, create_thread
 
 from ..shared.base_models import ConsolidatedFindings
 from ..shared.exceptions import ToolExecutionError
@@ -1115,6 +1115,12 @@ class BaseWorkflowMixin(ABC):
     def store_conversation_turn(self, continuation_id: str, response_data: dict, request):
         """
         Store the conversation turn. Tools can override for custom memory storage.
+
+        Storage backend faults are logged but do not fail the workflow —
+        the response has already been generated, so swallowing the
+        storage error here keeps the user's current turn flowing. The
+        underlying fault is still visible in mcp_server.log (logged at
+        WARNING with exc_info=True inside ``add_turn``).
         """
         # CRITICAL: Extract clean content for conversation history (exclude internal workflow metadata)
         clean_content = self._extract_clean_workflow_content_for_history(response_data)
@@ -1122,15 +1128,27 @@ class BaseWorkflowMixin(ABC):
         # Serialize workflow state for persistence across stateless tool calls
         workflow_state = {"work_history": self.work_history, "initial_request": getattr(self, "initial_request", None)}
 
-        add_turn(
-            thread_id=continuation_id,
-            role="assistant",
-            content=clean_content,  # Use cleaned content instead of full response_data
-            tool_name=self.get_name(),
-            files=self.get_request_relevant_files(request),
-            images=self.get_request_images(request),
-            model_metadata=workflow_state,  # Persist the state
-        )
+        try:
+            add_turn(
+                thread_id=continuation_id,
+                role="assistant",
+                content=clean_content,  # Use cleaned content instead of full response_data
+                tool_name=self.get_name(),
+                files=self.get_request_relevant_files(request),
+                images=self.get_request_images(request),
+                model_metadata=workflow_state,  # Persist the state
+            )
+        except ConversationMemoryStorageError as exc:
+            # Response already generated; failing the workflow because
+            # the storage backend hiccuped after the fact would lose the
+            # user's results. add_turn already logged the underlying
+            # fault at WARNING+exc_info; follow-up requests with the
+            # same continuation_id will surface the outage via
+            # reconstruct_thread_context.
+            logger.error(
+                f"Failed to persist workflow turn for thread {continuation_id} after response was generated: {exc}",
+                exc_info=True,
+            )
 
     def _add_workflow_metadata(self, response_data: dict, arguments: dict[str, Any]) -> None:
         """

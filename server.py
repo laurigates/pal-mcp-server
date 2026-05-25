@@ -1115,7 +1115,34 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
             f"[CONVERSATION_DEBUG] User prompt length: {len(user_prompt)} chars (~{user_prompt_tokens:,} tokens)"
         )
         logger.debug(f"[CONVERSATION_DEBUG] User files: {user_files}")
-        success = add_turn(continuation_id, "user", user_prompt, files=user_files)
+        # Storage faults (ConversationMemoryStorageError) propagate up so
+        # the user sees a "storage unavailable" message rather than a
+        # silently-lost turn. False return values are reserved for
+        # expected non-fault outcomes (thread expired between get_thread
+        # and add_turn, or turn limit reached); those degrade to a
+        # WARNING log without aborting the request.
+        try:
+            success = add_turn(continuation_id, "user", user_prompt, files=user_files)
+        except ConversationMemoryStorageError as exc:
+            logger.error(
+                f"Conversation storage backend failed while saving user turn to {continuation_id}: {exc}",
+                exc_info=True,
+            )
+            try:
+                mcp_activity_logger = logging.getLogger("mcp_activity")
+                mcp_activity_logger.info(
+                    f"CONVERSATION_ERROR: Storage backend failure saving user turn to {continuation_id}"
+                )
+            except Exception:
+                pass
+            raise ValueError(
+                f"Conversation thread '{continuation_id}' could not be updated because the "
+                f"conversation storage backend is currently unavailable. "
+                f"This is a transient server-side fault — please retry shortly. "
+                f"If the failure persists, check the server logs (mcp_server.log) for the "
+                f"underlying storage error."
+            ) from exc
+
         if not success:
             logger.warning(f"Failed to add user turn to thread {continuation_id}")
             logger.debug("[CONVERSATION_DEBUG] Failed to add user turn - thread may be at turn limit or expired")
