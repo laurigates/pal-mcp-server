@@ -6,7 +6,7 @@ and the generation of properly encoded JSON responses.
 import json
 import os
 import unittest
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 from tools.analyze import AnalyzeTool
 from tools.codereview import CodeReviewTool
@@ -76,7 +76,10 @@ class TestWorkflowToolsUTF8(unittest.IsolatedAsyncioTestCase):
         mock_provider = Mock()
         mock_provider.get_provider_type.return_value = Mock(value="test")
         mock_provider.get_capabilities.return_value = Mock(supports_extended_thinking=False)
-        mock_provider.generate_content = AsyncMock(
+        # provider.generate_content is synchronous (see tools/workflow/workflow_mixin.py
+        # line ~1493 — called without `await`). A Mock with return_value is the
+        # right double; AsyncMock would return an un-awaited coroutine.
+        mock_provider.generate_content = Mock(
             return_value=Mock(
                 content=json.dumps(
                     {
@@ -133,7 +136,8 @@ class TestWorkflowToolsUTF8(unittest.IsolatedAsyncioTestCase):
         mock_provider = Mock()
         mock_provider.get_provider_type.return_value = Mock(value="test")
         mock_provider.get_capabilities.return_value = Mock(supports_extended_thinking=False)
-        mock_provider.generate_content = AsyncMock(
+        # provider.generate_content is synchronous (called without `await`).
+        mock_provider.generate_content = Mock(
             return_value=Mock(
                 content=json.dumps(
                     {
@@ -206,7 +210,8 @@ class TestWorkflowToolsUTF8(unittest.IsolatedAsyncioTestCase):
         mock_provider = Mock()
         mock_provider.get_provider_type.return_value = Mock(value="test")
         mock_provider.get_capabilities.return_value = Mock(supports_extended_thinking=False)
-        mock_provider.generate_content = AsyncMock(
+        # provider.generate_content is synchronous (called without `await`).
+        mock_provider.generate_content = Mock(
             return_value=Mock(
                 content=json.dumps(
                     {
