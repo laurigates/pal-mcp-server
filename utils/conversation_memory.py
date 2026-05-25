@@ -383,12 +383,20 @@ def add_turn(
         model_metadata: Additional model info (e.g., thinking mode, token usage)
 
     Returns:
-        bool: True if turn was successfully added, False otherwise
+        bool: True if turn was successfully added. ``False`` is returned
+        only for *expected* non-fault outcomes: the thread is absent
+        (expired / never created) or the thread has reached the
+        ``MAX_CONVERSATION_TURNS`` cap.
 
-    Failure cases:
-        - Thread doesn't exist or expired
-        - Maximum turn limit reached
-        - Storage connection failure
+    Raises:
+        ConversationMemoryStorageError: When the storage backend itself
+            fails — either while loading the thread (propagated from
+            ``get_thread``) or while writing the updated thread back.
+            These are hard storage faults that must not be silently
+            swallowed, since the caller's notion of "turn saved" would
+            be wrong. The fault is logged at WARNING with
+            ``exc_info=True`` so it appears in ``mcp_server.log`` for
+            operators.
 
     Note:
         - Refreshes thread TTL to configured timeout on successful update
@@ -399,13 +407,10 @@ def add_turn(
     """
     logger.debug(f"[FLOW] Adding {role} turn to {thread_id} ({tool_name})")
 
-    try:
-        context = get_thread(thread_id)
-    except ConversationMemoryStorageError:
-        # get_thread already logged the underlying fault at WARNING with
-        # exc_info=True. Preserve add_turn's bool contract by returning
-        # False, but the storage failure is visible in mcp_server.log.
-        return False
+    # Let ConversationMemoryStorageError from get_thread propagate — it
+    # represents a hard storage fault, not a "thread doesn't exist"
+    # outcome. get_thread has already emitted a WARNING with exc_info.
+    context = get_thread(thread_id)
     if not context:
         logger.debug(f"[FLOW] Thread {thread_id} not found for turn addition")
         return False
@@ -431,15 +436,26 @@ def add_turn(
     context.turns.append(turn)
     context.last_updated_at = datetime.now(timezone.utc).isoformat()
 
-    # Save back to storage and refresh TTL
+    # Save back to storage and refresh TTL.
     try:
         storage = get_storage()
         key = f"thread:{thread_id}"
         storage.setex(key, CONVERSATION_TIMEOUT_SECONDS, context.model_dump_json())  # Refresh TTL to configured timeout
         return True
-    except Exception as e:
-        logger.debug(f"[FLOW] Failed to save turn to storage: {type(e).__name__}")
-        return False
+    except Exception as exc:
+        # Storage write failure is a hard backend fault, not a
+        # validation outcome. Log loudly so operators see the real
+        # cause in mcp_server.log and raise the typed error so
+        # callers can distinguish it from "thread expired" / "at
+        # turn limit". Returning False here would silently lose the
+        # turn from the agent's perspective.
+        logger.warning(
+            f"[FLOW] Storage backend failure while saving turn to thread {thread_id}: {type(exc).__name__}: {exc}",
+            exc_info=True,
+        )
+        raise ConversationMemoryStorageError(
+            f"Conversation storage backend failure while saving turn to thread {thread_id}"
+        ) from exc
 
 
 def get_thread_chain(thread_id: str, max_depth: int = 20) -> list[ThreadContext]:

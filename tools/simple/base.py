@@ -12,6 +12,7 @@ and inherit all the conversation, file processing, and model handling
 capabilities from BaseTool.
 """
 
+import logging
 from abc import abstractmethod
 from typing import Any
 
@@ -19,6 +20,8 @@ from tools.shared.base_models import ToolRequest
 from tools.shared.base_tool import BaseTool
 from tools.shared.exceptions import ToolExecutionError
 from tools.shared.schema_builders import SchemaBuilder
+
+logger = logging.getLogger(__name__)
 
 
 class SimpleTool(BaseTool):
@@ -737,12 +740,19 @@ class SimpleTool(BaseTool):
     def _record_assistant_turn(
         self, continuation_id: str, response_text: str, request, model_info: dict | None
     ) -> None:
-        """Persist an assistant response in conversation memory."""
+        """Persist an assistant response in conversation memory.
+
+        Storage backend faults are logged but do not fail the tool call —
+        the assistant's response has already been generated, so swallowing
+        the storage error here keeps the user's current turn flowing. The
+        underlying fault is still visible in mcp_server.log (logged at
+        WARNING with exc_info=True inside ``add_turn``).
+        """
 
         if not continuation_id:
             return
 
-        from utils.conversation_memory import add_turn
+        from utils.conversation_memory import ConversationMemoryStorageError, add_turn
 
         model_provider = None
         model_name = None
@@ -763,17 +773,29 @@ class SimpleTool(BaseTool):
             if model_response:
                 model_metadata = {"usage": model_response.usage, "metadata": model_response.metadata}
 
-        add_turn(
-            continuation_id,
-            "assistant",
-            response_text,
-            files=self.get_request_files(request),
-            images=self.get_request_images(request),
-            tool_name=self.get_name(),
-            model_provider=model_provider,
-            model_name=model_name,
-            model_metadata=model_metadata,
-        )
+        try:
+            add_turn(
+                continuation_id,
+                "assistant",
+                response_text,
+                files=self.get_request_files(request),
+                images=self.get_request_images(request),
+                tool_name=self.get_name(),
+                model_provider=model_provider,
+                model_name=model_name,
+                model_metadata=model_metadata,
+            )
+        except ConversationMemoryStorageError as exc:
+            # Response already exists; failing the request because the
+            # storage backend hiccuped after the fact would be worse UX
+            # than continuing without the persisted turn. add_turn has
+            # already logged the underlying fault at WARNING+exc_info,
+            # and follow-up requests with the same continuation_id will
+            # surface the storage outage via reconstruct_thread_context.
+            logger.error(
+                f"Failed to persist assistant turn for thread {continuation_id} after response was generated: {exc}",
+                exc_info=True,
+            )
 
     # Convenience methods for common tool patterns
 
