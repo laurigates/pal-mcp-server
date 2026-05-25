@@ -344,7 +344,7 @@ class TestConsensusTool:
         - Method expected model_context parameter but got None (default value)
         - Runtime validation in base_tool.py threw RuntimeError
         """
-        from unittest.mock import AsyncMock, Mock, patch
+        from unittest.mock import Mock, patch
 
         from utils.model_context import ModelContext
 
@@ -365,9 +365,13 @@ class TestConsensusTool:
             patch.object(tool, "_get_stance_enhanced_prompt") as mock_get_prompt,
             patch.object(tool, "get_name", return_value="consensus"),
         ):
-            # Setup mocks
+            # Setup mocks. provider.generate_content is a synchronous method
+            # (see tools/consensus.py and tools/workflow/workflow_mixin.py — no `await`),
+            # so a plain Mock with return_value is the correct double. Using
+            # AsyncMock here would return an un-awaited coroutine and trigger
+            # `RuntimeWarning: coroutine '...' was never awaited`.
             mock_provider = Mock()
-            mock_provider.generate_content = AsyncMock(return_value={"response": "test response"})
+            mock_provider.generate_content = Mock(return_value=Mock(content="test response"))
             mock_get_provider.return_value = mock_provider
             mock_prepare_files.return_value = ("file content", [])
             mock_get_prompt.return_value = "system prompt"
