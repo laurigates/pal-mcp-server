@@ -21,6 +21,11 @@ from tools.shared.base_tool import BaseTool
 from tools.shared.exceptions import ToolExecutionError
 from tools.thinkdeep import ThinkDeepTool
 
+# Whole-file opt-out: tests across this module assert on real model
+# resolution / auto-mode behaviour (TestEffectiveAutoMode etc.). The
+# default ``mock_provider`` fixture would mask the very logic under test.
+pytestmark = pytest.mark.no_mock_provider
+
 
 class TestToolModelCategories:
     """Test that each tool returns the correct model category."""

@@ -9,6 +9,11 @@ import pytest
 from tools.chat import ChatTool
 from tools.shared.exceptions import ToolExecutionError
 
+# Whole-file opt-out: tests in this module set ``DEFAULT_MODEL=auto`` /
+# unavailable models and rely on the real ``is_effective_auto_mode``
+# behaviour. ``conftest.mock_provider`` must not stub it out here.
+pytestmark = pytest.mark.no_mock_provider
+
 
 class TestAutoMode:
     """Test auto mode configuration and behavior"""
