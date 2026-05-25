@@ -277,7 +277,7 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
     # ------------------------------------------------------------------
     # Request delegation
     # ------------------------------------------------------------------
-    def generate_content(
+    async def generate_content(
         self,
         prompt: str,
         model_name: str,
@@ -293,7 +293,7 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
         # deployment name – Azure requires the deployment identifier in the
         # ``model`` field.  The returned ``ModelResponse`` is normalised so
         # downstream consumers continue to see the canonical model name.
-        raw_response = super().generate_content(
+        raw_response = await super().generate_content(
             prompt=prompt,
             model_name=deployment_name,
             system_prompt=system_prompt,

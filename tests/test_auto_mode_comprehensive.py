@@ -2,7 +2,7 @@
 
 import importlib
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -531,7 +531,7 @@ class TestAutoModeComprehensive:
             mock_response.usage = {"input_tokens": 10, "output_tokens": 5}
             # Mock _resolve_model_name to simulate alias resolution
             mock_provider._resolve_model_name = lambda alias: "gemini-2.5-flash" if alias == "flash" else alias
-            mock_provider.generate_content.return_value = mock_response
+            mock_provider.generate_content = AsyncMock(return_value=mock_response)
 
             with patch.object(ModelProviderRegistry, "get_provider_for_model", return_value=mock_provider):
                 chat_tool = ChatTool()

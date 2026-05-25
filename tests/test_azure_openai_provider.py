@@ -53,14 +53,14 @@ def dummy_azure_client(monkeypatch):
     return captured
 
 
-def test_generate_content_uses_deployment_mapping(dummy_azure_client):
+async def test_generate_content_uses_deployment_mapping(dummy_azure_client):
     provider = AzureOpenAIProvider(
         api_key="key",
         azure_endpoint="https://example.openai.azure.com/",
         deployments={"gpt-4o": "prod-gpt4o"},
     )
 
-    result = provider.generate_content("hello", "gpt-4o")
+    result = await provider.generate_content("hello", "gpt-4o")
 
     assert dummy_azure_client["request_kwargs"]["model"] == "prod-gpt4o"
     assert result.model_name == "gpt-4o"
@@ -68,7 +68,7 @@ def test_generate_content_uses_deployment_mapping(dummy_azure_client):
     assert provider.validate_model_name("prod-gpt4o")
 
 
-def test_generate_content_accepts_deployment_alias(dummy_azure_client):
+async def test_generate_content_accepts_deployment_alias(dummy_azure_client):
     provider = AzureOpenAIProvider(
         api_key="key",
         azure_endpoint="https://example.openai.azure.com/",
@@ -76,7 +76,7 @@ def test_generate_content_accepts_deployment_alias(dummy_azure_client):
     )
 
     # Calling with the deployment alias should still resolve properly.
-    result = provider.generate_content("hi", "mini-deployment")
+    result = await provider.generate_content("hi", "mini-deployment")
 
     assert dummy_azure_client["request_kwargs"]["model"] == "mini-deployment"
     assert result.model_name == "gpt-4o-mini"
@@ -117,7 +117,7 @@ def test_deployment_overrides_capabilities(dummy_azure_client):
     assert not caps.supports_temperature
 
 
-def test_registry_configuration_merges_capabilities(dummy_azure_client, monkeypatch):
+async def test_registry_configuration_merges_capabilities(dummy_azure_client, monkeypatch):
     def fake_registry_entries(self):
         capability = ModelCapabilities(
             provider=ProviderType.AZURE,
@@ -141,5 +141,5 @@ def test_registry_configuration_merges_capabilities(dummy_azure_client, monkeypa
     assert caps.context_window == 500_000
 
     # API call should use deployment defined in registry
-    provider.generate_content("hello", "gpt-4o")
+    await provider.generate_content("hello", "gpt-4o")
     assert dummy_azure_client["request_kwargs"]["model"] == "registry-deployment"

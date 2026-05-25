@@ -15,7 +15,7 @@ class TestO3TemperatureParameterFixSimple:
 
     @patch("utils.model_restrictions.get_restriction_service")
     @patch("providers.openai_compatible.OpenAI")
-    def test_o3_models_exclude_temperature_from_api_call(self, mock_openai_class, mock_restriction_service):
+    async def test_o3_models_exclude_temperature_from_api_call(self, mock_openai_class, mock_restriction_service):
         """Test that O3 models don't send temperature to the API."""
         # Mock restriction service to allow all models
         mock_service = Mock()
@@ -50,7 +50,9 @@ class TestO3TemperatureParameterFixSimple:
         provider.validate_model_name = lambda name: True
 
         # Call generate_content with O3 model
-        provider.generate_content(prompt="Test prompt", model_name="o3-mini", temperature=0.5, max_output_tokens=100)
+        await provider.generate_content(
+            prompt="Test prompt", model_name="o3-mini", temperature=0.5, max_output_tokens=100
+        )
 
         # Verify the API call was made without temperature or max_tokens
         mock_client.chat.completions.create.assert_called_once()
@@ -63,7 +65,7 @@ class TestO3TemperatureParameterFixSimple:
 
     @patch("utils.model_restrictions.get_restriction_service")
     @patch("providers.openai_compatible.OpenAI")
-    def test_regular_models_include_temperature_in_api_call(self, mock_openai_class, mock_restriction_service):
+    async def test_regular_models_include_temperature_in_api_call(self, mock_openai_class, mock_restriction_service):
         """Test that regular models still send temperature to the API."""
         # Mock restriction service to allow all models
         mock_service = Mock()
@@ -98,7 +100,7 @@ class TestO3TemperatureParameterFixSimple:
         provider.validate_model_name = lambda name: True
 
         # Call generate_content with regular model (use supported model)
-        provider.generate_content(
+        await provider.generate_content(
             prompt="Test prompt", model_name="gpt-4.1-2025-04-14", temperature=0.5, max_output_tokens=100
         )
 
@@ -112,7 +114,7 @@ class TestO3TemperatureParameterFixSimple:
 
     @patch("utils.model_restrictions.get_restriction_service")
     @patch("providers.openai_compatible.OpenAI")
-    def test_o3_models_filter_unsupported_parameters(self, mock_openai_class, mock_restriction_service):
+    async def test_o3_models_filter_unsupported_parameters(self, mock_openai_class, mock_restriction_service):
         """Test that O3 models filter out top_p, frequency_penalty, etc."""
         # Mock restriction service to allow all models
         mock_service = Mock()
@@ -147,7 +149,7 @@ class TestO3TemperatureParameterFixSimple:
         provider.validate_model_name = lambda name: True
 
         # Call generate_content with O3 model and unsupported parameters
-        provider.generate_content(
+        await provider.generate_content(
             prompt="Test prompt",
             model_name="o3",
             temperature=0.5,

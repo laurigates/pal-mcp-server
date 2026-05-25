@@ -152,7 +152,7 @@ class TestDIALProvider:
             provider.get_capabilities("unknown-model")
 
     @patch("openai.OpenAI")  # Mock the OpenAI class directly from openai module
-    def test_generate_content_with_alias(self, mock_openai_class):
+    async def test_generate_content_with_alias(self, mock_openai_class):
         """Test that generate_content properly resolves aliases and uses deployment routing."""
         # Create mock client
         mock_client = MagicMock()
@@ -170,7 +170,7 @@ class TestDIALProvider:
         provider = DIALModelProvider("test-key")
 
         # Generate content with shorthand
-        response = provider.generate_content(prompt="Test prompt", model_name="o3", temperature=0.7)  # Shorthand
+        response = await provider.generate_content(prompt="Test prompt", model_name="o3", temperature=0.7)  # Shorthand
 
         # Verify OpenAI was instantiated with deployment-specific URL
         mock_openai_class.assert_called_once()

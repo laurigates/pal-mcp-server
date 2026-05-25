@@ -1,5 +1,6 @@
 """DIAL (Data & AI Layer) model provider implementation."""
 
+import asyncio
 import logging
 import threading
 from typing import ClassVar
@@ -149,7 +150,7 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
 
         return self._deployment_clients[deployment]
 
-    def generate_content(
+    async def generate_content(
         self,
         prompt: str,
         model_name: str,
@@ -262,9 +263,12 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
                 },
             )
 
+        async def _attempt_async() -> ModelResponse:
+            return await asyncio.to_thread(_attempt)
+
         try:
-            return self._run_with_retries(
-                operation=_attempt,
+            return await self._run_with_retries_async(
+                operation=_attempt_async,
                 max_attempts=self.MAX_RETRIES,
                 delays=self.RETRY_DELAYS,
                 log_prefix=f"DIAL API ({resolved_model})",
