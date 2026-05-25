@@ -21,7 +21,6 @@ Key Features:
 import logging
 import threading
 import time
-from typing import Optional
 
 from utils.env import get_env
 
@@ -46,7 +45,7 @@ class InMemoryStorage:
         self._cleanup_thread.start()
 
         logger.info(
-            f"In-memory storage initialized with {timeout_hours}h timeout, cleanup every {self._cleanup_interval//60}m"
+            f"In-memory storage initialized with {timeout_hours}h timeout, cleanup every {self._cleanup_interval // 60}m"
         )
 
     def set_with_ttl(self, key: str, ttl_seconds: int, value: str) -> None:
@@ -56,7 +55,7 @@ class InMemoryStorage:
             self._store[key] = (value, expires_at)
             logger.debug(f"Stored key {key} with TTL {ttl_seconds}s")
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         """Retrieve value if not expired"""
         with self._lock:
             if key in self._store:

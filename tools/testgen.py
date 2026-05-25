@@ -16,7 +16,7 @@ Key features:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field, model_validator
 
@@ -75,14 +75,14 @@ class TestGenRequest(WorkflowRequest):
     relevant_context: list[str] = Field(
         default_factory=list, description=TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["relevant_context"]
     )
-    confidence: Optional[str] = Field("low", description=TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["confidence"])
+    confidence: str | None = Field("low", description=TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["confidence"])
 
     # Optional images for visual context
-    images: Optional[list[str]] = Field(default=None, description=TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["images"])
+    images: list[str] | None = Field(default=None, description=TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS["images"])
 
     # Override inherited fields to exclude them from schema (except model which needs to be available)
-    temperature: Optional[float] = Field(default=None, exclude=True)
-    thinking_mode: Optional[str] = Field(default=None, exclude=True)
+    temperature: float | None = Field(default=None, exclude=True)
+    thinking_mode: str | None = Field(default=None, exclude=True)
 
     @model_validator(mode="after")
     def validate_step_one_requirements(self):
@@ -439,14 +439,14 @@ class TestGenTool(WorkflowTool):
             next_steps = (
                 f"STOP! Do NOT call {self.get_name()} again yet. Based on your findings, you've identified areas that need "
                 f"deeper analysis for test generation. MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\\n"
-                + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                 + f"\\n\\nOnly call {self.get_name()} again with step_number: {step_number + 1} AFTER "
                 + "completing these test planning tasks."
             )
         elif confidence in ["medium", "high"]:
             next_steps = (
                 f"WAIT! Your test generation analysis needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\\n"
-                + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                 + f"\\n\\nREMEMBER: Ensure you have identified all test scenarios including edge cases and error conditions. "
                 f"Document findings with specific test cases to implement, then call {self.get_name()} "
                 f"with step_number: {step_number + 1}."

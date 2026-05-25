@@ -70,7 +70,7 @@ class ModelProviderRegistry:
         instance._initialized_providers.pop(provider_type, None)
 
     @classmethod
-    def get_provider(cls, provider_type: ProviderType, force_new: bool = False) -> Optional[ModelProvider]:
+    def get_provider(cls, provider_type: ProviderType, force_new: bool = False) -> ModelProvider | None:
         """Get an initialized provider instance.
 
         Args:
@@ -151,7 +151,7 @@ class ModelProviderRegistry:
         return provider
 
     @classmethod
-    def get_provider_for_model(cls, model_name: str) -> Optional[ModelProvider]:
+    def get_provider_for_model(cls, model_name: str) -> ModelProvider | None:
         """Get provider instance for a specific model name.
 
         Provider priority order:
@@ -301,7 +301,7 @@ class ModelProviderRegistry:
         return display_names
 
     @classmethod
-    def get_available_model_names(cls, provider_type: Optional[ProviderType] = None) -> list[str]:
+    def get_available_model_names(cls, provider_type: ProviderType | None = None) -> list[str]:
         """Get list of available model names, optionally filtered by provider.
 
         This respects model restrictions automatically.
@@ -322,7 +322,7 @@ class ModelProviderRegistry:
             return list(available_models.keys())
 
     @classmethod
-    def _get_api_key_for_provider(cls, provider_type: ProviderType) -> Optional[str]:
+    def _get_api_key_for_provider(cls, provider_type: ProviderType) -> str | None:
         """Get API key for a provider from environment variables.
 
         Args:

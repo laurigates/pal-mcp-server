@@ -2,7 +2,7 @@
 
 import base64
 import logging
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
@@ -82,7 +82,7 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
                 self._client = genai.Client(api_key=self.api_key)
         return self._client
 
-    def _resolve_http_timeout(self) -> Optional[float]:
+    def _resolve_http_timeout(self) -> float | None:
         """Compute timeout override from shared custom timeout environment variables."""
 
         timeouts: list[float] = []
@@ -115,11 +115,11 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         self,
         prompt: str,
         model_name: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 1.0,
-        max_output_tokens: Optional[int] = None,
+        max_output_tokens: int | None = None,
         thinking_mode: str = "medium",
-        images: Optional[list[str]] = None,
+        images: list[str] | None = None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -430,7 +430,7 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
 
         return any(indicator in error_str for indicator in retryable_indicators)
 
-    def _process_image(self, image_path: str) -> Optional[dict]:
+    def _process_image(self, image_path: str) -> dict | None:
         """Process an image for Gemini API."""
         try:
             # Use base class validation
@@ -453,7 +453,7 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             logger.error(f"Error processing image {image_path}: {e}")
             return None
 
-    def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> Optional[str]:
+    def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> str | None:
         """Get Gemini's preferred model for a given category from allowed models.
 
         Args:
@@ -471,7 +471,7 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         capability_map = self.get_all_model_capabilities()
 
         # Helper to find best model from candidates
-        def find_best(candidates: list[str]) -> Optional[str]:
+        def find_best(candidates: list[str]) -> str | None:
             """Return best model from candidates (sorted for consistency)."""
             return sorted(candidates, reverse=True)[0] if candidates else None
 

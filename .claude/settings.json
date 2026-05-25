@@ -1,7 +1,75 @@
 {
   "permissions": {
     "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(pre-commit:*)",
+      "Bash(gitleaks:*)",
+      "Bash(python3:*)",
+      "Bash(uv:*)",
+      "Bash(uvx:*)",
+      "Bash(ruff:*)",
+      "Bash(ty:*)",
+      "Bash(pytest:*)"
     ],
     "deny": []
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "laurigates/claude-plugins"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "accessibility-plugin@claude-plugins": false,
+    "agent-patterns-plugin@claude-plugins": false,
+    "agents-plugin@claude-plugins": false,
+    "api-plugin@claude-plugins": false,
+    "bevy-plugin@claude-plugins": false,
+    "blog-plugin@claude-plugins": false,
+    "blueprint-plugin@claude-plugins": false,
+    "code-quality-plugin@claude-plugins": true,
+    "codebase-attributes-plugin@claude-plugins": false,
+    "communication-plugin@claude-plugins": false,
+    "component-patterns-plugin@claude-plugins": false,
+    "configure-plugin@claude-plugins": true,
+    "container-plugin@claude-plugins": true,
+    "css-plugin@claude-plugins": false,
+    "documentation-plugin@claude-plugins": false,
+    "evaluate-plugin@claude-plugins": false,
+    "feedback-plugin@claude-plugins": false,
+    "finops-plugin@claude-plugins": false,
+    "git-plugin@claude-plugins": true,
+    "github-actions-plugin@claude-plugins": true,
+    "health-plugin@claude-plugins": true,
+    "home-assistant-plugin@claude-plugins": false,
+    "hooks-plugin@claude-plugins": true,
+    "kubernetes-plugin@claude-plugins": false,
+    "langchain-plugin@claude-plugins": false,
+    "macos-plugin@claude-plugins": false,
+    "migration-patterns-plugin@claude-plugins": false,
+    "networking-plugin@claude-plugins": false,
+    "obsidian-plugin@claude-plugins": false,
+    "project-plugin@claude-plugins": false,
+    "prompt-engineering-plugin@claude-plugins": false,
+    "prose-plugin@claude-plugins": false,
+    "python-plugin@claude-plugins": true,
+    "rust-plugin@claude-plugins": false,
+    "taskwarrior-plugin@claude-plugins": false,
+    "terraform-plugin@claude-plugins": false,
+    "testing-plugin@claude-plugins": true,
+    "tools-plugin@claude-plugins": false,
+    "typescript-plugin@claude-plugins": false,
+    "workflow-orchestration-plugin@claude-plugins": false,
+
+    "clangd@claude-plugins-official": false,
+    "gopls@claude-plugins-official": false,
+    "pyright@claude-plugins-official": true,
+    "rust-analyzer@claude-plugins-official": false,
+    "swift-language-server@claude-plugins-official": false,
+    "typescript-language-server@claude-plugins-official": false
   }
 }

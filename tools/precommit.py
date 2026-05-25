@@ -16,7 +16,7 @@ Key features:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -84,29 +84,27 @@ class PrecommitRequest(WorkflowRequest):
     issues_found: list[dict] = Field(
         default_factory=list, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["issues_found"]
     )
-    precommit_type: Optional[Literal["external", "internal"]] = Field(
+    precommit_type: Literal["external", "internal"] | None = Field(
         "external", description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["precommit_type"]
     )
 
     # Optional images for visual validation
-    images: Optional[list[str]] = Field(default=None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["images"])
+    images: list[str] | None = Field(default=None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["images"])
 
     # Precommit-specific fields (only used in step 1 to initialize)
     # Required for step 1, validated in model_validator
-    path: Optional[str] = Field(None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["path"])
-    compare_to: Optional[str] = Field(None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["compare_to"])
-    include_staged: Optional[bool] = Field(True, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["include_staged"])
-    include_unstaged: Optional[bool] = Field(
-        True, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["include_unstaged"]
-    )
-    focus_on: Optional[str] = Field(None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["focus_on"])
-    severity_filter: Optional[Literal["critical", "high", "medium", "low", "all"]] = Field(
+    path: str | None = Field(None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["path"])
+    compare_to: str | None = Field(None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["compare_to"])
+    include_staged: bool | None = Field(True, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["include_staged"])
+    include_unstaged: bool | None = Field(True, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["include_unstaged"])
+    focus_on: str | None = Field(None, description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["focus_on"])
+    severity_filter: Literal["critical", "high", "medium", "low", "all"] | None = Field(
         "all", description=PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["severity_filter"]
     )
 
     # Override inherited fields to exclude them from schema (except model which needs to be available)
-    temperature: Optional[float] = Field(default=None, exclude=True)
-    thinking_mode: Optional[str] = Field(default=None, exclude=True)
+    temperature: float | None = Field(default=None, exclude=True)
+    thinking_mode: str | None = Field(default=None, exclude=True)
 
     @model_validator(mode="after")
     def validate_step_one_requirements(self):
@@ -616,7 +614,7 @@ class PrecommitTool(WorkflowTool):
                 next_steps = (
                     "You are on step 1 of MAXIMUM 2 steps. CRITICAL: Gather and save the complete git changeset NOW. "
                     "MANDATORY ACTIONS:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                     + "\\n\\nMANDATORY: The changeset may be large. You MUST save the required changeset as a 'pal_precommit.changeset' file "
                     "(replacing any existing one) in your work directory and include the FULL absolute path in relevant_files (exclude any "
                     "binary files). ONLY include the code changes, no extra commentary."
@@ -627,14 +625,14 @@ class PrecommitTool(WorkflowTool):
                 next_steps = (
                     "Continuing previous conversation with internal validation only. The analysis will build "
                     "upon the prior findings without external model validation. REQUIRED ACTIONS:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                 )
             else:
                 # Normal flow for new validations
                 next_steps = (
                     f"MANDATORY: DO NOT call the {self.get_name()} tool again immediately. You MUST first investigate "
                     f"the git repositories and changes using appropriate tools. CRITICAL AWARENESS: You need to:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                     + f"\\n\\nOnly call {self.get_name()} again AFTER completing your investigation. "
                     f"When you call {self.get_name()} next time, use step_number: {step_number + 1} "
                     f"and report specific files examined, changes analyzed, and validation findings discovered."
@@ -668,7 +666,7 @@ class PrecommitTool(WorkflowTool):
                 next_steps = (
                     f"STOP! Do NOT call {self.get_name()} again yet. You are on step 2 of {request.total_steps} minimum required steps. "
                     f"MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                     + f"\\n\\nRemember: You MUST set next_step_required=True until step {request.total_steps}. "
                     + f"Only call {self.get_name()} again with step_number: {step_number + 1} AFTER completing these validations."
                 )
@@ -685,7 +683,7 @@ class PrecommitTool(WorkflowTool):
                 # Later steps - final verification
                 next_steps = (
                     f"WAIT! Your validation needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\\n"
-                    + "\\n".join(f"{i+1}. {action}" for i, action in enumerate(required_actions))
+                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                     + f"\\n\\nREMEMBER: Ensure you have identified all potential issues and verified commit readiness. "
                     f"Document findings with specific file references and issue descriptions, then call {self.get_name()} "
                     f"with step_number: {step_number + 1}."

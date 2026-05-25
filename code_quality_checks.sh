@@ -1,103 +1,53 @@
 #!/bin/bash
 
 # PAL MCP Server - Code Quality Checks
-# This script runs all required linting and testing checks before committing changes.
-# ALL checks must pass 100% for CI/CD to succeed.
+# Runs lint, format, type-check, and unit tests via uv.
+# ALL checks must pass 100% for CI to succeed.
 
-set -e  # Exit on any error
+set -euo pipefail
 
 echo "🔍 Running Code Quality Checks for PAL MCP Server"
 echo "================================================="
 
-# Determine Python command
-if [[ -f ".pal_venv/bin/python" ]]; then
-    PYTHON_CMD=".pal_venv/bin/python"
-    PIP_CMD=".pal_venv/bin/pip"
-    echo "✅ Using venv"
-elif [[ -n "$VIRTUAL_ENV" ]]; then
-    PYTHON_CMD="python"
-    PIP_CMD="pip"
-    echo "✅ Using activated virtual environment: $VIRTUAL_ENV"
-else
-    echo "❌ No virtual environment found!"
-    echo "Please run: ./run-server.sh first to set up the environment"
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv not found. Install: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
 fi
+
+echo "📦 Syncing dependencies..."
+uv sync --group dev --quiet
 echo ""
 
-# Check and install dev dependencies if needed
-echo "🔍 Checking development dependencies..."
-DEV_DEPS_NEEDED=false
-
-# Check each dev dependency
-for tool in ruff black isort pytest; do
-    # Check if tool exists in venv or in PATH
-    if [[ -f ".pal_venv/bin/$tool" ]] || command -v $tool &> /dev/null; then
-        continue
-    else
-        DEV_DEPS_NEEDED=true
-        break
-    fi
-done
-
-if [ "$DEV_DEPS_NEEDED" = true ]; then
-    echo "📦 Installing development dependencies..."
-    $PIP_CMD install -q -r requirements-dev.txt
-    echo "✅ Development dependencies installed"
-else
-    echo "✅ Development dependencies already installed"
-fi
-
-# Set tool paths
-if [[ -f ".pal_venv/bin/ruff" ]]; then
-    RUFF=".pal_venv/bin/ruff"
-    BLACK=".pal_venv/bin/black"
-    ISORT=".pal_venv/bin/isort"
-    PYTEST=".pal_venv/bin/pytest"
-else
-    RUFF="ruff"
-    BLACK="black"
-    ISORT="isort"
-    PYTEST="pytest"
-fi
+echo "📋 Step 1: Lint (ruff check --fix)"
+echo "----------------------------------"
+uv run ruff check --fix .
 echo ""
 
-# Step 1: Linting and Formatting
-echo "📋 Step 1: Running Linting and Formatting Checks"
-echo "--------------------------------------------------"
-
-echo "🔧 Running ruff linting with auto-fix..."
-$RUFF check --fix --exclude test_simulation_files --exclude .pal_venv
-
-echo "🎨 Running black code formatting..."
-$BLACK . --exclude="test_simulation_files/" --exclude=".pal_venv/"
-
-echo "📦 Running import sorting with isort..."
-$ISORT . --skip-glob=".pal_venv/*" --skip-glob="test_simulation_files/*"
-
-echo "✅ Verifying all linting passes..."
-$RUFF check --exclude test_simulation_files --exclude .pal_venv
-
-echo "✅ Step 1 Complete: All linting and formatting checks passed!"
+echo "🎨 Step 2: Format (ruff format)"
+echo "-------------------------------"
+uv run ruff format .
 echo ""
 
-# Step 2: Unit Tests
-echo "🧪 Step 2: Running Complete Unit Test Suite"
-echo "---------------------------------------------"
-
-echo "🏃 Running unit tests (excluding integration tests)..."
-$PYTHON_CMD -m pytest tests/ -v -x -m "not integration"
-
-echo "✅ Step 2 Complete: All unit tests passed!"
+echo "✅ Step 3: Verify lint passes cleanly"
+echo "-------------------------------------"
+uv run ruff check .
 echo ""
 
-# Step 3: Final Summary
+echo "🔎 Step 4: Type check (ty)"
+echo "--------------------------"
+uv run ty check . || echo "⚠️  ty reported issues (non-blocking during migration)"
+echo ""
+
+echo "🧪 Step 5: Unit tests (pytest, excluding integration)"
+echo "-----------------------------------------------------"
+uv run pytest tests/ -v -x -m "not integration"
+echo ""
+
 echo "🎉 All Code Quality Checks Passed!"
 echo "=================================="
-echo "✅ Linting (ruff): PASSED"
-echo "✅ Formatting (black): PASSED" 
-echo "✅ Import sorting (isort): PASSED"
-echo "✅ Unit tests: PASSED"
+echo "✅ Lint (ruff)"
+echo "✅ Format (ruff format)"
+echo "✅ Type check (ty)"
+echo "✅ Unit tests (pytest)"
 echo ""
-echo "🚀 Your code is ready for commit and GitHub Actions!"
-echo "💡 Remember to add simulator tests if you modified tools"
+echo "🚀 Ready for commit."

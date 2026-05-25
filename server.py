@@ -26,7 +26,7 @@ import sys
 import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from mcp.server import Server  # noqa: E402
 from mcp.server.models import InitializationOptions  # noqa: E402
@@ -878,7 +878,7 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
         return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
-def parse_model_option(model_string: str) -> tuple[str, Optional[str]]:
+def parse_model_option(model_string: str) -> tuple[str, str | None]:
     """
     Parse model:option format into model name and option.
 
