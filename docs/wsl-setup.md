@@ -9,7 +9,10 @@ This guide provides detailed instructions for setting up PAL MCP Server on Windo
 sudo apt update && sudo apt upgrade -y
 
 # Install required system dependencies
-sudo apt install -y python3-venv python3-pip curl git
+sudo apt install -y python3 curl git
+
+# Install uv (https://docs.astral.sh/uv/getting-started/installation/)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install Node.js and npm (required for Claude Code CLI)
 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
@@ -52,11 +55,11 @@ npm install -g @anthropic-ai/claude-code
 ### Python Environment Issues
 
 ```bash
-# If you encounter Python virtual environment issues
-sudo apt install -y python3.12-venv python3.12-dev
+# If uv can't find or build a suitable Python, let it manage one for you
+uv python install
 
-# Ensure pip is up to date
-python3 -m pip install --upgrade pip
+# Then sync the dev environment from uv.lock
+uv sync --group dev
 ```
 
 ### Path Issues
