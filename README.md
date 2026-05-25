@@ -418,6 +418,7 @@ DISABLED_TOOLS=
 
 **📖 Documentation**
 - [Docs Overview](docs/index.md) - High-level map of major guides
+- [Architecture](docs/architecture.md) - How the major subsystems fit together (new contributors start here)
 - [Getting Started](docs/getting-started.md) - Complete setup guide
 - [Tools Reference](docs/tools/) - All tools with examples
 - [Advanced Usage](docs/advanced-usage.md) - Power user features
