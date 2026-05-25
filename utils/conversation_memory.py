@@ -110,11 +110,25 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from utils.env import get_env
 
 logger = logging.getLogger(__name__)
+
+
+class ConversationMemoryStorageError(RuntimeError):
+    """
+    Raised when the conversation memory storage backend cannot satisfy a
+    request due to a backend fault (connection failure, decode error,
+    corrupt payload, etc.) rather than because the requested thread is
+    absent.
+
+    Callers should treat this as a transient operational failure and
+    surface a "storage error" message to the user, distinct from the
+    "thread expired" message used for genuinely missing threads.
+    """
+
 
 # Configuration constants
 # Get max conversation turns from environment, default to 20 turns (10 exchanges)
@@ -284,25 +298,59 @@ def get_thread(thread_id: str) -> ThreadContext | None:
         ThreadContext: Complete conversation context if found
         None: If thread doesn't exist, expired, or invalid UUID
 
+    Raises:
+        ConversationMemoryStorageError: When the storage backend itself
+            fails (connection error, decode failure, corrupt payload).
+            This is distinct from the absent-thread case, which returns
+            ``None`` silently. Callers should surface a "storage error"
+            message to users rather than "thread expired".
+
     Security:
         - Validates UUID format to prevent injection attacks
-        - Handles storage connection failures gracefully
-        - No error information leakage on failure
+        - Backend faults are logged at WARNING with ``exc_info=True`` so
+          they appear in ``mcp_server.log`` for operators, but the
+          original exception details are not propagated to end users
+          beyond the typed ``ConversationMemoryStorageError`` wrapper.
     """
     if not thread_id or not _is_valid_uuid(thread_id):
         return None
 
+    key = f"thread:{thread_id}"
+
     try:
         storage = get_storage()
-        key = f"thread:{thread_id}"
         data = storage.get(key)
+    except Exception as exc:
+        # Backend fault (storage outage, lock error, etc.) — log loudly
+        # so operators can see the real cause in mcp_server.log, and
+        # signal a distinct failure mode to callers rather than
+        # collapsing it into "thread not found".
+        logger.warning(
+            f"[THREAD] Storage backend failure while retrieving {thread_id}: {type(exc).__name__}: {exc}",
+            exc_info=True,
+        )
+        raise ConversationMemoryStorageError(
+            f"Conversation storage backend failure while retrieving thread {thread_id}"
+        ) from exc
 
-        if data:
-            return ThreadContext.model_validate_json(data)
+    # Absent-thread case: storage returned no value. This is the expected
+    # path for an expired or never-created thread and stays silent.
+    if not data:
         return None
-    except Exception:
-        # Silently handle errors to avoid exposing storage details
-        return None
+
+    try:
+        return ThreadContext.model_validate_json(data)
+    except ValidationError as exc:
+        # Stored payload is unparseable — corrupt entry, schema drift,
+        # or someone wrote garbage into the backend. Treat as a backend
+        # fault, not a missing thread.
+        logger.warning(
+            f"[THREAD] Corrupt thread payload for {thread_id}: {exc}",
+            exc_info=True,
+        )
+        raise ConversationMemoryStorageError(
+            f"Conversation storage payload for thread {thread_id} could not be decoded"
+        ) from exc
 
 
 def add_turn(
@@ -351,7 +399,13 @@ def add_turn(
     """
     logger.debug(f"[FLOW] Adding {role} turn to {thread_id} ({tool_name})")
 
-    context = get_thread(thread_id)
+    try:
+        context = get_thread(thread_id)
+    except ConversationMemoryStorageError:
+        # get_thread already logged the underlying fault at WARNING with
+        # exc_info=True. Preserve add_turn's bool contract by returning
+        # False, but the storage failure is visible in mcp_server.log.
+        return False
     if not context:
         logger.debug(f"[FLOW] Thread {thread_id} not found for turn addition")
         return False
@@ -415,7 +469,14 @@ def get_thread_chain(thread_id: str, max_depth: int = 20) -> list[ThreadContext]
 
         seen_ids.add(current_id)
 
-        context = get_thread(current_id)
+        try:
+            context = get_thread(current_id)
+        except ConversationMemoryStorageError:
+            # Storage failure during chain traversal — get_thread has
+            # already logged the underlying fault. Stop walking the
+            # chain rather than reporting a misleading "not found".
+            logger.warning(f"[THREAD] Storage failure interrupted chain traversal at {current_id}")
+            break
         if not context:
             logger.debug(f"[THREAD] Thread {current_id} not found in chain traversal")
             break
