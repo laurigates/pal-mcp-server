@@ -56,14 +56,14 @@ class MockOpenAIProvider(OpenAICompatibleProvider):
         return ["gpt-5-pro", "gpt-5.1-codex"]
 
 
-class TestStoreParameterHandling(unittest.TestCase):
+class TestStoreParameterHandling(unittest.IsolatedAsyncioTestCase):
     """Test store parameter is conditionally included based on provider type.
 
     **Feature: openrouter-store-parameter-fix, Property 1: OpenRouter requests omit store parameter**
     **Feature: openrouter-store-parameter-fix, Property 2: Direct OpenAI requests include store parameter**
     """
 
-    def test_openrouter_responses_omits_store_parameter(self):
+    async def test_openrouter_responses_omits_store_parameter(self):
         """Test that OpenRouter provider omits store parameter from responses endpoint.
 
         **Feature: openrouter-store-parameter-fix, Property 1: OpenRouter requests omit store parameter**
@@ -92,7 +92,7 @@ class TestStoreParameterHandling(unittest.TestCase):
             provider = MockOpenRouterProvider("test-key")
 
             # Call the method that builds completion_params
-            provider._generate_with_responses_endpoint(
+            await provider._generate_with_responses_endpoint(
                 model_name="openai/gpt-5-pro",
                 messages=[{"role": "user", "content": "test"}],
                 temperature=0.7,
@@ -101,7 +101,7 @@ class TestStoreParameterHandling(unittest.TestCase):
         # Verify store parameter is NOT in the request
         self.assertNotIn("store", captured_params, "OpenRouter requests should NOT include 'store' parameter")
 
-    def test_openai_responses_includes_store_parameter(self):
+    async def test_openai_responses_includes_store_parameter(self):
         """Test that direct OpenAI provider includes store parameter in responses endpoint.
 
         **Feature: openrouter-store-parameter-fix, Property 2: Direct OpenAI requests include store parameter**
@@ -130,7 +130,7 @@ class TestStoreParameterHandling(unittest.TestCase):
             provider = MockOpenAIProvider("test-key")
 
             # Call the method that builds completion_params
-            provider._generate_with_responses_endpoint(
+            await provider._generate_with_responses_endpoint(
                 model_name="gpt-5-pro",
                 messages=[{"role": "user", "content": "test"}],
                 temperature=0.7,

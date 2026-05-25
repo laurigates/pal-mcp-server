@@ -1,5 +1,6 @@
 """Base class for OpenAI-compatible API providers."""
 
+import asyncio
 import copy
 import ipaddress
 import logging
@@ -386,7 +387,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
         return content
 
-    def _generate_with_responses_endpoint(
+    async def _generate_with_responses_endpoint(
         self,
         model_name: str,
         messages: list,
@@ -484,9 +485,12 @@ class OpenAICompatibleProvider(ModelProvider):
                 },
             )
 
+        async def _attempt_async() -> ModelResponse:
+            return await asyncio.to_thread(_attempt)
+
         try:
-            return self._run_with_retries(
-                operation=_attempt,
+            return await self._run_with_retries_async(
+                operation=_attempt_async,
                 max_attempts=max_retries,
                 delays=retry_delays,
                 log_prefix="responses endpoint",
@@ -497,7 +501,7 @@ class OpenAICompatibleProvider(ModelProvider):
             logging.error(error_msg)
             raise RuntimeError(error_msg) from exc
 
-    def generate_content(
+    async def generate_content(
         self,
         prompt: str,
         model_name: str,
@@ -623,7 +627,7 @@ class OpenAICompatibleProvider(ModelProvider):
         if use_responses_api:
             # These models require the /v1/responses endpoint for stateful context
             # If it fails, we should not fall back to chat/completions
-            return self._generate_with_responses_endpoint(
+            return await self._generate_with_responses_endpoint(
                 model_name=resolved_model,
                 messages=messages,
                 temperature=temperature,
@@ -658,9 +662,12 @@ class OpenAICompatibleProvider(ModelProvider):
                 },
             )
 
+        async def _attempt_async() -> ModelResponse:
+            return await asyncio.to_thread(_attempt)
+
         try:
-            return self._run_with_retries(
-                operation=_attempt,
+            return await self._run_with_retries_async(
+                operation=_attempt_async,
                 max_attempts=max_retries,
                 delays=retry_delays,
                 log_prefix=f"{self.FRIENDLY_NAME} API ({resolved_model})",

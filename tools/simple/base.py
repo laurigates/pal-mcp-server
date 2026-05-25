@@ -441,7 +441,7 @@ class SimpleTool(BaseTool):
             supports_thinking = capabilities.supports_extended_thinking
 
             # Generate content with provider abstraction
-            model_response = provider.generate_content(
+            model_response = await provider.generate_content(
                 prompt=prompt,
                 model_name=self._current_model_name,
                 system_prompt=system_prompt,
@@ -498,7 +498,7 @@ class SimpleTool(BaseTool):
                         retry_prompt = f"{original_prompt}\n\nIMPORTANT: Please provide a substantive response. If you cannot respond to the above request, please explain why and suggest alternatives."
 
                         try:
-                            retry_response = provider.generate_content(
+                            retry_response = await provider.generate_content(
                                 prompt=retry_prompt,
                                 model_name=self._current_model_name,
                                 system_prompt=system_prompt,

@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from providers.openai import OpenAIModelProvider
 
 
-def test_issue_245_custom_openai_temperature_ignored():
+async def test_issue_245_custom_openai_temperature_ignored():
     """Test that reproduces and validates the fix for issue #245."""
 
     with patch("utils.model_restrictions.get_restriction_service") as mock_restriction:
@@ -67,7 +67,7 @@ def test_issue_245_custom_openai_temperature_ignored():
                 provider.validate_model_name = lambda name: True
 
                 # This is what was causing the 400 error before the fix
-                provider.generate_content(
+                await provider.generate_content(
                     prompt="Test",
                     model_name="gpt-5-2025-08-07",
                     temperature=0.2,  # This should be ignored!

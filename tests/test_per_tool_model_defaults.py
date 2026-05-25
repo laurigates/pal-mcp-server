@@ -6,7 +6,7 @@ import json
 import os
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -519,7 +519,9 @@ class TestUnavailableModelFallback:
                 with patch.object(ModelProviderRegistry, "get_provider_for_model") as mock_get_provider:
                     # Model is available
                     mock_provider = MagicMock()
-                    mock_provider.generate_content.return_value = MagicMock(content="Test response", metadata={})
+                    mock_provider.generate_content = AsyncMock(
+                        return_value=MagicMock(content="Test response", metadata={})
+                    )
                     mock_get_provider.return_value = mock_provider
 
                     # Mock the provider lookup in BaseTool.get_model_provider

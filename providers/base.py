@@ -1,9 +1,10 @@
 """Base interfaces and common behaviour for model providers."""
 
+import asyncio
 import logging
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -145,7 +146,7 @@ class ModelProvider(ABC):
     # Request execution
     # ------------------------------------------------------------------
     @abstractmethod
-    def generate_content(
+    async def generate_content(
         self,
         prompt: str,
         model_name: str,
@@ -295,6 +296,65 @@ class ModelProvider(ABC):
                         delay,
                     )
                     time.sleep(delay)
+                else:
+                    logger.warning(
+                        "%s retryable error (attempt %s/%s): %s. Retrying...",
+                        log_prefix or self.__class__.__name__,
+                        attempt_number,
+                        attempts,
+                        exc,
+                    )
+
+        # Should never reach here because loop either returns or raises
+        raise last_exc if last_exc else RuntimeError("Retry loop exited without result")
+
+    async def _run_with_retries_async(
+        self,
+        operation: Callable[[], Awaitable[Any]],
+        *,
+        max_attempts: int,
+        delays: list[float] | None = None,
+        log_prefix: str = "",
+    ):
+        """Async sibling of _run_with_retries.
+
+        Identical retry policy to the sync helper, but the operation must be a
+        zero-argument async callable returning a coroutine. Sleeps use
+        asyncio.sleep so the event loop is not blocked while waiting
+        between retries.
+        """
+
+        if max_attempts < 1:
+            raise ValueError("max_attempts must be >= 1")
+
+        attempts = max_attempts
+        delays = delays or []
+        last_exc: Exception | None = None
+
+        for attempt_index in range(attempts):
+            try:
+                return await operation()
+            except Exception as exc:  # noqa: BLE001 - bubble exact provider errors
+                last_exc = exc
+                attempt_number = attempt_index + 1
+
+                retryable = self._is_error_retryable(exc)
+                if not retryable or attempt_number >= attempts:
+                    raise
+
+                delay_idx = min(attempt_index, len(delays) - 1) if delays else -1
+                delay = delays[delay_idx] if delay_idx >= 0 else 0.0
+
+                if delay > 0:
+                    logger.warning(
+                        "%s retryable error (attempt %s/%s): %s. Retrying in %ss...",
+                        log_prefix or self.__class__.__name__,
+                        attempt_number,
+                        attempts,
+                        exc,
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
                 else:
                     logger.warning(
                         "%s retryable error (attempt %s/%s): %s. Retrying...",

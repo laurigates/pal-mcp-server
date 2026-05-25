@@ -10,7 +10,7 @@ import json
 import os
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -265,11 +265,13 @@ class TestLargePromptHandling:
         ):
             mock_provider = MagicMock()
             mock_provider.get_provider_type.return_value = MagicMock(value="google")
-            mock_provider.generate_content.return_value = MagicMock(
-                content="Success",
-                usage={"input_tokens": 10, "output_tokens": 20, "total_tokens": 30},
-                model_name="gemini-2.5-flash",
-                metadata={"finish_reason": "STOP"},
+            mock_provider.generate_content = AsyncMock(
+                return_value=MagicMock(
+                    content="Success",
+                    usage={"input_tokens": 10, "output_tokens": 20, "total_tokens": 30},
+                    model_name="gemini-2.5-flash",
+                    metadata={"finish_reason": "STOP"},
+                )
             )
 
             from utils.model_context import TokenAllocation
@@ -325,11 +327,13 @@ class TestLargePromptHandling:
             mock_provider = MagicMock()
             mock_provider.get_provider_type.return_value = MagicMock(value="google")
             mock_provider.get_capabilities.return_value = MagicMock(supports_extended_thinking=False)
-            mock_provider.generate_content.return_value = MagicMock(
-                content="Response to the large prompt",
-                usage={"input_tokens": 12000, "output_tokens": 10, "total_tokens": 12010},
-                model_name="gemini-2.5-flash",
-                metadata={"finish_reason": "STOP"},
+            mock_provider.generate_content = AsyncMock(
+                return_value=MagicMock(
+                    content="Response to the large prompt",
+                    usage={"input_tokens": 12000, "output_tokens": 10, "total_tokens": 12010},
+                    model_name="gemini-2.5-flash",
+                    metadata={"finish_reason": "STOP"},
+                )
             )
             mock_get_provider.return_value = mock_provider
 
@@ -373,11 +377,13 @@ class TestLargePromptHandling:
             mock_provider = MagicMock()
             mock_provider.get_provider_type.return_value = MagicMock(value="google")
             mock_provider.get_capabilities.return_value = MagicMock(supports_extended_thinking=False)
-            mock_provider.generate_content.return_value = MagicMock(
-                content="Success",
-                usage={"input_tokens": 10, "output_tokens": 20, "total_tokens": 30},
-                model_name="gemini-2.5-flash",
-                metadata={"finish_reason": "STOP"},
+            mock_provider.generate_content = AsyncMock(
+                return_value=MagicMock(
+                    content="Success",
+                    usage={"input_tokens": 10, "output_tokens": 20, "total_tokens": 30},
+                    model_name="gemini-2.5-flash",
+                    metadata={"finish_reason": "STOP"},
+                )
             )
             mock_get_provider.return_value = mock_provider
 

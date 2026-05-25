@@ -28,7 +28,9 @@ class TestCustomOpenAITemperatureParameterFix:
 
     @patch("utils.model_restrictions.get_restriction_service")
     @patch("providers.openai_compatible.OpenAI")
-    def test_custom_openai_models_exclude_temperature_from_api_call(self, mock_openai_class, mock_restriction_service):
+    async def test_custom_openai_models_exclude_temperature_from_api_call(
+        self, mock_openai_class, mock_restriction_service
+    ):
         """Test that custom OpenAI models with supports_temperature=false don't send temperature to the API."""
         # Create test config with a custom OpenAI model that doesn't support temperature
         config_models = [
@@ -113,7 +115,7 @@ class TestCustomOpenAITemperatureParameterFix:
                 provider.validate_model_name = lambda name: True
 
                 # Call generate_content with custom model
-                provider.generate_content(
+                await provider.generate_content(
                     prompt="Test prompt", model_name="gpt-5-2025-08-07", temperature=0.5, max_output_tokens=100
                 )
 
@@ -136,7 +138,9 @@ class TestCustomOpenAITemperatureParameterFix:
 
     @patch("utils.model_restrictions.get_restriction_service")
     @patch("providers.openai_compatible.OpenAI")
-    def test_custom_openai_models_include_temperature_when_supported(self, mock_openai_class, mock_restriction_service):
+    async def test_custom_openai_models_include_temperature_when_supported(
+        self, mock_openai_class, mock_restriction_service
+    ):
         """Test that custom OpenAI models with supports_temperature=true still send temperature to the API."""
         # Mock restriction service to allow all models
         mock_service = Mock()
@@ -197,7 +201,7 @@ class TestCustomOpenAITemperatureParameterFix:
             provider.validate_model_name = lambda name: True
 
             # Call generate_content with custom model that supports temperature
-            provider.generate_content(
+            await provider.generate_content(
                 prompt="Test prompt", model_name="gpt-4-custom", temperature=0.5, max_output_tokens=100
             )
 

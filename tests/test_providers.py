@@ -121,7 +121,7 @@ class TestGeminiProvider:
         assert capabilities.model_name == "gemini-3.5-flash"
 
     @patch("google.genai.Client")
-    def test_generate_content(self, mock_client_class):
+    async def test_generate_content(self, mock_client_class):
         """Test content generation"""
         # Mock the client
         mock_client = Mock()
@@ -141,7 +141,7 @@ class TestGeminiProvider:
 
         provider = GeminiModelProvider(api_key="test-key")
 
-        response = provider.generate_content(prompt="Test prompt", model_name="gemini-2.5-flash", temperature=0.7)
+        response = await provider.generate_content(prompt="Test prompt", model_name="gemini-2.5-flash", temperature=0.7)
 
         assert isinstance(response, ModelResponse)
         assert response.content == "Generated content"

@@ -1,5 +1,6 @@
 """Gemini model provider implementation."""
 
+import asyncio
 import base64
 import logging
 from typing import TYPE_CHECKING, ClassVar
@@ -111,7 +112,7 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
     # Request execution
     # ------------------------------------------------------------------
 
-    def generate_content(
+    async def generate_content(
         self,
         prompt: str,
         model_name: str,
@@ -295,9 +296,12 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
                 },
             )
 
+        async def _attempt_async() -> ModelResponse:
+            return await asyncio.to_thread(_attempt)
+
         try:
-            return self._run_with_retries(
-                operation=_attempt,
+            return await self._run_with_retries_async(
+                operation=_attempt_async,
                 max_attempts=max_retries,
                 delays=retry_delays,
                 log_prefix=f"Gemini API ({resolved_model_name})",
