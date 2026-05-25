@@ -1044,13 +1044,43 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         4. Debug tool can reference specific findings from analyze tool
         5. Natural cross-tool collaboration without context loss
     """
-    from utils.conversation_memory import add_turn, build_conversation_history, get_thread
+    from utils.conversation_memory import (
+        ConversationMemoryStorageError,
+        add_turn,
+        build_conversation_history,
+        get_thread,
+    )
 
     continuation_id = arguments["continuation_id"]
 
-    # Get thread context from storage
+    # Get thread context from storage. Distinguish "thread is absent"
+    # (expired / never created) from "storage backend failed" so the
+    # user-facing message points at the right root cause.
     logger.debug(f"[CONVERSATION_DEBUG] Looking up thread {continuation_id} in storage")
-    context = get_thread(continuation_id)
+    try:
+        context = get_thread(continuation_id)
+    except ConversationMemoryStorageError as exc:
+        logger.error(
+            f"Conversation storage backend failed for thread {continuation_id}: {exc}",
+            exc_info=True,
+        )
+
+        try:
+            mcp_activity_logger = logging.getLogger("mcp_activity")
+            mcp_activity_logger.info(f"CONVERSATION_ERROR: Storage backend failure for thread {continuation_id}")
+        except Exception:
+            pass
+
+        # Surface a storage-error message rather than "thread expired"
+        # so operators and users can distinguish the two failure modes.
+        raise ValueError(
+            f"Conversation thread '{continuation_id}' could not be retrieved because the "
+            f"conversation storage backend is currently unavailable. "
+            f"This is a transient server-side fault — please retry shortly. "
+            f"If the failure persists, check the server logs (mcp_server.log) for the "
+            f"underlying storage error."
+        ) from exc
+
     if not context:
         logger.warning(f"Thread not found: {continuation_id}")
         logger.debug(f"[CONVERSATION_DEBUG] Thread {continuation_id} not found in storage or expired")

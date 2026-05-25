@@ -5,6 +5,7 @@ Tests the Redis-based conversation persistence needed for AI-to-AI multi-turn
 discussions in stateless MCP environments.
 """
 
+import logging
 import os
 from unittest.mock import Mock, patch
 
@@ -84,6 +85,86 @@ class TestConversationMemory:
 
         context = get_thread("12345678-1234-1234-1234-123456789012")
         assert context is None
+
+    @patch("utils.conversation_memory.get_storage")
+    def test_get_thread_missing_returns_none_silently(self, mock_storage, caplog):
+        """Missing thread (absent in storage) returns None without WARNING log.
+
+        Regression guard for issue #12: the absent-thread path must remain
+        quiet so it can be distinguished from the storage-error path.
+        """
+        mock_client = Mock()
+        mock_storage.return_value = mock_client
+        mock_client.get.return_value = None  # Key not present in backend
+
+        with caplog.at_level(logging.WARNING, logger="utils.conversation_memory"):
+            result = get_thread("12345678-1234-1234-1234-123456789012")
+
+        assert result is None
+        # The absent-thread path must not emit WARNING-level log noise;
+        # WARNING is reserved for genuine storage faults.
+        memory_warnings = [
+            rec for rec in caplog.records if rec.name == "utils.conversation_memory" and rec.levelno >= logging.WARNING
+        ]
+        assert memory_warnings == [], f"Absent thread should not emit WARNING logs, got: {memory_warnings}"
+
+    @patch("utils.conversation_memory.get_storage")
+    def test_get_thread_storage_failure_raises_and_logs(self, mock_storage, caplog):
+        """Storage backend failure raises ConversationMemoryStorageError and logs WARNING.
+
+        Regression guard for issue #12: the storage-error path is distinct
+        from the absent-thread path so operators see the real root cause
+        in mcp_server.log and users see a "storage error" message rather
+        than "thread expired".
+        """
+        # NOTE: conftest's disable_force_env_override fixture reloads
+        # utils.conversation_memory before every test, which rebinds the
+        # ConversationMemoryStorageError class. Look the class up through
+        # the live module so pytest.raises matches the exception raised
+        # by the reloaded get_thread.
+        import utils.conversation_memory as cm
+
+        mock_client = Mock()
+        mock_storage.return_value = mock_client
+        mock_client.get.side_effect = ConnectionError("backend unreachable")
+
+        with caplog.at_level(logging.WARNING, logger="utils.conversation_memory"):
+            with pytest.raises(cm.ConversationMemoryStorageError) as excinfo:
+                cm.get_thread("12345678-1234-1234-1234-123456789012")
+
+        # Underlying cause is preserved for debuggability.
+        assert isinstance(excinfo.value.__cause__, ConnectionError)
+
+        # A WARNING-level log captures the real failure with exc_info so
+        # operators can diagnose from mcp_server.log.
+        warnings = [
+            rec for rec in caplog.records if rec.name == "utils.conversation_memory" and rec.levelno == logging.WARNING
+        ]
+        assert warnings, "Expected at least one WARNING log from storage failure path"
+        assert any("Storage backend failure" in rec.getMessage() for rec in warnings)
+        # exc_info should be captured so the traceback lands in the log.
+        assert any(rec.exc_info is not None for rec in warnings)
+
+    @patch("utils.conversation_memory.get_storage")
+    def test_get_thread_corrupt_payload_raises_storage_error(self, mock_storage, caplog):
+        """Corrupt stored payload is treated as a storage error, not 'thread not found'."""
+        # See note in test_get_thread_storage_failure_raises_and_logs about
+        # the module-reload fixture.
+        import utils.conversation_memory as cm
+
+        mock_client = Mock()
+        mock_storage.return_value = mock_client
+        # Valid-looking string that won't parse as a ThreadContext.
+        mock_client.get.return_value = "{not valid json"
+
+        with caplog.at_level(logging.WARNING, logger="utils.conversation_memory"):
+            with pytest.raises(cm.ConversationMemoryStorageError):
+                cm.get_thread("12345678-1234-1234-1234-123456789012")
+
+        warnings = [
+            rec for rec in caplog.records if rec.name == "utils.conversation_memory" and rec.levelno == logging.WARNING
+        ]
+        assert any("Corrupt thread payload" in rec.getMessage() for rec in warnings)
 
     @patch("utils.conversation_memory.get_storage")
     def test_add_turn_success(self, mock_storage):
