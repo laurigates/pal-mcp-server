@@ -26,6 +26,68 @@
   },
   "models": [
     {
+      "model_name": "gemini-3.5-flash",
+      "friendly_name": "Gemini (Flash 3.5)",
+      "aliases": [
+        "flash",
+        "flash3.5"
+      ],
+      "intelligence_score": 13,
+      "description": "Gemini 3.5 Flash (1M context) - Frontier-performance fast model (released May 2026) with native search grounding and agentic coding",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "max_thinking_tokens": 24576,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "allow_code_generation": true,
+      "max_image_size_mb": 20.0
+    },
+    {
+      "model_name": "gemini-3-flash",
+      "friendly_name": "Gemini (Flash 3.0)",
+      "aliases": [
+        "flash3",
+        "flash3.0"
+      ],
+      "intelligence_score": 11,
+      "description": "Gemini 3 Flash (1M context) - Fast model with PhD-level reasoning and multimodal understanding",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "max_thinking_tokens": 24576,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "max_image_size_mb": 20.0
+    },
+    {
+      "model_name": "gemini-3.1-flash-lite",
+      "friendly_name": "Gemini (Flash Lite 3.1)",
+      "aliases": [
+        "flashlite3",
+        "flash-lite-3"
+      ],
+      "intelligence_score": 8,
+      "description": "Gemini 3.1 Flash Lite (1M context) - Lightweight fast model, text-only",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": false,
+      "supports_temperature": true
+    },
+    {
       "model_name": "gemini-3-pro-preview",
       "friendly_name": "Gemini Pro 3.0 Preview",
       "aliases": [
@@ -113,7 +175,6 @@
       "model_name": "gemini-2.5-flash",
       "friendly_name": "Gemini (Flash 2.5)",
       "aliases": [
-        "flash",
         "flash2.5"
       ],
       "intelligence_score": 10,
