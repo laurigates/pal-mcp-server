@@ -578,10 +578,17 @@ def configure_providers():
                         if provider and hasattr(provider, "close"):
                             provider.close()
                     except Exception:
-                        # Logger might be closed during shutdown
+                        # Broad except is intentional: this runs in an
+                        # atexit handler where the interpreter is tearing
+                        # down (loggers, network sockets, the GC may all
+                        # be in inconsistent states). A failure here must
+                        # never propagate or block other providers from
+                        # closing.
                         pass
         except Exception:
-            # Silently ignore any errors during cleanup
+            # Same atexit-path rationale as above — swallow everything so
+            # interpreter shutdown can proceed even if the provider
+            # registry itself is in a bad state.
             pass
 
     atexit.register(cleanup_providers)
@@ -659,8 +666,11 @@ async def handle_list_tools() -> list[Tool]:
                 raw_name = client_info.get("name", "Unknown")
                 version = client_info.get("version", "Unknown")
                 mcp_activity_logger.info(f"MCP_CLIENT_INFO: {friendly_name} (raw={raw_name} v{version})")
-            except Exception:
-                pass
+            except (OSError, ValueError, TypeError):
+                # Activity log write/format failure must not break the
+                # tool-list handshake. Surface at DEBUG so the cause is
+                # recoverable from server logs when investigating.
+                logger.debug("Activity log write failed for MCP_CLIENT_INFO", exc_info=True)
     except Exception as e:
         logger.debug(f"Could not log client info during list_tools: {e}")
     tools = []
@@ -753,8 +763,11 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
     try:
         mcp_activity_logger = logging.getLogger("mcp_activity")
         mcp_activity_logger.info(f"TOOL_CALL: {name} with {len(arguments)} arguments")
-    except Exception:
-        pass
+    except (OSError, ValueError, TypeError):
+        # Activity log write/format failure must not break the tool-call
+        # request path. Surface at DEBUG so the cause is recoverable from
+        # server logs when investigating.
+        logger.debug("Activity log write failed for TOOL_CALL", exc_info=True)
 
     # Handle thread context reconstruction if continuation_id is present
     if "continuation_id" in arguments and arguments["continuation_id"]:
@@ -769,8 +782,10 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
         try:
             mcp_activity_logger = logging.getLogger("mcp_activity")
             mcp_activity_logger.info(f"CONVERSATION_RESUME: {name} resuming thread {continuation_id}")
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError):
+            # Activity log write/format failure must not break thread
+            # resumption. Surface at DEBUG for post-mortem.
+            logger.debug("Activity log write failed for CONVERSATION_RESUME", exc_info=True)
 
         arguments = await reconstruct_thread_context(arguments)
         logger.debug(f"[CONVERSATION_DEBUG] After thread reconstruction, arguments keys: {list(arguments.keys())}")
@@ -869,8 +884,10 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
         try:
             mcp_activity_logger = logging.getLogger("mcp_activity")
             mcp_activity_logger.info(f"TOOL_COMPLETED: {name}")
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError):
+            # Activity log write/format failure must not lose the tool's
+            # already-computed result. Surface at DEBUG for post-mortem.
+            logger.debug("Activity log write failed for TOOL_COMPLETED", exc_info=True)
         return result
 
     # Handle unknown tool requests gracefully
@@ -1068,8 +1085,11 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         try:
             mcp_activity_logger = logging.getLogger("mcp_activity")
             mcp_activity_logger.info(f"CONVERSATION_ERROR: Storage backend failure for thread {continuation_id}")
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError):
+            # Activity log write/format failure must not mask the actual
+            # storage-backend error we are about to raise. Surface at
+            # DEBUG for post-mortem.
+            logger.debug("Activity log write failed for CONVERSATION_ERROR (storage)", exc_info=True)
 
         # Surface a storage-error message rather than "thread expired"
         # so operators and users can distinguish the two failure modes.
@@ -1089,8 +1109,11 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         try:
             mcp_activity_logger = logging.getLogger("mcp_activity")
             mcp_activity_logger.info(f"CONVERSATION_ERROR: Thread {continuation_id} not found or expired")
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError):
+            # Activity log write/format failure must not mask the actual
+            # thread-expired error we are about to raise. Surface at
+            # DEBUG for post-mortem.
+            logger.debug("Activity log write failed for CONVERSATION_ERROR (not-found)", exc_info=True)
 
         # Return error asking CLI to restart conversation with full context
         raise ValueError(
@@ -1312,8 +1335,10 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
             f"CONVERSATION_CONTINUATION: Thread {continuation_id} turn {len(context.turns)} - "
             f"{len(context.turns)} previous turns loaded"
         )
-    except Exception:
-        pass
+    except (OSError, ValueError, TypeError):
+        # Activity log write/format failure must not break thread
+        # context reconstruction. Surface at DEBUG for post-mortem.
+        logger.debug("Activity log write failed for CONVERSATION_CONTINUATION", exc_info=True)
 
     return enhanced_arguments
 
