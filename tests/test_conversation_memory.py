@@ -167,6 +167,78 @@ class TestConversationMemory:
         assert any("Corrupt thread payload" in rec.getMessage() for rec in warnings)
 
     @patch("utils.conversation_memory.get_storage")
+    def test_add_turn_storage_save_failure_raises_and_logs(self, mock_storage, caplog):
+        """Storage save failure in add_turn raises ConversationMemoryStorageError and logs WARNING.
+
+        Regression guard for issue #13: previously a setex() failure during
+        add_turn() emitted only a DEBUG log and returned False, so several
+        callers in server.py and tools/ that didn't check the return value
+        silently lost turns. The save-failure path is now a hard fault: it
+        must log at WARNING with exc_info=True and raise the typed error so
+        inattentive callers see it.
+        """
+        # NOTE: conftest's disable_force_env_override fixture reloads
+        # utils.conversation_memory before every test, which rebinds the
+        # ConversationMemoryStorageError class. Look the class up through
+        # the live module so pytest.raises matches the exception raised
+        # by the reloaded add_turn.
+        import utils.conversation_memory as cm
+
+        mock_client = Mock()
+        mock_storage.return_value = mock_client
+
+        test_uuid = "12345678-1234-1234-1234-123456789012"
+
+        # get_thread succeeds with a valid, under-the-limit thread so we
+        # fall through to the storage.setex() save path.
+        context_obj = ThreadContext(
+            thread_id=test_uuid,
+            created_at="2023-01-01T00:00:00Z",
+            last_updated_at="2023-01-01T00:01:00Z",
+            tool_name="chat",
+            turns=[],
+            initial_context={"prompt": "test"},
+        )
+        mock_client.get.return_value = context_obj.model_dump_json()
+        # The save itself raises a backend fault.
+        mock_client.setex.side_effect = ConnectionError("backend unreachable")
+
+        with caplog.at_level(logging.WARNING, logger="utils.conversation_memory"):
+            with pytest.raises(cm.ConversationMemoryStorageError) as excinfo:
+                cm.add_turn(test_uuid, "user", "Hello there")
+
+        # Underlying cause is preserved for debuggability.
+        assert isinstance(excinfo.value.__cause__, ConnectionError)
+
+        # A WARNING-level log captures the real failure with exc_info so
+        # operators can diagnose from mcp_server.log.
+        warnings = [
+            rec for rec in caplog.records if rec.name == "utils.conversation_memory" and rec.levelno == logging.WARNING
+        ]
+        assert warnings, "Expected at least one WARNING log from add_turn save-failure path"
+        assert any("Storage backend failure while saving turn" in rec.getMessage() for rec in warnings)
+        # exc_info should be captured so the traceback lands in the log.
+        assert any(rec.exc_info is not None for rec in warnings)
+
+    @patch("utils.conversation_memory.get_storage")
+    def test_add_turn_get_thread_storage_failure_propagates(self, mock_storage):
+        """A storage fault in the get_thread step of add_turn propagates as ConversationMemoryStorageError.
+
+        Regression guard for issue #13: the get_thread() preamble inside
+        add_turn() previously caught ConversationMemoryStorageError and
+        returned False, hiding the fault from callers. It must now
+        propagate so the failure isn't silently swallowed.
+        """
+        import utils.conversation_memory as cm
+
+        mock_client = Mock()
+        mock_storage.return_value = mock_client
+        mock_client.get.side_effect = ConnectionError("backend unreachable")
+
+        with pytest.raises(cm.ConversationMemoryStorageError):
+            cm.add_turn("12345678-1234-1234-1234-123456789012", "user", "Hello")
+
+    @patch("utils.conversation_memory.get_storage")
     def test_add_turn_success(self, mock_storage):
         """Test adding a turn to existing thread"""
         mock_client = Mock()
