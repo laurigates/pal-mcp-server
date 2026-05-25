@@ -31,7 +31,15 @@ class ModelProviderRegistry:
           alias collisions) are resolved deterministically.
     """
 
-    _instance = None
+    _instance: Optional["ModelProviderRegistry"] = None
+
+    # Instance-attribute annotations. ``__new__`` populates these on the
+    # singleton; declaring them at class scope teaches the type-checker that
+    # every reachable instance has both maps without changing runtime behaviour
+    # (the empty-dict defaults are only seen if ``__new__`` is bypassed, which
+    # never happens in production code paths).
+    _providers: dict[ProviderType, type[ModelProvider]] = {}
+    _initialized_providers: dict[ProviderType, ModelProvider] = {}
 
     # Provider priority order for model selection
     # Native APIs first, then custom endpoints, then catch-all providers
