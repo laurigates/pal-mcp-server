@@ -28,7 +28,7 @@ async def test_openai_provider_retries_on_transient_error(monkeypatch):
 
     attempts = {"count": 0}
 
-    def create_completion(**kwargs):
+    async def create_completion(**kwargs):
         attempts["count"] += 1
         if attempts["count"] == 1:
             raise RuntimeError("temporary network interruption")
@@ -57,7 +57,7 @@ async def test_openai_provider_bails_on_non_retryable_error(monkeypatch):
 
     attempts = {"count": 0}
 
-    def create_completion(**kwargs):
+    async def create_completion(**kwargs):
         attempts["count"] += 1
         raise RuntimeError("context length exceeded 429")
 

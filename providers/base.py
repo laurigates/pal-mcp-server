@@ -118,7 +118,7 @@ class ModelProvider(ABC):
 
         async def _execute() -> Any:
             attempt_counter["value"] += 1
-            return await asyncio.to_thread(self._call_api, request)
+            return await self._call_api(request)
 
         log_prefix = self._retry_log_prefix(request, model_name)
         try:
@@ -147,7 +147,7 @@ class ModelProvider(ABC):
         """Translate user-facing arguments into a provider-shaped request dict."""
 
     @abstractmethod
-    def _call_api(self, request: dict[str, Any]) -> Any:
+    async def _call_api(self, request: dict[str, Any]) -> Any:
         """Invoke the underlying SDK using request and return the raw response."""
 
     @abstractmethod

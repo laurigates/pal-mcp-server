@@ -6,7 +6,7 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from utils.env import get_env, suppress_env_vars
 from utils.image_utils import validate_image
@@ -194,13 +194,13 @@ class OpenAICompatibleProvider(ModelProvider):
                     )
                     test_transport = getattr(self, "_test_transport", None)
                     if test_transport is not None:
-                        http_client = httpx.Client(
+                        http_client = httpx.AsyncClient(
                             transport=test_transport,
                             timeout=timeout_config,
                             follow_redirects=True,
                         )
                     else:
-                        http_client = httpx.Client(
+                        http_client = httpx.AsyncClient(
                             timeout=timeout_config,
                             follow_redirects=True,
                         )
@@ -214,16 +214,16 @@ class OpenAICompatibleProvider(ModelProvider):
                         client_kwargs["organization"] = self.organization
                     if self.DEFAULT_HEADERS:
                         client_kwargs["default_headers"] = self.DEFAULT_HEADERS.copy()
-                    self._client = OpenAI(**client_kwargs)
+                    self._client = AsyncOpenAI(**client_kwargs)
                 except Exception as e:
                     logging.warning("Failed to create client: %s", e)
                     try:
                         minimal_kwargs: dict[str, Any] = {"api_key": self.api_key}
                         if self.base_url:
                             minimal_kwargs["base_url"] = self.base_url
-                        self._client = OpenAI(**minimal_kwargs)
+                        self._client = AsyncOpenAI(**minimal_kwargs)
                     except Exception as fallback_error:
-                        logging.error("Minimal OpenAI client creation failed: %s", fallback_error)
+                        logging.error("Minimal AsyncOpenAI client creation failed: %s", fallback_error)
                         raise
         return self._client
 
@@ -381,7 +381,7 @@ class OpenAICompatibleProvider(ModelProvider):
             "capabilities": capabilities,
         }
 
-    def _call_api(self, request: dict[str, Any]) -> Any:
+    async def _call_api(self, request: dict[str, Any]) -> Any:
         """Invoke the OpenAI SDK using either chat or responses endpoint."""
         params = request["params"]
         if request.get("endpoint") == "responses":
@@ -389,8 +389,8 @@ class OpenAICompatibleProvider(ModelProvider):
 
             sanitized = self._sanitize_for_logging(params)
             logging.info(f"o3-pro API request (sanitized): {json.dumps(sanitized, indent=2, ensure_ascii=False)}")
-            return self.client.responses.create(**params)
-        return self.client.chat.completions.create(**params)
+            return await self.client.responses.create(**params)
+        return await self.client.chat.completions.create(**params)
 
     def _parse_response(self, raw: Any, *, model_name: str, request: dict[str, Any]) -> ModelResponse:
         """Convert an OpenAI SDK response into a ModelResponse."""

@@ -1,5 +1,6 @@
 """Gemini model provider implementation."""
 
+import asyncio
 import base64
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -181,9 +182,14 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             "supports_extended_thinking": capabilities.supports_extended_thinking,
         }
 
-    def _call_api(self, request: dict[str, Any]) -> Any:
-        """Invoke the Gemini SDK with the prepared request."""
-        return self.client.models.generate_content(
+    async def _call_api(self, request: dict[str, Any]) -> Any:
+        """Invoke the Gemini SDK with the prepared request.
+
+        The google-genai SDK is synchronous; wrap it in asyncio.to_thread so the
+        event loop is not blocked. Wave 2 will migrate to the native async SDK surface.
+        """
+        return await asyncio.to_thread(
+            self.client.models.generate_content,
             model=request["model"],
             contents=request["contents"],
             config=request["config"],

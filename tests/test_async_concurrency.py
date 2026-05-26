@@ -1,7 +1,7 @@
 """Async concurrency regression test for provider.generate_content."""
 
 import asyncio
-import time
+import time  # noqa: F401 — kept for wall-clock measurement
 
 import pytest
 
@@ -48,11 +48,10 @@ async def test_two_concurrent_generate_content_calls_overlap(monkeypatch):
         base_url="http://localhost:11434/v1",
     )
 
-    def slow_call_api(_request):
-        # Synchronous sleep inside the to_thread wrapper — the template method
-        # offloads _call_api via asyncio.to_thread, so two concurrent calls
-        # land in separate threads and overlap.
-        time.sleep(0.2)
+    async def slow_call_api(_request):
+        # Native async sleep — the template method now awaits _call_api directly,
+        # so two concurrent calls yield to the event loop and overlap correctly.
+        await asyncio.sleep(0.2)
         return object()
 
     monkeypatch.setattr(provider, "_build_request", lambda *a, **kw: {})

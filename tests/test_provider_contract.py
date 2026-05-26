@@ -20,7 +20,7 @@ from providers.shared import ModelResponse, ProviderType
 
 if "openai" not in sys.modules:  # pragma: no cover - shim for optional Azure dep
     _stub = types.ModuleType("openai")
-    _stub.AzureOpenAI = object
+    _stub.AsyncAzureOpenAI = object
     sys.modules["openai"] = _stub
 
 
@@ -104,7 +104,7 @@ async def test_build_request_called_once_before_api(monkeypatch, factory):
         # Return a sentinel; downstream hooks are stubbed so contents don't matter.
         return {"__sentinel__": True}
 
-    def stub_call_api(_request):
+    async def stub_call_api(_request):
         api_calls["count"] += 1
         return _make_response(model_name, provider_type)
 
@@ -136,7 +136,7 @@ async def test_retry_uses_max_retries_on_retryable_failures(monkeypatch, factory
 
     attempts = {"count": 0}
 
-    def failing_call_api(_request):
+    async def failing_call_api(_request):
         attempts["count"] += 1
         raise RuntimeError("transient")
 
@@ -164,7 +164,7 @@ async def test_non_retryable_error_bails_immediately(monkeypatch, factory):
 
     attempts = {"count": 0}
 
-    def failing_call_api(_request):
+    async def failing_call_api(_request):
         attempts["count"] += 1
         raise RuntimeError("permanent failure")
 
@@ -185,8 +185,11 @@ async def test_successful_response_returns_model_response(monkeypatch, factory):
 
     provider, model_name, provider_type = factory()
 
+    async def stub_call_api_happy(_request):
+        return object()
+
     monkeypatch.setattr(provider, "_build_request", lambda *a, **kw: {})
-    monkeypatch.setattr(provider, "_call_api", lambda _request: object())
+    monkeypatch.setattr(provider, "_call_api", stub_call_api_happy)
     monkeypatch.setattr(
         provider,
         "_parse_response",

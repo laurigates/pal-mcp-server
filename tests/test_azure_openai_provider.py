@@ -5,7 +5,7 @@ import pytest
 
 if "openai" not in sys.modules:  # pragma: no cover - test shim for optional dependency
     stub = types.ModuleType("openai")
-    stub.AzureOpenAI = object  # Replaced with a mock inside tests
+    stub.AsyncAzureOpenAI = object  # Replaced with a mock inside tests
     sys.modules["openai"] = stub
 
 from providers.azure_openai import AzureOpenAIProvider
@@ -40,16 +40,16 @@ def dummy_azure_client(monkeypatch):
             self.chat = types.SimpleNamespace(completions=types.SimpleNamespace(create=self._create_completion))
             self.responses = types.SimpleNamespace(create=self._create_response)
 
-        def _create_completion(self, **kwargs):
+        async def _create_completion(self, **kwargs):
             captured["request_kwargs"] = kwargs
             return _DummyResponse()
 
-        def _create_response(self, **kwargs):
+        async def _create_response(self, **kwargs):
             captured["responses_kwargs"] = kwargs
             return _DummyResponse()
 
     monkeypatch.delenv("AZURE_OPENAI_ALLOWED_MODELS", raising=False)
-    monkeypatch.setattr("providers.azure_openai.AzureOpenAI", _DummyAzureClient)
+    monkeypatch.setattr("providers.azure_openai.AsyncAzureOpenAI", _DummyAzureClient)
     return captured
 
 

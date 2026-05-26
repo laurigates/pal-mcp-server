@@ -5,7 +5,7 @@ This test confirms that the fix properly excludes temperature parameters
 for O3 models while maintaining them for regular models.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from providers.openai import OpenAIModelProvider
 
@@ -14,7 +14,7 @@ class TestO3TemperatureParameterFixSimple:
     """Simple test for O3 model parameter filtering."""
 
     @patch("utils.model_restrictions.get_restriction_service")
-    @patch("providers.openai_compatible.OpenAI")
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_o3_models_exclude_temperature_from_api_call(self, mock_openai_class, mock_restriction_service):
         """Test that O3 models don't send temperature to the API."""
         # Mock restriction service to allow all models
@@ -39,7 +39,7 @@ class TestO3TemperatureParameterFixSimple:
         mock_response.usage.completion_tokens = 5
         mock_response.usage.total_tokens = 15
 
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         # Create provider
         provider = OpenAIModelProvider(api_key="test-key")
@@ -64,7 +64,7 @@ class TestO3TemperatureParameterFixSimple:
         assert "messages" in call_kwargs
 
     @patch("utils.model_restrictions.get_restriction_service")
-    @patch("providers.openai_compatible.OpenAI")
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_regular_models_include_temperature_in_api_call(self, mock_openai_class, mock_restriction_service):
         """Test that regular models still send temperature to the API."""
         # Mock restriction service to allow all models
@@ -89,7 +89,7 @@ class TestO3TemperatureParameterFixSimple:
         mock_response.usage.completion_tokens = 5
         mock_response.usage.total_tokens = 15
 
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         # Create provider
         provider = OpenAIModelProvider(api_key="test-key")
@@ -113,7 +113,7 @@ class TestO3TemperatureParameterFixSimple:
         assert call_kwargs["model"] == "gpt-4.1-2025-04-14"
 
     @patch("utils.model_restrictions.get_restriction_service")
-    @patch("providers.openai_compatible.OpenAI")
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_o3_models_filter_unsupported_parameters(self, mock_openai_class, mock_restriction_service):
         """Test that O3 models filter out top_p, frequency_penalty, etc."""
         # Mock restriction service to allow all models
@@ -138,7 +138,7 @@ class TestO3TemperatureParameterFixSimple:
         mock_response.usage.completion_tokens = 5
         mock_response.usage.total_tokens = 15
 
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         # Create provider
         provider = OpenAIModelProvider(api_key="test-key")
