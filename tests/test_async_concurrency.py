@@ -48,14 +48,20 @@ async def test_two_concurrent_generate_content_calls_overlap(monkeypatch):
         base_url="http://localhost:11434/v1",
     )
 
-    async def slow_op():
-        await asyncio.sleep(0.2)
-        return _fake_response()
+    def slow_call_api(_request):
+        # Synchronous sleep inside the to_thread wrapper — the template method
+        # offloads _call_api via asyncio.to_thread, so two concurrent calls
+        # land in separate threads and overlap.
+        time.sleep(0.2)
+        return object()
 
-    async def fake_retry(*args, **kwargs):  # noqa: ARG001
-        return await slow_op()
-
-    monkeypatch.setattr(provider, "_run_with_retries_async", fake_retry)
+    monkeypatch.setattr(provider, "_build_request", lambda *a, **kw: {})
+    monkeypatch.setattr(provider, "_call_api", slow_call_api)
+    monkeypatch.setattr(
+        provider,
+        "_parse_response",
+        lambda raw, *, model_name, request: _fake_response(),
+    )
 
     start = time.perf_counter()
     results = await asyncio.gather(
