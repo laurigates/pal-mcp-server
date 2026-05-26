@@ -8,11 +8,15 @@ still properly require model resolution.
 
 from unittest.mock import patch
 
+import pytest
 from mcp.types import TextContent
 
 from tools.chat import ChatTool
 from tools.planner import PlannerTool
 from tools.shared.base_tool import BaseTool
+
+# Whole-file opt-out: exercises real auto-mode resolution behaviour.
+pytestmark = pytest.mark.no_mock_provider
 
 
 class TestAutoModelPlannerFix:

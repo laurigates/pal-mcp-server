@@ -12,6 +12,11 @@ import pytest
 from providers.registry import ModelProviderRegistry
 from providers.shared import ProviderType
 
+# Whole-file opt-out: every test in this module exercises the real
+# auto-mode / fallback resolution logic and must not have
+# ``is_effective_auto_mode`` stubbed by ``conftest.mock_provider``.
+pytestmark = pytest.mark.no_mock_provider
+
 
 class TestIntelligentFallback:
     """Test intelligent model fallback logic"""
