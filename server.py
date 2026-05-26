@@ -70,6 +70,7 @@ from tools import (  # noqa: E402
 from tools.models import ToolOutput  # noqa: E402
 from tools.shared.exceptions import ToolExecutionError  # noqa: E402
 from utils.env import env_override_enabled, get_env  # noqa: E402
+from utils.model_resolution import resolve_model_for_context  # noqa: E402
 
 # Configure logging for server operations
 # Can be controlled via LOG_LEVEL environment variable (DEBUG, INFO, WARNING, ERROR)
@@ -1061,18 +1062,114 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         4. Debug tool can reference specific findings from analyze tool
         5. Natural cross-tool collaboration without context loss
     """
-    from utils.conversation_memory import (
-        ConversationMemoryStorageError,
-        add_turn,
-        build_conversation_history,
-        get_thread,
-    )
+    from utils.context_builder import build_enhanced_prompt
 
     continuation_id = arguments["continuation_id"]
 
-    # Get thread context from storage. Distinguish "thread is absent"
-    # (expired / never created) from "storage backend failed" so the
-    # user-facing message points at the right root cause.
+    # Load thread, distinguishing storage failure from expired/missing.
+    context = _load_thread_or_raise(continuation_id)
+
+    # Append the current user turn (best-effort; raises only on
+    # genuine storage-backend failures, never on turn-limit / expired
+    # races between get_thread and add_turn).
+    _record_user_turn_or_raise(continuation_id, context, arguments)
+
+    # Resolve the model used to rebuild conversation history. The
+    # resolver encapsulates the fallback cascade
+    # (requested → ModelContext → tool fallback → globally-available).
+    tool = TOOLS.get(context.tool_name)
+    requires_model = tool.requires_model() if tool else True
+
+    # When the client did not pin a model, reuse the model from the
+    # most recent assistant turn so cross-tool continuations stay on
+    # the same engine. Only applies to model-requiring tools.
+    if requires_model and not arguments.get("model") and context.turns:
+        for turn in reversed(context.turns):
+            if turn.role == "assistant" and turn.model_name:
+                arguments["model"] = turn.model_name
+                logger.debug(f"[CONVERSATION_DEBUG] Using model from previous turn: {turn.model_name}")
+                break
+
+    try:
+        model_context = resolve_model_for_context(
+            tool=tool,
+            requested_model_name=arguments.get("model"),
+            existing_model_context=arguments.get("_model_context"),
+        )
+    except ValueError:
+        # Surface no-model errors with a context-specific message when
+        # the tool does not require a model (the original
+        # implementation differentiated this case).
+        if not requires_model and arguments.get("_model_context") is None:
+            raise ValueError(
+                "Conversation continuation failed: no available models detected for context reconstruction."
+            ) from None
+        raise
+
+    arguments["_model_context"] = model_context
+    arguments["_resolved_model_name"] = model_context.model_name
+
+    # Build the enhanced prompt and recompute the remaining token
+    # budget left for file payloads.
+    logger.debug(f"[CONVERSATION_DEBUG] Building conversation history for thread {continuation_id}")
+    logger.debug(f"[CONVERSATION_DEBUG] Thread has {len(context.turns)} turns, tool: {context.tool_name}")
+    logger.debug(f"[CONVERSATION_DEBUG] Using model: {model_context.model_name}")
+
+    original_prompt = arguments.get("prompt", "")
+    follow_up_instructions = get_follow_up_instructions(len(context.turns))
+    enhanced_prompt, remaining_tokens = build_enhanced_prompt(
+        thread_context=context,
+        model_context=model_context,
+        user_prompt=original_prompt,
+        follow_up_instructions=follow_up_instructions,
+    )
+
+    enhanced_arguments = arguments.copy()
+    enhanced_arguments["prompt"] = enhanced_prompt
+    enhanced_arguments["_original_user_prompt"] = original_prompt
+    enhanced_arguments["_remaining_tokens"] = remaining_tokens
+    enhanced_arguments["_model_context"] = model_context
+
+    logger.debug(
+        f"[CONVERSATION_DEBUG] Token budget — model={model_context.model_name}, remaining={remaining_tokens:,}"
+    )
+
+    # Merge initial-turn parameters that the current request did not
+    # override (e.g. originally-attached files).
+    if context.initial_context:
+        for key, value in context.initial_context.items():
+            if key not in enhanced_arguments and key not in ["temperature", "thinking_mode", "model"]:
+                enhanced_arguments[key] = value
+
+    logger.info(f"Reconstructed context for thread {continuation_id} (turn {len(context.turns)})")
+
+    # Log to activity file for monitoring. Activity log failures must
+    # not break context reconstruction; surface them at DEBUG only.
+    try:
+        mcp_activity_logger = logging.getLogger("mcp_activity")
+        mcp_activity_logger.info(
+            f"CONVERSATION_CONTINUATION: Thread {continuation_id} turn {len(context.turns)} - "
+            f"{len(context.turns)} previous turns loaded"
+        )
+    except (OSError, ValueError, TypeError):
+        logger.debug("Activity log write failed for CONVERSATION_CONTINUATION", exc_info=True)
+
+    return enhanced_arguments
+
+
+def _load_thread_or_raise(continuation_id: str):
+    """
+    Load a thread by id, raising user-facing errors that distinguish
+    "storage backend down" from "thread expired / never created".
+
+    Storage-backend failures propagate as ``ValueError`` with a
+    transient-fault message; missing/expired threads propagate as
+    ``ValueError`` with a restart-conversation message. Both raise
+    paths emit ``CONVERSATION_ERROR`` to the ``mcp_activity`` log,
+    so existing monitoring continues to fire.
+    """
+    from utils.conversation_memory import ConversationMemoryStorageError, get_thread
+
     logger.debug(f"[CONVERSATION_DEBUG] Looking up thread {continuation_id} in storage")
     try:
         context = get_thread(continuation_id)
@@ -1081,18 +1178,7 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
             f"Conversation storage backend failed for thread {continuation_id}: {exc}",
             exc_info=True,
         )
-
-        try:
-            mcp_activity_logger = logging.getLogger("mcp_activity")
-            mcp_activity_logger.info(f"CONVERSATION_ERROR: Storage backend failure for thread {continuation_id}")
-        except (OSError, ValueError, TypeError):
-            # Activity log write/format failure must not mask the actual
-            # storage-backend error we are about to raise. Surface at
-            # DEBUG for post-mortem.
-            logger.debug("Activity log write failed for CONVERSATION_ERROR (storage)", exc_info=True)
-
-        # Surface a storage-error message rather than "thread expired"
-        # so operators and users can distinguish the two failure modes.
+        _log_activity(f"CONVERSATION_ERROR: Storage backend failure for thread {continuation_id}", "storage")
         raise ValueError(
             f"Conversation thread '{continuation_id}' could not be retrieved because the "
             f"conversation storage backend is currently unavailable. "
@@ -1104,18 +1190,7 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
     if not context:
         logger.warning(f"Thread not found: {continuation_id}")
         logger.debug(f"[CONVERSATION_DEBUG] Thread {continuation_id} not found in storage or expired")
-
-        # Log to activity file for monitoring
-        try:
-            mcp_activity_logger = logging.getLogger("mcp_activity")
-            mcp_activity_logger.info(f"CONVERSATION_ERROR: Thread {continuation_id} not found or expired")
-        except (OSError, ValueError, TypeError):
-            # Activity log write/format failure must not mask the actual
-            # thread-expired error we are about to raise. Surface at
-            # DEBUG for post-mortem.
-            logger.debug("Activity log write failed for CONVERSATION_ERROR (not-found)", exc_info=True)
-
-        # Return error asking CLI to restart conversation with full context
+        _log_activity(f"CONVERSATION_ERROR: Thread {continuation_id} not found or expired", "not-found")
         raise ValueError(
             f"Conversation thread '{continuation_id}' was not found or has expired. "
             f"This may happen if the conversation was created more than 3 hours ago or if the "
@@ -1125,249 +1200,64 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
             f"This will create a new conversation thread that can continue with follow-up exchanges."
         )
 
-    # Add user's new input to the conversation
+    return context
+
+
+def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[str, Any]) -> None:
+    """
+    Append the current request's user turn to the loaded thread.
+
+    Storage-backend failures (``ConversationMemoryStorageError``)
+    propagate as ``ValueError`` so the user sees a "storage
+    unavailable" message rather than a silently-lost turn. False
+    return values from ``add_turn`` (turn-limit / racing expiration)
+    degrade to a ``WARNING`` log without aborting the request.
+    """
+    from utils.conversation_memory import ConversationMemoryStorageError, add_turn
+
     user_prompt = arguments.get("prompt", "")
-    if user_prompt:
-        # Capture files referenced in this turn
-        user_files = arguments.get("absolute_file_paths") or []
-        logger.debug(f"[CONVERSATION_DEBUG] Adding user turn to thread {continuation_id}")
-        from utils.token_utils import estimate_tokens
+    if not user_prompt:
+        return
 
-        user_prompt_tokens = estimate_tokens(user_prompt)
-        logger.debug(
-            f"[CONVERSATION_DEBUG] User prompt length: {len(user_prompt)} chars (~{user_prompt_tokens:,} tokens)"
+    user_files = arguments.get("absolute_file_paths") or []
+    logger.debug(f"[CONVERSATION_DEBUG] Adding user turn to thread {continuation_id}")
+
+    try:
+        success = add_turn(continuation_id, "user", user_prompt, files=user_files)
+    except ConversationMemoryStorageError as exc:
+        logger.error(
+            f"Conversation storage backend failed while saving user turn to {continuation_id}: {exc}",
+            exc_info=True,
         )
-        logger.debug(f"[CONVERSATION_DEBUG] User files: {user_files}")
-        # Storage faults (ConversationMemoryStorageError) propagate up so
-        # the user sees a "storage unavailable" message rather than a
-        # silently-lost turn. False return values are reserved for
-        # expected non-fault outcomes (thread expired between get_thread
-        # and add_turn, or turn limit reached); those degrade to a
-        # WARNING log without aborting the request.
-        try:
-            success = add_turn(continuation_id, "user", user_prompt, files=user_files)
-        except ConversationMemoryStorageError as exc:
-            logger.error(
-                f"Conversation storage backend failed while saving user turn to {continuation_id}: {exc}",
-                exc_info=True,
-            )
-            try:
-                mcp_activity_logger = logging.getLogger("mcp_activity")
-                mcp_activity_logger.info(
-                    f"CONVERSATION_ERROR: Storage backend failure saving user turn to {continuation_id}"
-                )
-            except Exception:
-                pass
-            raise ValueError(
-                f"Conversation thread '{continuation_id}' could not be updated because the "
-                f"conversation storage backend is currently unavailable. "
-                f"This is a transient server-side fault — please retry shortly. "
-                f"If the failure persists, check the server logs (mcp_server.log) for the "
-                f"underlying storage error."
-            ) from exc
+        _log_activity(
+            f"CONVERSATION_ERROR: Storage backend failure saving user turn to {continuation_id}",
+            "user-turn-storage",
+        )
+        raise ValueError(
+            f"Conversation thread '{continuation_id}' could not be updated because the "
+            f"conversation storage backend is currently unavailable. "
+            f"This is a transient server-side fault — please retry shortly. "
+            f"If the failure persists, check the server logs (mcp_server.log) for the "
+            f"underlying storage error."
+        ) from exc
 
-        if not success:
-            logger.warning(f"Failed to add user turn to thread {continuation_id}")
-            logger.debug("[CONVERSATION_DEBUG] Failed to add user turn - thread may be at turn limit or expired")
-        else:
-            logger.debug(f"[CONVERSATION_DEBUG] Successfully added user turn to thread {continuation_id}")
-
-    # Create model context early to use for history building
-    from utils.model_context import ModelContext
-
-    tool = TOOLS.get(context.tool_name)
-    requires_model = tool.requires_model() if tool else True
-
-    # Check if we should use the model from the previous conversation turn
-    model_from_args = arguments.get("model")
-    if requires_model and not model_from_args and context.turns:
-        # Find the last assistant turn to get the model used
-        for turn in reversed(context.turns):
-            if turn.role == "assistant" and turn.model_name:
-                arguments["model"] = turn.model_name
-                logger.debug(f"[CONVERSATION_DEBUG] Using model from previous turn: {turn.model_name}")
-                break
-
-    # Resolve an effective model for context reconstruction when DEFAULT_MODEL=auto
-    model_context = arguments.get("_model_context")
-
-    if requires_model:
-        if model_context is None:
-            try:
-                model_context = ModelContext.from_arguments(arguments)
-                arguments.setdefault("_resolved_model_name", model_context.model_name)
-            except ValueError as exc:
-                from providers.registry import ModelProviderRegistry
-
-                fallback_model = None
-                if tool is not None:
-                    try:
-                        fallback_model = ModelProviderRegistry.get_preferred_fallback_model(tool.get_model_category())
-                    except Exception as fallback_exc:  # pragma: no cover - defensive log
-                        logger.debug(
-                            f"[CONVERSATION_DEBUG] Unable to resolve fallback model for {context.tool_name}: {fallback_exc}"
-                        )
-
-                if fallback_model is None:
-                    available_models = ModelProviderRegistry.get_available_model_names()
-                    if available_models:
-                        fallback_model = available_models[0]
-
-                if fallback_model is None:
-                    raise
-
-                logger.debug(
-                    f"[CONVERSATION_DEBUG] Falling back to model '{fallback_model}' for context reconstruction after error: {exc}"
-                )
-                model_context = ModelContext(fallback_model)
-                arguments["_model_context"] = model_context
-                arguments["_resolved_model_name"] = fallback_model
-
-        from providers.registry import ModelProviderRegistry
-
-        provider = ModelProviderRegistry.get_provider_for_model(model_context.model_name)
-        if provider is None:
-            fallback_model = None
-            if tool is not None:
-                try:
-                    fallback_model = ModelProviderRegistry.get_preferred_fallback_model(tool.get_model_category())
-                except Exception as fallback_exc:  # pragma: no cover - defensive log
-                    logger.debug(
-                        f"[CONVERSATION_DEBUG] Unable to resolve fallback model for {context.tool_name}: {fallback_exc}"
-                    )
-
-            if fallback_model is None:
-                available_models = ModelProviderRegistry.get_available_model_names()
-                if available_models:
-                    fallback_model = available_models[0]
-
-            if fallback_model is None:
-                raise ValueError(
-                    f"Conversation continuation failed: model '{model_context.model_name}' is not available with current API keys."
-                )
-
-            logger.debug(
-                f"[CONVERSATION_DEBUG] Model '{model_context.model_name}' unavailable; swapping to '{fallback_model}' for context reconstruction"
-            )
-            model_context = ModelContext(fallback_model)
-            arguments["_model_context"] = model_context
-            arguments["_resolved_model_name"] = fallback_model
+    if not success:
+        logger.warning(f"Failed to add user turn to thread {continuation_id}")
+        logger.debug("[CONVERSATION_DEBUG] Failed to add user turn - thread may be at turn limit or expired")
     else:
-        if model_context is None:
-            from providers.registry import ModelProviderRegistry
+        logger.debug(f"[CONVERSATION_DEBUG] Successfully added user turn to thread {continuation_id}")
 
-            fallback_model = None
-            if tool is not None:
-                try:
-                    fallback_model = ModelProviderRegistry.get_preferred_fallback_model(tool.get_model_category())
-                except Exception as fallback_exc:  # pragma: no cover - defensive log
-                    logger.debug(
-                        f"[CONVERSATION_DEBUG] Unable to resolve fallback model for {context.tool_name}: {fallback_exc}"
-                    )
 
-            if fallback_model is None:
-                available_models = ModelProviderRegistry.get_available_model_names()
-                if available_models:
-                    fallback_model = available_models[0]
-
-            if fallback_model is None:
-                raise ValueError(
-                    "Conversation continuation failed: no available models detected for context reconstruction."
-                )
-
-            logger.debug(
-                f"[CONVERSATION_DEBUG] Using fallback model '{fallback_model}' for context reconstruction of tool without model requirement"
-            )
-            model_context = ModelContext(fallback_model)
-            arguments["_model_context"] = model_context
-            arguments["_resolved_model_name"] = fallback_model
-
-    # Build conversation history with model-specific limits
-    logger.debug(f"[CONVERSATION_DEBUG] Building conversation history for thread {continuation_id}")
-    logger.debug(f"[CONVERSATION_DEBUG] Thread has {len(context.turns)} turns, tool: {context.tool_name}")
-    logger.debug(f"[CONVERSATION_DEBUG] Using model: {model_context.model_name}")
-    conversation_history, conversation_tokens = build_conversation_history(context, model_context)
-    logger.debug(f"[CONVERSATION_DEBUG] Conversation history built: {conversation_tokens:,} tokens")
-    logger.debug(
-        f"[CONVERSATION_DEBUG] Conversation history length: {len(conversation_history)} chars (~{conversation_tokens:,} tokens)"
-    )
-
-    # Add dynamic follow-up instructions based on turn count
-    follow_up_instructions = get_follow_up_instructions(len(context.turns))
-    logger.debug(f"[CONVERSATION_DEBUG] Follow-up instructions added for turn {len(context.turns)}")
-
-    # All tools now use standardized 'prompt' field
-    original_prompt = arguments.get("prompt", "")
-    logger.debug("[CONVERSATION_DEBUG] Extracting user input from 'prompt' field")
-    original_prompt_tokens = estimate_tokens(original_prompt) if original_prompt else 0
-    logger.debug(
-        f"[CONVERSATION_DEBUG] User input length: {len(original_prompt)} chars (~{original_prompt_tokens:,} tokens)"
-    )
-
-    # Merge original context with new prompt and follow-up instructions
-    if conversation_history:
-        enhanced_prompt = (
-            f"{conversation_history}\n\n=== NEW USER INPUT ===\n{original_prompt}\n\n{follow_up_instructions}"
-        )
-    else:
-        enhanced_prompt = f"{original_prompt}\n\n{follow_up_instructions}"
-
-    # Update arguments with enhanced context and remaining token budget
-    enhanced_arguments = arguments.copy()
-
-    # Store the enhanced prompt in the prompt field
-    enhanced_arguments["prompt"] = enhanced_prompt
-    # Store the original user prompt separately for size validation
-    enhanced_arguments["_original_user_prompt"] = original_prompt
-    logger.debug("[CONVERSATION_DEBUG] Storing enhanced prompt in 'prompt' field")
-    logger.debug("[CONVERSATION_DEBUG] Storing original user prompt in '_original_user_prompt' field")
-
-    # Calculate remaining token budget based on current model
-    # (model_context was already created above for history building)
-    token_allocation = model_context.calculate_token_allocation()
-
-    # Calculate remaining tokens for files/new content
-    # History has already consumed some of the content budget
-    remaining_tokens = token_allocation.content_tokens - conversation_tokens
-    enhanced_arguments["_remaining_tokens"] = max(0, remaining_tokens)  # Ensure non-negative
-    enhanced_arguments["_model_context"] = model_context  # Pass context for use in tools
-
-    logger.debug("[CONVERSATION_DEBUG] Token budget calculation:")
-    logger.debug(f"[CONVERSATION_DEBUG]   Model: {model_context.model_name}")
-    logger.debug(f"[CONVERSATION_DEBUG]   Total capacity: {token_allocation.total_tokens:,}")
-    logger.debug(f"[CONVERSATION_DEBUG]   Content allocation: {token_allocation.content_tokens:,}")
-    logger.debug(f"[CONVERSATION_DEBUG]   Conversation tokens: {conversation_tokens:,}")
-    logger.debug(f"[CONVERSATION_DEBUG]   Remaining tokens: {remaining_tokens:,}")
-
-    # Merge original context parameters (files, etc.) with new request
-    if context.initial_context:
-        logger.debug(f"[CONVERSATION_DEBUG] Merging initial context with {len(context.initial_context)} parameters")
-        for key, value in context.initial_context.items():
-            if key not in enhanced_arguments and key not in ["temperature", "thinking_mode", "model"]:
-                enhanced_arguments[key] = value
-                logger.debug(f"[CONVERSATION_DEBUG] Merged initial context param: {key}")
-
-    logger.info(f"Reconstructed context for thread {continuation_id} (turn {len(context.turns)})")
-    logger.debug(f"[CONVERSATION_DEBUG] Final enhanced arguments keys: {list(enhanced_arguments.keys())}")
-
-    if "absolute_file_paths" in enhanced_arguments:
-        logger.debug(
-            f"[CONVERSATION_DEBUG] Final files in enhanced arguments: {enhanced_arguments['absolute_file_paths']}"
-        )
-
-    # Log to activity file for monitoring
+def _log_activity(message: str, scope: str) -> None:
+    """
+    Emit an ``mcp_activity`` log line, swallowing the narrow set of
+    write/format errors that should not mask the caller's real error.
+    """
     try:
         mcp_activity_logger = logging.getLogger("mcp_activity")
-        mcp_activity_logger.info(
-            f"CONVERSATION_CONTINUATION: Thread {continuation_id} turn {len(context.turns)} - "
-            f"{len(context.turns)} previous turns loaded"
-        )
+        mcp_activity_logger.info(message)
     except (OSError, ValueError, TypeError):
-        # Activity log write/format failure must not break thread
-        # context reconstruction. Surface at DEBUG for post-mortem.
-        logger.debug("Activity log write failed for CONVERSATION_CONTINUATION", exc_info=True)
-
-    return enhanced_arguments
+        logger.debug(f"Activity log write failed for CONVERSATION_ERROR ({scope})", exc_info=True)
 
 
 @server.list_prompts()
