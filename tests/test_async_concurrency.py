@@ -78,6 +78,47 @@ async def test_two_concurrent_generate_content_calls_overlap(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_sixtyfour_concurrent_calls_break_default_executor_ceiling(monkeypatch):
+    """64 concurrent 200ms calls must finish well under the threadpool-bounded floor.
+
+    The previous asyncio.to_thread shim was capped at the default executor's
+    32 workers, so 64 calls would serialise into two batches and take ~0.4s+.
+    With the native async SDK surface, all 64 calls yield to the event loop
+    concurrently and finish in roughly one sleep (~0.2s) plus scheduling
+    overhead.
+    """
+    provider = _DummyOpenAICompatible(
+        api_key="test-key",
+        base_url="http://localhost:11434/v1",
+    )
+
+    async def slow_call_api(_request):
+        await asyncio.sleep(0.2)
+        return object()
+
+    monkeypatch.setattr(provider, "_build_request", lambda *a, **kw: {})
+    monkeypatch.setattr(provider, "_call_api", slow_call_api)
+    monkeypatch.setattr(
+        provider,
+        "_parse_response",
+        lambda raw, *, model_name, request: _fake_response(),
+    )
+
+    start = time.perf_counter()
+    results = await asyncio.gather(
+        *(provider.generate_content(prompt=f"p{i}", model_name="dummy-model") for i in range(64))
+    )
+    elapsed = time.perf_counter() - start
+
+    assert len(results) == 64
+    assert all(r.content == "ok" for r in results)
+    assert elapsed < 0.35, (
+        f"64 concurrent generate_content calls did not overlap: took {elapsed:.2f}s "
+        "(would have been ≥0.4s if a 32-worker executor ceiling were in play)"
+    )
+
+
+@pytest.mark.asyncio
 async def test_run_with_retries_async_retries_on_retryable_error(monkeypatch):
     """_run_with_retries_async should retry transient errors using asyncio.sleep."""
     provider = _DummyOpenAICompatible(api_key="test-key", base_url="http://localhost:11434/v1")
