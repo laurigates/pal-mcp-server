@@ -62,6 +62,22 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             aliases = self._registry.list_aliases()
             logging.info(f"OpenRouter loaded {len(models)} models with {len(aliases)} aliases")
 
+    @classmethod
+    def from_env(cls) -> "OpenRouterProvider | None":
+        """Construct a provider from environment variables.
+
+        Reads ``OPENROUTER_API_KEY`` and rejects the documented placeholder
+        value.
+
+        Returns:
+            A configured provider instance, or ``None`` when the API key is
+            missing or set to the placeholder string.
+        """
+        api_key = get_env("OPENROUTER_API_KEY")
+        if not api_key or api_key == "your_openrouter_api_key_here":
+            return None
+        return cls(api_key=api_key)
+
     # ------------------------------------------------------------------
     # Capability surface
     # ------------------------------------------------------------------

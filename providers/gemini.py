@@ -46,6 +46,27 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         self._timeout_override = self._resolve_http_timeout()
         self._invalidate_capability_cache()
 
+    @classmethod
+    def from_env(cls) -> "GeminiModelProvider | None":
+        """Construct a provider from environment variables.
+
+        Reads ``GEMINI_API_KEY`` and rejects the documented placeholder
+        value. Honours ``GEMINI_BASE_URL`` for custom endpoints.
+
+        Returns:
+            A configured provider instance, or ``None`` when the API key is
+            missing or set to the placeholder string.
+        """
+        api_key = get_env("GEMINI_API_KEY")
+        if not api_key or api_key == "your_gemini_api_key_here":
+            return None
+        kwargs: dict[str, object] = {"api_key": api_key}
+        base_url = get_env("GEMINI_BASE_URL")
+        if base_url:
+            kwargs["base_url"] = base_url
+            logger.info("Initialized Gemini provider with custom endpoint: %s", base_url)
+        return cls(**kwargs)
+
     @property
     def client(self):
         """Lazy initialization of Gemini client."""

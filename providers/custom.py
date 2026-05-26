@@ -34,6 +34,28 @@ class CustomProvider(OpenAICompatibleProvider):
     # Model registry for managing configurations and aliases
     _registry: CustomEndpointModelRegistry | None = None
 
+    @classmethod
+    def from_env(cls) -> "CustomProvider | None":
+        """Construct a provider from environment variables.
+
+        Requires ``CUSTOM_API_URL`` to point at the OpenAI-compatible
+        endpoint. ``CUSTOM_API_KEY`` is optional - some endpoints (Ollama)
+        accept unauthenticated requests, so an empty key is honoured.
+
+        Returns:
+            A configured provider instance, or ``None`` when
+            ``CUSTOM_API_URL`` is not set.
+        """
+        base_url = get_env("CUSTOM_API_URL", "") or ""
+        if not base_url:
+            return None
+        api_key = get_env("CUSTOM_API_KEY", "") or ""
+        try:
+            return cls(api_key=api_key, base_url=base_url)
+        except Exception as exc:
+            logging.warning("Failed to instantiate Custom provider: %s", exc)
+            return None
+
     def __init__(self, api_key: str = "", base_url: str = "", **kwargs):
         """Initialize Custom provider for local/self-hosted models.
 

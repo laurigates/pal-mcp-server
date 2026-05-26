@@ -29,6 +29,48 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
 
     MODEL_CAPABILITIES: dict[str, ModelCapabilities] = {}
 
+    @classmethod
+    def from_env(cls) -> AzureOpenAIProvider | None:
+        """Construct a provider from environment variables.
+
+        Requires both ``AZURE_OPENAI_API_KEY`` (non-placeholder) and
+        ``AZURE_OPENAI_ENDPOINT``. Also verifies the Azure model registry
+        contains at least one configured deployment; otherwise returns
+        ``None`` with a warning so the rest of the server keeps booting.
+
+        Returns:
+            A configured provider instance, or ``None`` when configuration
+            is incomplete or no Azure models are configured.
+        """
+        api_key = get_env("AZURE_OPENAI_API_KEY")
+        if not api_key or api_key == "your_azure_openai_key_here":
+            return None
+        azure_endpoint = get_env("AZURE_OPENAI_ENDPOINT")
+        if not azure_endpoint:
+            logger.warning("AZURE_OPENAI_ENDPOINT missing - skipping Azure OpenAI provider")
+            return None
+        try:
+            registry = AzureModelRegistry()
+            if not registry.list_models():
+                logger.warning(
+                    "Azure OpenAI models configuration is empty. "
+                    "Populate conf/azure_models.json or set AZURE_MODELS_CONFIG_PATH."
+                )
+                return None
+        except Exception as exc:
+            logger.warning("Failed to load Azure OpenAI models: %s", exc)
+            return None
+        api_version = get_env("AZURE_OPENAI_API_VERSION")
+        try:
+            return cls(
+                api_key=api_key,
+                azure_endpoint=azure_endpoint,
+                api_version=api_version,
+            )
+        except Exception as exc:
+            logger.warning("Failed to instantiate Azure OpenAI provider: %s", exc)
+            return None
+
     def __init__(
         self,
         api_key: str,
