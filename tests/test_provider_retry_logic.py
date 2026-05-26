@@ -19,7 +19,10 @@ def _mock_chat_response(content: str = "retry success") -> SimpleNamespace:
 async def test_openai_provider_retries_on_transient_error(monkeypatch):
     """Provider should retry once for retryable errors and eventually succeed."""
 
-    monkeypatch.setattr("providers.base.time.sleep", lambda _: None)
+    async def _noop_sleep(_delay):
+        return None
+
+    monkeypatch.setattr("providers.base.asyncio.sleep", _noop_sleep)
 
     provider = OpenAIModelProvider(api_key="test-key")
 
@@ -45,7 +48,10 @@ async def test_openai_provider_retries_on_transient_error(monkeypatch):
 async def test_openai_provider_bails_on_non_retryable_error(monkeypatch):
     """Provider should stop immediately when the error is marked non-retryable."""
 
-    monkeypatch.setattr("providers.base.time.sleep", lambda _: None)
+    async def _noop_sleep(_delay):
+        return None
+
+    monkeypatch.setattr("providers.base.asyncio.sleep", _noop_sleep)
 
     provider = OpenAIModelProvider(api_key="test-key")
 
