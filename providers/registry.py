@@ -65,17 +65,39 @@ class ModelProviderRegistry:
         return cls._instance
 
     @classmethod
-    def register_provider(cls, provider_type: ProviderType, provider_class: type[ModelProvider]) -> None:
-        """Register a new provider class.
+    def register_provider(
+        cls,
+        provider_type: ProviderType,
+        provider_class_or_instance: "type[ModelProvider] | ModelProvider",
+    ) -> None:
+        """Register a provider class, factory function, or pre-built instance.
+
+        Three forms are accepted:
+
+        * **Class** - the registry instantiates lazily via :meth:`get_provider`
+          using environment variables for the API key.
+        * **Factory callable** - signature ``factory(api_key=...)``; used by the
+          :class:`~providers.custom.CustomProvider` registration.
+        * **Pre-built instance** - cached directly under
+          ``_initialized_providers`` so ``get_provider`` returns it without
+          touching environment variables again. The corresponding class is
+          stored under ``_providers`` so callers that iterate the registry
+          (e.g. ``get_available_providers``) still see the slot as occupied.
 
         Args:
             provider_type: Type of the provider (e.g., ProviderType.GOOGLE)
-            provider_class: Class that implements ModelProvider interface
+            provider_class_or_instance: Provider class, factory callable, or
+                an already-constructed provider instance.
         """
         instance = cls()
-        instance._providers[provider_type] = provider_class
-        # Invalidate any cached instance so subsequent lookups use the new registration
-        instance._initialized_providers.pop(provider_type, None)
+        if isinstance(provider_class_or_instance, ModelProvider):
+            provider_instance = provider_class_or_instance
+            instance._providers[provider_type] = type(provider_instance)
+            instance._initialized_providers[provider_type] = provider_instance
+        else:
+            instance._providers[provider_type] = provider_class_or_instance
+            # Invalidate any cached instance so subsequent lookups use the new registration
+            instance._initialized_providers.pop(provider_type, None)
 
     @classmethod
     def get_provider(cls, provider_type: ProviderType, force_new: bool = False) -> ModelProvider | None:
@@ -477,3 +499,42 @@ class ModelProviderRegistry:
         instance = cls()
         instance._providers.pop(provider_type, None)
         instance._initialized_providers.pop(provider_type, None)
+
+
+def _build_registered_provider_classes() -> list[type[ModelProvider]]:
+    """Materialise the ordered list of provider classes used by
+    :func:`server.configure_providers`.
+
+    The order matches :attr:`ModelProviderRegistry.PROVIDER_PRIORITY_ORDER`:
+    native APIs first, then the local/self-hosted bridge, then the catch-all
+    aggregator. The imports live inside the function to defer them past the
+    point where the provider modules themselves import this module.
+    """
+
+    from .azure_openai import AzureOpenAIProvider
+    from .custom import CustomProvider
+    from .dial import DIALModelProvider
+    from .gemini import GeminiModelProvider
+    from .openai import OpenAIModelProvider
+    from .openrouter import OpenRouterProvider
+    from .xai import XAIModelProvider
+
+    return [
+        GeminiModelProvider,
+        OpenAIModelProvider,
+        AzureOpenAIProvider,
+        XAIModelProvider,
+        DIALModelProvider,
+        CustomProvider,
+        OpenRouterProvider,
+    ]
+
+
+# Resolved once at import time. The list is what callers (server bootstrap,
+# tests) iterate to drive ``from_env``-based registration. Test isolation
+# note: some tests ``importlib.reload`` a provider module to exercise
+# import-time env reads; after such a reload the class object in this list
+# can drift from the freshly re-imported one. ``configure_providers`` is
+# resilient to that (it dispatches via ``provider.get_provider_type()``),
+# and tests that care about identity import the provider class directly.
+REGISTERED_PROVIDER_CLASSES: list[type[ModelProvider]] = _build_registered_provider_classes()

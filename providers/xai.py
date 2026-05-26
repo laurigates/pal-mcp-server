@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
+from utils.env import get_env
+
 from .openai_compatible import OpenAICompatibleProvider
 from .registries.xai import XAIModelRegistry
 from .registry_provider_mixin import RegistryBackedProviderMixin
@@ -37,6 +39,22 @@ class XAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
         self._ensure_registry()
         super().__init__(api_key, **kwargs)
         self._invalidate_capability_cache()
+
+    @classmethod
+    def from_env(cls) -> "XAIModelProvider | None":
+        """Construct a provider from environment variables.
+
+        Reads ``XAI_API_KEY`` and rejects the documented placeholder
+        value.
+
+        Returns:
+            A configured provider instance, or ``None`` when the API key is
+            missing or set to the placeholder string.
+        """
+        api_key = get_env("XAI_API_KEY")
+        if not api_key or api_key == "your_xai_api_key_here":
+            return None
+        return cls(api_key=api_key)
 
     def get_provider_type(self) -> ProviderType:
         """Get the provider type."""
