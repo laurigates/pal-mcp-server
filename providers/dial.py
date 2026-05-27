@@ -1,5 +1,6 @@
 """DIAL (Data & AI Layer) model provider implementation."""
 
+import asyncio
 import logging
 import threading
 from typing import Any, ClassVar
@@ -49,7 +50,7 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
             for header_name in headers_to_remove:
                 del request.headers[header_name]
 
-        self._http_client = httpx.Client(
+        self._http_client = httpx.AsyncClient(
             timeout=self.timeout_config,
             verify=True,
             follow_redirects=True,
@@ -90,7 +91,7 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
             return self._deployment_clients[deployment]
         with self._client_lock:
             if deployment not in self._deployment_clients:
-                from openai import OpenAI
+                from openai import AsyncOpenAI
 
                 base_url = str(self.client.base_url)
                 if base_url.endswith("/"):
@@ -98,7 +99,7 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
                 if base_url.endswith("/openai"):
                     base_url = base_url[:-7]
                 deployment_url = f"{base_url}/openai/deployments/{deployment}"
-                self._deployment_clients[deployment] = OpenAI(
+                self._deployment_clients[deployment] = AsyncOpenAI(
                     api_key="placeholder-not-used",
                     base_url=deployment_url,
                     http_client=self._http_client,
@@ -167,10 +168,10 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
             "params": completion_params,
         }
 
-    def _call_api(self, request: dict[str, Any]) -> Any:
+    async def _call_api(self, request: dict[str, Any]) -> Any:
         """Invoke DIAL deployment-specific chat.completions endpoint."""
         deployment_client = self._get_deployment_client(request["model"])
-        return deployment_client.chat.completions.create(**request["params"])
+        return await deployment_client.chat.completions.create(**request["params"])
 
     def _parse_response(self, raw: Any, *, model_name: str, request: dict[str, Any]) -> ModelResponse:
         """Convert DIAL response into ModelResponse."""
@@ -212,15 +213,28 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
         """Clean up HTTP clients when provider is closed."""
         logger.info("Closing DIAL provider HTTP clients...")
         self._deployment_clients.clear()
-        if hasattr(self, "_http_client"):
+
+        async def _aclose_all() -> None:
+            if hasattr(self, "_http_client"):
+                try:
+                    await self._http_client.aclose()
+                    logger.debug("Closed shared HTTP client")
+                except Exception as e:
+                    logger.warning(f"Error closing shared HTTP client: {e}")
+            if hasattr(self, "_client") and self._client and hasattr(self._client, "aclose"):
+                try:
+                    await self._client.aclose()
+                    logger.debug("Closed superclass AsyncOpenAI client")
+                except Exception as e:
+                    logger.warning(f"Error closing superclass AsyncOpenAI client: {e}")
+
+        try:
+            asyncio.run(_aclose_all())
+        except RuntimeError:
+            # Event loop is already running (e.g. called from within async context);
+            # schedule the cleanup as a best-effort fire-and-forget.
             try:
-                self._http_client.close()
-                logger.debug("Closed shared HTTP client")
+                loop = asyncio.get_event_loop()
+                loop.create_task(_aclose_all())
             except Exception as e:
-                logger.warning(f"Error closing shared HTTP client: {e}")
-        if hasattr(self, "client") and self.client and hasattr(self.client, "close"):
-            try:
-                self.client.close()
-                logger.debug("Closed superclass OpenAI client")
-            except Exception as e:
-                logger.warning(f"Error closing superclass OpenAI client: {e}")
+                logger.warning(f"Could not schedule async cleanup: {e}")

@@ -181,9 +181,8 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             "supports_extended_thinking": capabilities.supports_extended_thinking,
         }
 
-    def _call_api(self, request: dict[str, Any]) -> Any:
-        """Invoke the Gemini SDK with the prepared request."""
-        return self.client.models.generate_content(
+    async def _call_api(self, request: dict[str, Any]) -> Any:
+        return await self.client.aio.models.generate_content(
             model=request["model"],
             contents=request["contents"],
             config=request["config"],

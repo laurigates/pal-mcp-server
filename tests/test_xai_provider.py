@@ -1,7 +1,7 @@
 """Tests for X.AI provider implementation."""
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -261,7 +261,7 @@ class TestXAIProvider:
         assert "grok-4.1-fast" in grok41fast_config.aliases
         assert "grok-4.1-fast-reasoning" in grok41fast_config.aliases
 
-    @patch("providers.openai_compatible.OpenAI")
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_generate_content_resolves_alias_before_api_call(self, mock_openai_class):
         """Test that generate_content resolves aliases before making API calls.
 
@@ -285,7 +285,7 @@ class TestXAIProvider:
         mock_response.usage.completion_tokens = 5
         mock_response.usage.total_tokens = 15
 
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         provider = XAIModelProvider("test-key")
 
@@ -313,7 +313,7 @@ class TestXAIProvider:
         assert result.content == "Test response"
         assert result.model_name == "grok-4"  # Should be the resolved name
 
-    @patch("providers.openai_compatible.OpenAI")
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_generate_content_other_aliases(self, mock_openai_class):
         """Test other alias resolutions in generate_content."""
         from unittest.mock import MagicMock
@@ -329,7 +329,7 @@ class TestXAIProvider:
         mock_response.usage.prompt_tokens = 10
         mock_response.usage.completion_tokens = 5
         mock_response.usage.total_tokens = 15
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         provider = XAIModelProvider("test-key")
 

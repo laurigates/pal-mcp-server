@@ -9,7 +9,7 @@ This addresses issue #245.
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from providers.openai import OpenAIModelProvider
 
@@ -27,7 +27,7 @@ class TestCustomOpenAITemperatureParameterFix:
         return temp_file.name
 
     @patch("utils.model_restrictions.get_restriction_service")
-    @patch("providers.openai_compatible.OpenAI")
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_custom_openai_models_exclude_temperature_from_api_call(
         self, mock_openai_class, mock_restriction_service
     ):
@@ -78,7 +78,7 @@ class TestCustomOpenAITemperatureParameterFix:
             mock_response.usage.completion_tokens = 5
             mock_response.usage.total_tokens = 15
 
-            mock_client.chat.completions.create.return_value = mock_response
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
             # Create provider with custom config
             with patch("providers.registries.openrouter.OpenRouterModelRegistry") as mock_registry_class:
@@ -137,7 +137,7 @@ class TestCustomOpenAITemperatureParameterFix:
             Path(config_path).unlink(missing_ok=True)
 
     @patch("utils.model_restrictions.get_restriction_service")
-    @patch("providers.openai_compatible.OpenAI")
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_custom_openai_models_include_temperature_when_supported(
         self, mock_openai_class, mock_restriction_service
     ):
@@ -164,7 +164,7 @@ class TestCustomOpenAITemperatureParameterFix:
         mock_response.usage.completion_tokens = 5
         mock_response.usage.total_tokens = 15
 
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         # Create provider with custom config
         with patch("providers.registries.openrouter.OpenRouterModelRegistry") as mock_registry_class:

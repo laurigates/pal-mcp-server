@@ -82,7 +82,7 @@ class TestProviderUTF8Encoding(unittest.TestCase):
         self.assertIn("développement", request_content)
 
     @pytest.mark.skip(reason="Requires real OpenAI API access")
-    @patch("openai.OpenAI")
+    @patch("openai.AsyncOpenAI")
     def test_openai_provider_utf8_logging(self, mock_openai_class):
         """Test that the OpenAI provider logs UTF-8 correctly."""
         # Mock OpenAI response
@@ -114,7 +114,7 @@ class TestProviderUTF8Encoding(unittest.TestCase):
             self.assertIn("✅", response.content)
 
     @pytest.mark.skip(reason="Requires real OpenAI API access")
-    @patch("openai.OpenAI")
+    @patch("openai.AsyncOpenAI")
     def test_openai_compatible_o3_pro_utf8(self, mock_openai_class):
         """Test for o3-pro with /responses endpoint and UTF-8."""
         # Mock o3-pro response

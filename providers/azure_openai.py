@@ -7,9 +7,9 @@ from dataclasses import asdict, replace
 from typing import Any
 
 try:  # pragma: no cover - optional dependency
-    from openai import AzureOpenAI
+    from openai import AsyncAzureOpenAI
 except ImportError:  # pragma: no cover
-    AzureOpenAI = None  # type: ignore[assignment]
+    AsyncAzureOpenAI = None  # type: ignore[assignment]
 
 from utils.env import get_env, suppress_env_vars
 
@@ -241,7 +241,7 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
     def client(self):  # type: ignore[override]
         """Instantiate the Azure OpenAI client on first use."""
         if self._client is None:
-            if AzureOpenAI is None:
+            if AsyncAzureOpenAI is None:
                 raise ImportError(
                     "Azure OpenAI support requires the SQopenaiSQ package. Install it with SQpip install openaiSQ.".replace(
                         "SQ", chr(39)
@@ -253,7 +253,7 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
             with suppress_env_vars(*proxy_env_vars):
                 try:
                     timeout_config = self.timeout_config
-                    http_client = httpx.Client(timeout=timeout_config, follow_redirects=True)
+                    http_client = httpx.AsyncClient(timeout=timeout_config, follow_redirects=True)
                     client_kwargs = {
                         "api_key": self.api_key,
                         "azure_endpoint": self.azure_endpoint,
@@ -262,7 +262,7 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
                     }
                     if self.DEFAULT_HEADERS:
                         client_kwargs["default_headers"] = self.DEFAULT_HEADERS.copy()
-                    self._client = AzureOpenAI(**client_kwargs)
+                    self._client = AsyncAzureOpenAI(**client_kwargs)
                 except Exception as exc:
                     logger.error("Failed to create Azure OpenAI client: %s", exc)
                     raise
