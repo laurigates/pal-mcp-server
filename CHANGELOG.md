@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [10.1.0](https://github.com/laurigates/pal-mcp-server/compare/v10.0.0...v10.1.0) (2026-05-27)
+
+
+### Features
+
+* **providers:** native async SDK migration ([#45](https://github.com/laurigates/pal-mcp-server/issues/45)) ([ee32f09](https://github.com/laurigates/pal-mcp-server/commit/ee32f09b983db6dc7e5fe5f0a63873607abef309))
+
 ## [10.0.0](https://github.com/laurigates/pal-mcp-server/compare/v9.8.2...v10.0.0) (2026-05-26)
 
 
