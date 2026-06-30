@@ -228,6 +228,7 @@ def _clear_model_restriction_env(monkeypatch):
         "XAI_ALLOWED_MODELS",
         "OPENROUTER_ALLOWED_MODELS",
         "DIAL_ALLOWED_MODELS",
+        "OPENCODE_GO_ALLOWED_MODELS",
     ]
 
     for var in restriction_vars:
