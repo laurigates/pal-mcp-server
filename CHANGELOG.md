@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [10.2.1](https://github.com/laurigates/pal-mcp-server/compare/v10.2.0...v10.2.1) (2026-07-01)
+
+
+### Bug Fixes
+
+* **custom:** default local model to gemma4:e4b ([#52](https://github.com/laurigates/pal-mcp-server/issues/52)) ([912a396](https://github.com/laurigates/pal-mcp-server/commit/912a3969ba5a817361e44c000395853fea55e1f9))
+
 ## [10.2.0](https://github.com/laurigates/pal-mcp-server/compare/v10.1.0...v10.2.0) (2026-07-01)
 
 
