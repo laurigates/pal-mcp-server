@@ -10,6 +10,15 @@ on:
   issues:
     types: [opened, assigned]
 
+# Explicit grant so the reusable workflow gets the token scopes it declares
+# even when the repo's default workflow permissions are read-only.
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
 jobs:
   claude:
     uses: laurigates/.github/.github/workflows/reusable-claude.yml@main

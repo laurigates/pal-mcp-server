@@ -7,6 +7,11 @@ on:
       - edited
       - synchronize
 
+# Explicit grant so the reusable workflow can edit PR titles / comment
+# even when the repo's default workflow permissions are read-only.
+permissions:
+  pull-requests: write
+
 jobs:
   conventional-commits:
     uses: laurigates/.github/.github/workflows/reusable-enforce-conventional-commits.yml@main

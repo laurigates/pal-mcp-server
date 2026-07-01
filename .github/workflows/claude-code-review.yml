@@ -4,6 +4,15 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# Explicit grant so the reusable workflow gets the token scopes it declares
+# (incl. id-token: write for OIDC) even when the repo's default workflow
+# permissions are read-only.
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
 jobs:
   review:
     uses: laurigates/.github/.github/workflows/reusable-claude-review.yml@main
