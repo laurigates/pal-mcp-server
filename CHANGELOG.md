@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [10.2.0](https://github.com/laurigates/pal-mcp-server/compare/v10.1.0...v10.2.0) (2026-07-01)
+
+
+### Features
+
+* **providers:** add OpenCode Go subscription provider ([#50](https://github.com/laurigates/pal-mcp-server/issues/50)) ([0fd10ed](https://github.com/laurigates/pal-mcp-server/commit/0fd10edeae423e4327112db3716a5e689903550f))
+
 ## [10.1.0](https://github.com/laurigates/pal-mcp-server/compare/v10.0.0...v10.1.0) (2026-05-27)
 
 
