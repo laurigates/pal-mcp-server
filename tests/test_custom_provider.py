@@ -40,7 +40,7 @@ class TestCustomProvider:
         provider = CustomProvider(api_key="test-key", base_url="http://localhost:11434/v1")
 
         # Known model should validate
-        assert provider.validate_model_name("llama3.2")
+        assert provider.validate_model_name("gemma4:e4b")
 
         # For custom provider, unknown models return False when not in registry
         # This is expected behavior - custom models need to be declared in custom_models.json
@@ -93,14 +93,14 @@ class TestCustomProvider:
 
         # Test local model alias
         resolved_local = provider._resolve_model_name("local-llama")
-        assert resolved_local == "llama3.2"
+        assert resolved_local == "gemma4:e4b"
 
     def test_no_thinking_mode_support(self):
         """Custom provider generic capabilities default to no thinking mode."""
         provider = CustomProvider(api_key="test-key", base_url="http://localhost:11434/v1")
 
-        # llama3.2 is a known model that should work
-        assert not provider.get_capabilities("llama3.2").supports_extended_thinking
+        # gemma4:e4b is a known model that should work
+        assert not provider.get_capabilities("gemma4:e4b").supports_extended_thinking
 
         # Unknown models should raise error
         with pytest.raises(ValueError, match="Unsupported model 'any-model' for provider custom"):

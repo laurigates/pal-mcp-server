@@ -22,7 +22,7 @@
   },
   "models": [
     {
-      "model_name": "llama3.2",
+      "model_name": "gemma4:e4b",
       "aliases": [
         "local-llama",
         "ollama-llama"
@@ -34,7 +34,7 @@
       "supports_function_calling": false,
       "supports_images": false,
       "max_image_size_mb": 0.0,
-      "description": "Local Llama 3.2 model via custom endpoint (Ollama/vLLM) - 128K context window (text-only)",
+      "description": "Local Gemma4 e4b via Ollama (4.5B effective params) - 128K context window (text-only)",
       "intelligence_score": 6
     }
   ]

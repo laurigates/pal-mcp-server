@@ -117,7 +117,7 @@ class TestModelEnumeration:
         models = tool._get_available_models()
 
         # Custom-only models should NOT be present
-        custom_only_models = ["local-llama", "llama3.2"]
+        custom_only_models = ["local-llama", "gemma4:e4b"]
         found_count = sum(1 for m in custom_only_models if m in models)
 
         assert found_count == 0, "Custom models should not be included without CUSTOM_API_URL"
@@ -129,7 +129,7 @@ class TestModelEnumeration:
         tool = AnalyzeTool()
         models = tool._get_available_models()
 
-        for alias in ("local-llama", "llama3.2"):
+        for alias in ("local-llama", "gemma4:e4b"):
             assert alias not in models, f"Custom model alias '{alias}' should remain hidden without CUSTOM_API_URL"
 
     def test_no_duplicates_with_overlapping_providers(self):
