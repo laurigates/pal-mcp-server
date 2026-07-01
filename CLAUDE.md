@@ -165,7 +165,7 @@ Releases are automated by **release-please**:
 
 **Don't manually edit**: `CHANGELOG.md`, the `version` field in `pyproject.toml`. release-please owns them.
 
-Required repo secret: `MY_RELEASE_PLEASE_TOKEN` (PAT with `contents:write` + `pull-requests:write`).
+Authentication uses the **laurigates-release-please GitHub App** (not a PAT): `release-please.yml` mints a token via `actions/create-github-app-token` from the `RELEASE_PLEASE_APP_ID` variable + `RELEASE_PLEASE_PRIVATE_KEY` secret, both pushed by `gitops` to repos flagged `release_please = true`.
 
 ## Troubleshooting
 
