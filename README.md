@@ -151,6 +151,7 @@ For best results when using [Codex CLI](https://developers.openai.com/codex/cli)
 - **[Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/)** - Enterprise deployments of GPT-4o, GPT-4.1, GPT-5 family
 - **[X.AI](https://console.x.ai/)** - Grok models
 - **[DIAL](https://dialx.ai/)** - Vendor-agnostic model access
+- **[OpenCode Go](https://opencode.ai/docs/go/)** - Flat-rate subscription for open-source coding models
 - **[Ollama](https://ollama.ai/)** - Local models (free)
 
 **2. Install** (choose one):
@@ -381,7 +382,7 @@ DISABLED_TOOLS=
 - **[Context revival](docs/context-revival.md)** - Continue conversations even after context resets
 
 **Model Support**
-- **Multiple providers** - Gemini, OpenAI, Azure, X.AI, OpenRouter, DIAL, Ollama
+- **Multiple providers** - Gemini, OpenAI, Azure, X.AI, OpenRouter, DIAL, OpenCode Go, Ollama
 - **Latest models** - GPT-5, Gemini 3.0 Pro, O3, Grok-4, local Llama
 - **[Thinking modes](docs/advanced-usage.md#thinking-modes)** - Control reasoning depth vs cost
 - **Vision support** - Analyze images, diagrams, screenshots
