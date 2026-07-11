@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [10.2.2](https://github.com/laurigates/pal-mcp-server/compare/v10.2.1...v10.2.2) (2026-07-11)
+
+
+### Bug Fixes
+
+* **listmodels:** show OpenCode Go in the provider roster ([#61](https://github.com/laurigates/pal-mcp-server/issues/61)) ([258117b](https://github.com/laurigates/pal-mcp-server/commit/258117b7ead3b7ddd996e3a9e5c3740dba7055f0))
+
 ## [10.2.1](https://github.com/laurigates/pal-mcp-server/compare/v10.2.0...v10.2.1) (2026-07-01)
 
 
