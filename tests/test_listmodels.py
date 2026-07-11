@@ -46,6 +46,7 @@ class TestListModelsTool:
             assert "Google Gemini ❌" in content
             assert "OpenAI ❌" in content
             assert "X.AI (Grok) ❌" in content
+            assert "OpenCode Go ❌" in content
             assert "OpenRouter ❌" in content
             assert "Custom/Local API ❌" in content
 
@@ -72,6 +73,35 @@ class TestListModelsTool:
 
             # Check summary
             assert "**Configured Providers**: 1" in content
+
+    @pytest.mark.asyncio
+    async def test_execute_with_opencode_go_configured(self, tool):
+        """OpenCode Go must appear in the roster as configured when its key is set.
+
+        Regression guard: the provider was registered and activating, but
+        listmodels' hardcoded ``provider_info`` dict omitted it, so it never
+        showed in the roster. Isolated with ``reset_for_testing`` so the sole
+        registered provider is OpenCode Go — the count assertion is then exact.
+        """
+        from providers.opencode_go import OpenCodeGoProvider
+        from providers.registry import ModelProviderRegistry
+        from providers.shared import ProviderType
+
+        ModelProviderRegistry.reset_for_testing()
+        ModelProviderRegistry.register_provider(ProviderType.OPENCODE_GO, OpenCodeGoProvider)
+        try:
+            env_vars = {"OPENCODE_API_KEY": "test-key", "DEFAULT_MODEL": "auto"}
+            with patch.dict(os.environ, env_vars, clear=True):
+                result = await tool.execute({})
+
+            response = json.loads(result[0].text)
+            content = response["content"]
+
+            assert "OpenCode Go ✅" in content
+            assert "`glm` → `glm-5.2`" in content
+            assert "**Configured Providers**: 1" in content
+        finally:
+            ModelProviderRegistry.reset_for_testing()
 
     @pytest.mark.asyncio
     async def test_execute_with_multiple_providers(self, tool):
