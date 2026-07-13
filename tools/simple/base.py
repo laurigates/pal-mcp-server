@@ -20,6 +20,7 @@ from tools.shared.base_models import ToolRequest
 from tools.shared.base_tool import BaseTool
 from tools.shared.exceptions import ToolExecutionError
 from tools.shared.schema_builders import SchemaBuilder
+from utils.progress import format_tokens, get_progress_reporter, summarize_usage, usage_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -443,17 +444,27 @@ class SimpleTool(BaseTool):
             # Resolve model capabilities for feature gating
             supports_thinking = capabilities.supports_extended_thinking
 
-            # Generate content with provider abstraction
-            model_response = await provider.generate_content(
-                prompt=prompt,
-                model_name=self._current_model_name,
-                system_prompt=system_prompt,
-                temperature=temperature,
-                thinking_mode=thinking_mode if supports_thinking else None,
-                images=images if images else None,
+            # Generate content with provider abstraction. The await below is the
+            # longest opaque stretch of a simple tool, so heartbeat through it:
+            # a client with no signal cannot tell a thinking model from a hung one.
+            progress = get_progress_reporter()
+            await progress.update(
+                f"{self.get_name()} · {self._current_model_name} · sending ~{format_tokens(estimated_tokens)} tokens"
             )
+            async with progress.heartbeat(f"{self.get_name()} · {self._current_model_name} · thinking"):
+                model_response = await provider.generate_content(
+                    prompt=prompt,
+                    model_name=self._current_model_name,
+                    system_prompt=system_prompt,
+                    temperature=temperature,
+                    thinking_mode=thinking_mode if supports_thinking else None,
+                    images=images if images else None,
+                )
 
             logger.info(f"Received response from {provider.get_provider_type().value} API for {self.get_name()}")
+            await progress.update(
+                f"{self.get_name()} · {self._current_model_name} · {summarize_usage(model_response.usage)}"
+            )
 
             # Process the model's response
             if model_response.content:
@@ -629,6 +640,7 @@ class SimpleTool(BaseTool):
                         except AttributeError:
                             # Fallback if provider doesn't have get_provider_type method
                             metadata["provider_used"] = str(provider)
+                metadata.update(self._usage_metadata(model_info))
 
             return ToolOutput(
                 status="success",
@@ -636,6 +648,12 @@ class SimpleTool(BaseTool):
                 content_type="text",
                 metadata=metadata if metadata else None,
             )
+
+    @staticmethod
+    def _usage_metadata(model_info: dict | None) -> dict:
+        """Token counts for the calling agent, so delegation cost is visible to it."""
+        model_response = (model_info or {}).get("model_response")
+        return usage_metadata(getattr(model_response, "usage", None))
 
     def _create_continuation_offer(self, request, model_info: dict | None = None):
         """Create continuation offer following old base.py pattern"""
@@ -725,6 +743,7 @@ class SimpleTool(BaseTool):
                         except AttributeError:
                             # Fallback if provider doesn't have get_provider_type method
                             metadata["provider_used"] = str(provider)
+                metadata.update(self._usage_metadata(model_info))
 
             return ToolOutput(
                 status="continuation_available",

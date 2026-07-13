@@ -250,6 +250,24 @@ MAX_CONVERSATION_TURNS=20
 LOG_LEVEL=DEBUG  # Default: shows detailed operational messages
 ```
 
+**Progress Reporting:**
+
+PAL reports live status over MCP progress notifications while a tool runs — which
+model it is calling, how long it has been thinking, which CLI agent `clink` spawned,
+and token usage once a provider replies. Clients that support progress (such as
+Claude Code) show this next to the in-flight tool call, so a long call is visibly
+working rather than silently hung.
+
+Reporting needs no configuration and activates only when the client opts in by
+sending a `progressToken`. During a long provider or CLI call PAL re-sends a
+heartbeat with a running clock, which also keeps the client's idle timeout from
+aborting a call that is still making progress.
+
+```env
+# Seconds between heartbeat updates during a long call. Default: 5
+PAL_PROGRESS_HEARTBEAT_SECONDS=5
+```
+
 ## Configuration Examples
 
 ### Development Setup

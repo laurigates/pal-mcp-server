@@ -71,6 +71,7 @@ from tools.models import ToolOutput  # noqa: E402
 from tools.shared.exceptions import ToolExecutionError  # noqa: E402
 from utils.env import env_override_enabled, get_env  # noqa: E402
 from utils.model_resolution import resolve_model_for_context  # noqa: E402
+from utils.progress import reporter_from_request_context, set_progress_reporter  # noqa: E402
 
 # Configure logging for server operations
 # Can be controlled via LOG_LEVEL environment variable (DEBUG, INFO, WARNING, ERROR)
@@ -636,6 +637,19 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
     """
     logger.info(f"MCP tool call: {name}")
     logger.debug(f"MCP tool arguments: {list(arguments.keys())}")
+
+    # Publish a progress reporter for this call so the tool, the providers it
+    # calls, and any CLI agent it spawns can report status to the client without
+    # the reporter being threaded through every signature. Inert unless the
+    # client opted in with a progressToken.
+    try:
+        request_context = server.request_context
+    except LookupError:
+        # No live request context (direct invocation, tests). Report nothing.
+        request_context = None
+    progress = reporter_from_request_context(request_context)
+    set_progress_reporter(progress)
+    await progress.update(f"{name} · starting")
 
     # Log to activity file for monitoring
     try:
