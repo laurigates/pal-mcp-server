@@ -4,7 +4,7 @@
 
 The `clink` tool transforms your CLI into a multi-agent orchestrator. Launch isolated Codex instances from _within_ Codex, delegate to Gemini's 1M context, or run specialized Claude agents—all while preserving conversation continuity. Instead of context-switching or token bloat, spawn fresh subagents that handle complex tasks in isolation and return only the results you need.
 
-> **CAUTION**: Clink launches real CLI agents with relaxed permission flags (Gemini ships with `--yolo`, Codex with `--dangerously-bypass-approvals-and-sandbox`, Claude with `--permission-mode acceptEdits`) so they can edit files and run tools autonomously via MCP. If that’s more access than you want, remove those flags—the CLI can still open/read files and report findings, it just won’t auto-apply edits. You can also tighten role prompts or system prompts with stop-words/guardrails, or disable clink entirely. Otherwise, keep the shipped presets confined to workspaces you fully trust.
+> **CAUTION**: Clink launches real CLI agents. Codex ships with `--dangerously-bypass-approvals-and-sandbox` and Claude with `--permission-mode acceptEdits`, so those two can edit files and run tools autonomously via MCP. Gemini runs read-only (`--approval-mode plan`). If that’s more access than you want, remove those flags—the CLI can still open/read files and report findings, it just won’t auto-apply edits. You can also tighten role prompts or system prompts with stop-words/guardrails, or disable clink entirely. Otherwise, keep the shipped presets confined to workspaces you fully trust.
 
 ## Why Use Clink (CLI + Link)?
 
@@ -138,15 +138,19 @@ then codereview to verify the implementation"
 
 Clink configurations live in `conf/cli_clients/`. We ship presets for the supported CLIs:
 
-- `gemini.json` – runs `gemini --telemetry false --yolo -o json`
+- `gemini.json` – runs `gemini -o json --approval-mode plan`
 - `claude.json` – runs `claude --print --output-format json --permission-mode acceptEdits --model sonnet`
 - `codex.json` – runs `codex exec --json --dangerously-bypass-approvals-and-sandbox`
 
-> **CAUTION**: These flags intentionally bypass each CLI's safety prompts so they can edit files or launch tools autonomously via MCP. Only enable them in trusted sandboxes and tailor role prompts or CLI configs if you need more guardrails.
+> **CAUTION**: The Codex and Claude flags intentionally bypass those CLIs' safety prompts so they can edit files or launch tools autonomously via MCP. Only enable them in trusted sandboxes and tailor role prompts or CLI configs if you need more guardrails.
 
 Each preset points to role-specific prompts in `systemprompts/clink/`. Duplicate those files to add more roles or adjust CLI flags.
 
-> **Why `--yolo` for Gemini?** The Gemini CLI currently requires automatic approvals to execute its own tools (for example `run_shell_command`). Without the flag it errors with `Tool "run_shell_command" not found in registry`. See [issue #5382](https://github.com/google-gemini/gemini-cli/issues/5382) for more details.
+> **Why `--approval-mode plan` for Gemini?** `plan` is the Gemini CLI's read-only mode: it can read, grep, and analyze, but cannot edit files or run shell commands. That matches how clink is declared (`readOnlyHint: true`) and what its roles do (planner, codereviewer, default).
+>
+> This preset previously passed `--yolo` (auto-approve *everything*, including `run_shell_command`), because the Gemini CLI once could not execute its own tools headless without it — it errored with `Tool "run_shell_command" not found in registry` ([issue #5382](https://github.com/google-gemini/gemini-cli/issues/5382)). That issue is now closed, and `--approval-mode` (added since) makes the workaround unnecessary. Verified against Gemini CLI 0.45.2: under `plan`, a headless run calls `read_file` successfully, and a request to create a file is refused.
+>
+> If you need Gemini to auto-apply edits, use `--approval-mode auto_edit` instead — it auto-approves edit tools without granting blanket shell execution.
 
 **Adding new CLIs**: Drop a JSON config into `conf/cli_clients/`, create role prompts in `systemprompts/clink/`, and register a parser/agent if the CLI outputs a new format.
 

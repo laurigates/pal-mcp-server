@@ -2,7 +2,8 @@
   "name": "gemini",
   "command": "gemini",
   "additional_args": [
-    "--yolo"
+    "--approval-mode",
+    "plan"
   ],
   "env": {},
   "roles": {
