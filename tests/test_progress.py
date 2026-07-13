@@ -188,6 +188,20 @@ class TestHeartbeat:
         assert len(session.send_progress_notification.await_args_list) == sent_after_exit
 
     @pytest.mark.asyncio
+    async def test_opening_notification_is_not_immediately_duplicated(self, monkeypatch):
+        """The opening `update(message)` already gives an immediate status line, so the
+        first *clocked* tick must wait a full interval rather than fire a near-duplicate."""
+        monkeypatch.setenv("PAL_PROGRESS_HEARTBEAT_SECONDS", "60")  # long enough to never tick here
+        session = AsyncMock()
+        reporter = ProgressReporter(session=session, progress_token=1)
+
+        async with reporter.heartbeat("chat · gpt-5 · thinking"):
+            await asyncio.sleep(0.02)
+
+        messages = [call.kwargs["message"] for call in session.send_progress_notification.await_args_list]
+        assert messages == ["chat · gpt-5 · thinking"], "only the opening line should have been sent"
+
+    @pytest.mark.asyncio
     async def test_body_exception_propagates_and_ticker_is_cancelled(self, monkeypatch):
         monkeypatch.setenv("PAL_PROGRESS_HEARTBEAT_SECONDS", "0.01")
         session = AsyncMock()

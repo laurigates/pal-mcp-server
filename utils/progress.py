@@ -194,10 +194,13 @@ class ProgressReporter:
         interval = _heartbeat_interval()
 
         async def tick() -> None:
+            # Sleep first: the opening `update(message)` below already gave the
+            # client an immediate status line, so the first *clocked* tick should
+            # wait a full interval rather than fire a near-duplicate `· 0s`.
             while True:
+                await asyncio.sleep(interval)
                 elapsed = time.monotonic() - started
                 await self.update(f"{message} · {format_duration(elapsed)}")
-                await asyncio.sleep(interval)
 
         await self.update(message)
         task = asyncio.create_task(tick())

@@ -648,6 +648,11 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
         # No live request context (direct invocation, tests). Report nothing.
         request_context = None
     progress = reporter_from_request_context(request_context)
+    # ContextVar.set() here is only safe across concurrent `pal` calls because the
+    # MCP SDK dispatches each request in its own asyncio task, and a task inherits a
+    # *copy* of the context at spawn — so two in-flight calls cannot see each other's
+    # reporter. This isolation is load-bearing (it is the "Calling pal 2 times" case);
+    # if a future SDK ever batched requests into one task, reporters would cross here.
     set_progress_reporter(progress)
     await progress.update(f"{name} · starting")
 

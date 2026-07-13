@@ -512,14 +512,22 @@ class SimpleTool(BaseTool):
                         retry_prompt = f"{original_prompt}\n\nIMPORTANT: Please provide a substantive response. If you cannot respond to the above request, please explain why and suggest alternatives."
 
                         try:
-                            retry_response = await provider.generate_content(
-                                prompt=retry_prompt,
-                                model_name=self._current_model_name,
-                                system_prompt=system_prompt,
-                                temperature=temperature,
-                                thinking_mode=thinking_mode if supports_thinking else None,
-                                images=images if images else None,
-                            )
+                            # A second full provider round-trip. Heartbeat it too:
+                            # the first call already returned empty, so this path is
+                            # by definition slow, and a bare await here would emit no
+                            # keepalive — exactly the idle-timeout abort this reporting
+                            # exists to prevent.
+                            async with progress.heartbeat(
+                                f"{self.get_name()} · {self._current_model_name} · retrying"
+                            ):
+                                retry_response = await provider.generate_content(
+                                    prompt=retry_prompt,
+                                    model_name=self._current_model_name,
+                                    system_prompt=system_prompt,
+                                    temperature=temperature,
+                                    thinking_mode=thinking_mode if supports_thinking else None,
+                                    images=images if images else None,
+                                )
 
                             if retry_response.content:
                                 # Successful retry - use the retry response
