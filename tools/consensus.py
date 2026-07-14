@@ -30,6 +30,7 @@ from config import TEMPERATURE_ANALYTICAL
 from systemprompts import CONSENSUS_PROMPT
 from tools.shared.base_models import ConsolidatedFindings, WorkflowRequest
 from utils.conversation_memory import MAX_CONVERSATION_TURNS, create_thread, get_thread
+from utils.progress import get_progress_reporter, summarize_usage
 
 from .workflow.base import WorkflowTool
 
@@ -614,15 +615,22 @@ of the evidence, even when it strongly points in one direction.""",
             for warning in temp_warnings:
                 logger.warning(warning)
 
-            # Call the model with validated temperature
-            response = await provider.generate_content(
-                prompt=prompt,
-                model_name=model_name,
-                system_prompt=system_prompt,
-                temperature=validated_temperature,
-                thinking_mode="medium",
-                images=request.images if request.images else None,
-            )
+            # Call the model with validated temperature. Each consensus step
+            # consults exactly one model, so name it and where it sits in the
+            # roster — otherwise a three-model consensus is three silent minutes.
+            progress = get_progress_reporter()
+            position = f"{request.step_number} of {request.total_steps}"
+            stance_label = f" ({stance})" if stance and stance != "neutral" else ""
+            async with progress.heartbeat(f"consensus · consulting {model_name}{stance_label} · {position}"):
+                response = await provider.generate_content(
+                    prompt=prompt,
+                    model_name=model_name,
+                    system_prompt=system_prompt,
+                    temperature=validated_temperature,
+                    thinking_mode="medium",
+                    images=request.images if request.images else None,
+                )
+            await progress.update(f"consensus · {model_name} replied · {summarize_usage(response.usage)} · {position}")
 
             return {
                 "model": model_name,

@@ -16,6 +16,7 @@ from pathlib import Path
 from clink.constants import DEFAULT_STREAM_LIMIT
 from clink.models import ResolvedCLIClient, ResolvedCLIRole
 from clink.parsers import BaseParser, ParsedCLIResponse, ParserError, get_parser
+from utils.progress import format_duration, get_progress_reporter
 
 logger = logging.getLogger("clink.agent")
 
@@ -120,11 +121,19 @@ class BaseCLIAgent:
         except FileNotFoundError as exc:
             raise CLIAgentError(f"Executable not found for CLI '{self.client.name}': {exc}") from exc
 
+        # Report against the timeout, not just elapsed: an external CLI agent is
+        # fully opaque while it runs, and "3m10s / 10m" tells the caller both that
+        # it is alive and how much rope is left before it is killed.
+        progress = get_progress_reporter()
+        budget = format_duration(self.client.timeout_seconds)
+        role_label = f" · {role.name}" if role.name else ""
+
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                process.communicate(prompt.encode("utf-8")),
-                timeout=self.client.timeout_seconds,
-            )
+            async with progress.heartbeat(f"clink · {self.client.name} CLI{role_label} · running · budget {budget}"):
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    process.communicate(prompt.encode("utf-8")),
+                    timeout=self.client.timeout_seconds,
+                )
         except asyncio.TimeoutError as exc:
             process.kill()
             await process.communicate()
@@ -137,6 +146,10 @@ class BaseCLIAgent:
         return_code = process.returncode
         stdout_text = stdout_bytes.decode("utf-8", errors="replace")
         stderr_text = stderr_bytes.decode("utf-8", errors="replace")
+
+        await progress.update(
+            f"clink · {self.client.name} CLI{role_label} · exited {return_code} in {format_duration(duration)}"
+        )
 
         if output_file_path and output_file_path.exists():
             output_file_content = output_file_path.read_text(encoding="utf-8", errors="replace")

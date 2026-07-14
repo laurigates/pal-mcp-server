@@ -31,6 +31,7 @@ from mcp.types import TextContent
 
 from config import MCP_PROMPT_SIZE_LIMIT
 from utils.conversation_memory import ConversationMemoryStorageError, add_turn, create_thread
+from utils.progress import get_progress_reporter, summarize_usage
 
 from ..shared.base_models import ConsolidatedFindings
 from ..shared.exceptions import ToolExecutionError
@@ -966,6 +967,13 @@ class BaseWorkflowMixin(ABC):
         except AttributeError:
             return 1
 
+    def get_request_total_steps(self, request: Any) -> int:
+        """Get total steps from request. Override for custom step handling."""
+        try:
+            return request.total_steps or 1
+        except AttributeError:
+            return 1
+
     def get_request_relevant_files(self, request: Any) -> list[str]:
         """Get relevant files from request. Override for custom file handling."""
         try:
@@ -1507,14 +1515,22 @@ class BaseWorkflowMixin(ABC):
             for warning in temp_warnings:
                 logger.warning(warning)
 
-            # Generate AI response - use request parameters if available
-            model_response = await provider.generate_content(
-                prompt=prompt,
-                model_name=model_name,
-                system_prompt=system_prompt,
-                temperature=validated_temperature,
-                thinking_mode=self.get_request_thinking_mode(request),
-                images=list(set(self.consolidated_findings.images)) if self.consolidated_findings.images else None,
+            # Generate AI response - use request parameters if available.
+            # Expert analysis is the one long await in a workflow step, and it
+            # fires on the final step where the caller is already waiting longest.
+            progress = get_progress_reporter()
+            step_position = f"step {self.get_request_step_number(request)}/{self.get_request_total_steps(request)}"
+            async with progress.heartbeat(f"{self.get_name()} · {model_name} · expert analysis · {step_position}"):
+                model_response = await provider.generate_content(
+                    prompt=prompt,
+                    model_name=model_name,
+                    system_prompt=system_prompt,
+                    temperature=validated_temperature,
+                    thinking_mode=self.get_request_thinking_mode(request),
+                    images=list(set(self.consolidated_findings.images)) if self.consolidated_findings.images else None,
+                )
+            await progress.update(
+                f"{self.get_name()} · {model_name} · expert analysis done · {summarize_usage(model_response.usage)}"
             )
 
             if model_response.content:
