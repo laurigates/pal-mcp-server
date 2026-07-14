@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## [10.3.0](https://github.com/laurigates/pal-mcp-server/compare/v10.2.2...v10.3.0) (2026-07-14)
+
+
+### Features
+
+* **progress:** report live tool status over MCP progress notifications ([#63](https://github.com/laurigates/pal-mcp-server/issues/63)) ([5acbba9](https://github.com/laurigates/pal-mcp-server/commit/5acbba9de4e9f8df30ee0e0d1314a89a3985283a))
+
+
+### Bug Fixes
+
+* **clink:** run Gemini read-only instead of --yolo ([#64](https://github.com/laurigates/pal-mcp-server/issues/64)) ([efdb38c](https://github.com/laurigates/pal-mcp-server/commit/efdb38cbf566663a870a49f8fb86b09b47b17c33))
+
 ## [10.2.2](https://github.com/laurigates/pal-mcp-server/compare/v10.2.1...v10.2.2) (2026-07-11)
 
 
