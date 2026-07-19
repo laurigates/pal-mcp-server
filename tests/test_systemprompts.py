@@ -42,6 +42,7 @@ EXPECTED_EXPORTS: dict[str, str] = {
     "debug_prompt": "DEBUG_ISSUE_PROMPT",
     "docgen_prompt": "DOCGEN_PROMPT",
     "generate_code_prompt": "GENERATE_CODE_PROMPT",
+    "jules_prompt": "JULES_PROMPT",
     "planner_prompt": "PLANNER_PROMPT",
     "precommit_prompt": "PRECOMMIT_PROMPT",
     "refactor_prompt": "REFACTOR_PROMPT",

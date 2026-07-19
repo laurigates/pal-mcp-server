@@ -9,7 +9,7 @@ one operation and returns immediately.
 
 WORKFLOW
 1. `action="list_sources"` — discover the connected repositories. Each source has
-   a resource name like `sources/github/{owner}/{repo}`. Pick the one the user
+   a resource name like `sources/github/<owner>/<repo>`. Pick the one the user
    means; do not guess owner/repo by hand when you can list them.
 2. `action="create"` with `prompt` (the task) and `source` (from step 1). By
    default the plan is auto-approved and Jules opens a PR
