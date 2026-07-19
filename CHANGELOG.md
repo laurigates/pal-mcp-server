@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [10.4.0](https://github.com/laurigates/pal-mcp-server/compare/v10.3.0...v10.4.0) (2026-07-19)
+
+
+### Features
+
+* add jules tool for Google Jules async coding agent ([450dd30](https://github.com/laurigates/pal-mcp-server/commit/450dd30715bdd478bb86f25db47bbcfc8bd5c7eb))
+
+
+### Bug Fixes
+
+* harden jules session-id parsing and expand test coverage ([43214f4](https://github.com/laurigates/pal-mcp-server/commit/43214f45c70d2d3d284985857c1fca0e17510283))
+* register jules prompt in test guard and apply ruff format ([1c42483](https://github.com/laurigates/pal-mcp-server/commit/1c42483016d10e633c3cf02b84068eda3d8aa080))
+
 ## [10.3.0](https://github.com/laurigates/pal-mcp-server/compare/v10.2.2...v10.3.0) (2026-07-14)
 
 
