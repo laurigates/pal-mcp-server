@@ -517,9 +517,7 @@ class SimpleTool(BaseTool):
                             # by definition slow, and a bare await here would emit no
                             # keepalive — exactly the idle-timeout abort this reporting
                             # exists to prevent.
-                            async with progress.heartbeat(
-                                f"{self.get_name()} · {self._current_model_name} · retrying"
-                            ):
+                            async with progress.heartbeat(f"{self.get_name()} · {self._current_model_name} · retrying"):
                                 retry_response = await provider.generate_content(
                                     prompt=retry_prompt,
                                     model_name=self._current_model_name,
