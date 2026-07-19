@@ -124,6 +124,7 @@ See [`.env.example`](.env.example) for the full annotated reference and [Configu
 
 **Collaboration & Planning** *(Enabled by default)*
 - [`clink`](docs/tools/clink.md) - Bridge requests to external AI CLIs (Gemini planner, codereviewer, etc.)
+- [`jules`](docs/tools/jules.md) - Delegate a coding task to Google Jules (async coding agent) and poll for the resulting pull request
 - [`chat`](docs/tools/chat.md) - Brainstorm ideas, get second opinions, validate approaches. With capable models (GPT-5.2 Pro, Gemini 3.0 Pro), generates complete code / implementation
 - [`thinkdeep`](docs/tools/thinkdeep.md) - Extended reasoning, edge case analysis, alternative perspectives
 - [`planner`](docs/tools/planner.md) - Break down complex projects into structured, actionable plans
