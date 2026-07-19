@@ -207,6 +207,21 @@ class JulesTool(SimpleTool):
     def _normalize_session_id(session_id: str) -> str:
         return session_id.split("/", 1)[1] if session_id.startswith("sessions/") else session_id
 
+    @staticmethod
+    def _session_id_from(data: dict[str, Any]) -> str | None:
+        """Derive a session id from a Jules resource.
+
+        Prefer the bare ``id`` field, but fall back to parsing the canonical
+        ``name`` (``sessions/{id}``) — the alpha API does not always populate
+        ``id``, and a null session id would break the caller's poll loop.
+        """
+        if data.get("id"):
+            return data["id"]
+        name = data.get("name")
+        if name and name.startswith("sessions/"):
+            return name.split("/", 1)[1]
+        return name
+
     async def _request(
         self,
         client: httpx.AsyncClient,
@@ -299,7 +314,7 @@ class JulesTool(SimpleTool):
 
         data = await self._request(client, "POST", "/sessions", json_body=body)
         summary = {
-            "session_id": data.get("id"),
+            "session_id": self._session_id_from(data),
             "name": data.get("name"),
             "state": data.get("state"),
             "url": data.get("url"),
@@ -325,7 +340,7 @@ class JulesTool(SimpleTool):
         activities = [self._summarize_activity(a) for a in activities_data.get("activities", [])]
 
         result = {
-            "session_id": session.get("id"),
+            "session_id": self._session_id_from(session),
             "state": session.get("state"),
             "url": session.get("url"),
             "outputs": session.get("outputs", []),
@@ -348,6 +363,7 @@ class JulesTool(SimpleTool):
         return ToolOutput(
             status="success",
             content="Message sent to Jules session.",
+            content_type="text",
             metadata={"action": "message", "session_id": sid},
         )
 
@@ -359,6 +375,7 @@ class JulesTool(SimpleTool):
         return ToolOutput(
             status="success",
             content="Plan approved for Jules session.",
+            content_type="text",
             metadata={"action": "approve", "session_id": sid},
         )
 
@@ -376,6 +393,10 @@ class JulesTool(SimpleTool):
 
         if request.action not in VALID_ACTIONS:
             self._raise_tool_error(f"Unknown action '{request.action}'. Valid actions: {', '.join(VALID_ACTIONS)}.")
+        if request.automation_mode not in AUTOMATION_MODES:
+            self._raise_tool_error(
+                f"Unknown automation_mode '{request.automation_mode}'. Valid modes: {', '.join(AUTOMATION_MODES)}."
+            )
 
         api_key = self._get_api_key()
         dispatch = {

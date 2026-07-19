@@ -102,6 +102,80 @@ async def test_create_defaults_to_auto_create_pr(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_create_with_plan_approval_and_title(monkeypatch):
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "abc", "state": "AWAITING_PLAN_APPROVAL"})
+
+    tool = _mock_tool(monkeypatch, handler)
+    await tool.execute(
+        {
+            "action": "create",
+            "prompt": "add tests",
+            "source": "sources/github/o/r",
+            "require_plan_approval": True,
+            "title": "Add tests",
+        }
+    )
+    body = captured["body"]
+    assert body["requirePlanApproval"] is True
+    assert body["title"] == "Add tests"
+
+
+@pytest.mark.asyncio
+async def test_create_session_id_falls_back_to_name(monkeypatch):
+    # Alpha API may return only the canonical `name` (sessions/{id}) and no bare `id`.
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"name": "sessions/xyz789", "state": "QUEUED"})
+
+    tool = _mock_tool(monkeypatch, handler)
+    payload = _payload(await tool.execute({"action": "create", "prompt": "go", "source": "sources/github/o/r"}))
+    summary = json.loads(payload["content"])
+    assert summary["session_id"] == "xyz789"
+
+
+@pytest.mark.asyncio
+async def test_invalid_automation_mode_errors(monkeypatch):
+    tool = _mock_tool(monkeypatch, lambda request: httpx.Response(200, json={}))
+    with pytest.raises(ToolExecutionError) as exc:
+        await tool.execute(
+            {"action": "create", "prompt": "x", "source": "sources/github/o/r", "automation_mode": "BOGUS"}
+        )
+    assert "automation_mode" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_status_normalizes_prefixed_id_and_summarizes_plan(monkeypatch):
+    seen_paths = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_paths.append(request.url.path)
+        if request.url.path.endswith("/activities"):
+            return httpx.Response(
+                200,
+                json={
+                    "activities": [
+                        {"originator": "agent", "planGenerated": {"plan": {"steps": [1, 2, 3]}}},
+                        {"originator": "agent", "progressUpdated": {"title": "t", "description": "editing files"}},
+                    ]
+                },
+            )
+        return httpx.Response(200, json={"id": "abc", "state": "IN_PROGRESS"})
+
+    tool = _mock_tool(monkeypatch, handler)
+    payload = _payload(await tool.execute({"action": "status", "session_id": "sessions/abc"}))
+    # The 'sessions/' prefix must be stripped before building the path.
+    assert any(p.endswith("/sessions/abc") for p in seen_paths)
+    assert any(p.endswith("/sessions/abc/activities") for p in seen_paths)
+    activities = json.loads(payload["content"])["activities"]
+    by_kind = {a["kind"]: a for a in activities}
+    assert by_kind["plan_generated"]["text"] == "3 plan step(s)"
+    assert by_kind["progress"]["text"] == "editing files"
+
+
+@pytest.mark.asyncio
 async def test_create_requires_prompt_and_source(monkeypatch):
     tool = _mock_tool(monkeypatch, lambda request: httpx.Response(200, json={}))
     with pytest.raises(ToolExecutionError):
