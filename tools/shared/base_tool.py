@@ -1286,7 +1286,7 @@ When recommending searches, be specific about what information you need and why 
                 logging.debug(f"Failed to add OpenRouter models to enum: {exc}")
 
         # Add custom models (and their aliases) when a custom endpoint is available
-        if get_env(CustomProvider.REQUIRED_ENV[0]):
+        if get_env(CustomProvider.BASE_URL_ENV):
             try:
                 registry = self._get_custom_registry()
                 for alias in registry.list_aliases():

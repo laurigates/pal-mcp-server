@@ -54,6 +54,11 @@ AZURE_OPENAI_ALLOWED_MODELS=gpt-4o,gpt-4o-mini
 
 Aliases are matched case-insensitively.
 
+`AZURE_ALLOWED_MODELS` is also honoured as a fallback when
+`AZURE_OPENAI_ALLOWED_MODELS` is unset. It exists because the provider
+previously reached it through an inherited code path; prefer the
+`AZURE_OPENAI_` name, which matches every other Azure variable.
+
 ## 4. Quick Checklist
 
 - [ ] `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` are set

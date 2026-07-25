@@ -167,7 +167,18 @@ def project_path(tmp_path):
 
 @pytest.fixture(autouse=True)
 def _isolated_provider_registry(request, monkeypatch):
-    """Derived provider isolation: env + registry, for every test."""
+    """Derived provider isolation: env + registry, for every test.
+
+    Scrubs ``credential_env_vars()`` for every registered provider. Despite the
+    name that is wider than API keys: it covers ``REQUIRED_ENV``,
+    ``OPTIONAL_ENV`` and the allow-lists, so ``CUSTOM_API_URL``,
+    ``AZURE_OPENAI_ENDPOINT``, every ``*_MODELS_CONFIG_PATH`` and every
+    ``*_ALLOWED_MODELS`` are unset inside a test unless the test sets them
+    itself. That breadth is deliberate -- it is what stops a developer's .env
+    from reaching the assertions (issue #66) -- but it means a test that
+    expects to inherit any of those from the ambient environment must set it in
+    the test body or opt out with ``@pytest.mark.ambient_provider_env``.
+    """
     import utils.model_restrictions as model_restrictions
 
     keep_ambient_env = (

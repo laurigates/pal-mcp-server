@@ -31,6 +31,9 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
     API_KEY_PLACEHOLDER = "your_azure_openai_key_here"
     REQUIRED_ENV = ("AZURE_OPENAI_ENDPOINT",)
     OPTIONAL_ENV = ("AZURE_OPENAI_API_VERSION", "AZURE_MODELS_CONFIG_PATH")
+    # Explicit name wins; AZURE_ALLOWED_MODELS is the legacy fallback the
+    # deleted _parse_allowed_models override reached via super(). Kept so the
+    # behaviour is declared rather than accidental -- see docs/azure_openai.md.
     ALLOWED_MODELS_ENV = ("AZURE_OPENAI_ALLOWED_MODELS", "AZURE_ALLOWED_MODELS")
     DEFAULT_API_VERSION = "2024-02-15-preview"
 

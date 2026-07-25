@@ -7,9 +7,54 @@ This guide explains how to add support for a new AI model provider to the PAL MC
 Each provider:
 - Inherits from `ModelProvider` (base class) or `OpenAICompatibleProvider` (for OpenAI-compatible APIs)
 - Defines supported models using `ModelCapabilities` objects
-- Implements the minimal abstract hooks (`get_provider_type()` and `generate_content()`)
-- Gets wired into `configure_providers()` so environment variables control activation
+- **Declares its metadata as class attributes** (see below) — this is the single source of truth
+- Implements the one remaining abstract hook, `generate_content()`
+- Gets appended to `_build_registered_provider_classes()` in [`providers/registry.py`](../providers/registry.py)
 - Can leverage helper subclasses (e.g., `AzureOpenAIProvider`) when only client wiring differs
+
+## The declarative provider contract
+
+Every provider roster in this repository — priority order, API-key lookup,
+allow-list variables, the `listmodels` display table, the bootstrap help text,
+the test-isolation fixture — is **derived** from the attributes below. Declare
+them and every consumer picks your provider up automatically; there is no
+second list to update.
+
+```python
+class AcmeProvider(OpenAICompatibleProvider):
+    PROVIDER_TYPE = ProviderType.ACME          # required; add the enum member too
+    FRIENDLY_NAME = "Acme"                     # product name in errors and logs
+    DISPLAY_NAME = "Acme AI"                   # optional; roster label if it differs
+    HELP_SUMMARY = "Acme models"               # phrase in the "no providers" error
+    API_KEY_ENV = "ACME_API_KEY"               # not derived - OpenCode Go's key is
+                                               # OPENCODE_API_KEY, not OPENCODE_GO_API_KEY
+    API_KEY_PLACEHOLDER = "your_acme_api_key_here"   # the .env.example value to reject
+    REQUIRED_ENV = ()                          # non-key vars that gate activation
+    OPTIONAL_ENV = ("ACME_MODELS_CONFIG_PATH",)      # honoured when present
+    ALLOWED_MODELS_ENV = ()                    # empty => ACME_ALLOWED_MODELS
+    ACCEPTS_UNLISTED_MODELS = False            # True if you serve models beyond
+                                               # your manifest (see OpenRouter)
+```
+
+`get_provider_type()` is **no longer abstract** — the base class resolves it
+from `PROVIDER_TYPE`. Do not override it in new providers.
+
+`from_env()` is likewise inherited: the base implementation reads
+`API_KEY_ENV`, rejects `API_KEY_PLACEHOLDER`, and constructs the provider.
+Override it only if you need to pass extra constructor kwargs — Gemini
+(`base_url`), Azure (`azure_endpoint`) and Custom (URL-gated) do.
+
+These guards in [`tests/test_provider_metadata.py`](../tests/test_provider_metadata.py)
+will fail if you skip a step, so a half-registered provider cannot ship
+silently:
+
+| Guard | Fires when |
+|---|---|
+| `test_every_registered_class_declares_its_identity` | `PROVIDER_TYPE` is inherited rather than declared |
+| `test_every_provider_module_with_from_env_has_a_registered_class` | the class is missing from `_build_registered_provider_classes()` |
+| `test_every_provider_type_has_exactly_one_registered_class` | the `ProviderType` member has no class |
+| `test_no_undeclared_placeholder_literal_survives_in_providers` | a `your_*_here` literal is not the declared `API_KEY_PLACEHOLDER` |
+| `test_no_provider_module_imports_the_registry_at_module_scope` | you introduce an import cycle |
 
 ### Intelligence score cheatsheet
 
@@ -23,11 +68,11 @@ features ([details here](model_ranking.md)).
 **Option A: Full Provider (`ModelProvider`)**
 - For APIs with unique features or custom authentication
 - Complete control over API calls and response handling
-- Populate `MODEL_CAPABILITIES`, implement `generate_content()` and `get_provider_type()`, and only override `get_all_model_capabilities()` / `_lookup_capabilities()` when your catalogue comes from a registry or remote source (override `count_tokens()` only when you have a provider-accurate tokenizer)
+- Declare the metadata block above, populate `MODEL_CAPABILITIES`, implement `generate_content()`, and only override `get_all_model_capabilities()` / `_lookup_capabilities()` when your catalogue comes from a registry or remote source (override `count_tokens()` only when you have a provider-accurate tokenizer)
 
 **Option B: OpenAI-Compatible (`OpenAICompatibleProvider`)**
 - For APIs that follow OpenAI's chat completion format
-- Supply `MODEL_CAPABILITIES`, override `get_provider_type()`, and optionally adjust configuration (the base class handles alias resolution, validation, and request wiring)
+- Declare the metadata block above, supply `MODEL_CAPABILITIES`, and optionally adjust configuration (the base class handles alias resolution, validation, and request wiring)
 - Inherits all API handling automatically
 
 ⚠️ **Important**: If you implement a custom `generate_content()`, call `_resolve_model_name()` before invoking the SDK so aliases (e.g. `"gpt"` → `"gpt-4"`) resolve correctly. The shared implementations already do this for you.
@@ -78,6 +123,12 @@ logger = logging.getLogger(__name__)
 class ExampleModelProvider(ModelProvider):
     """Example model provider implementation."""
 
+    PROVIDER_TYPE = ProviderType.EXAMPLE
+    FRIENDLY_NAME = "Example"
+    HELP_SUMMARY = "Example models"
+    API_KEY_ENV = "EXAMPLE_API_KEY"
+    API_KEY_PLACEHOLDER = "your_example_api_key_here"
+
     MODEL_CAPABILITIES = {
         "example-large": ModelCapabilities(
             provider=ProviderType.EXAMPLE,
@@ -110,9 +161,6 @@ class ExampleModelProvider(ModelProvider):
 
     def get_all_model_capabilities(self) -> dict[str, ModelCapabilities]:
         return dict(self.MODEL_CAPABILITIES)
-
-    def get_provider_type(self) -> ProviderType:
-        return ProviderType.EXAMPLE
 
     def generate_content(
         self,
@@ -165,9 +213,13 @@ from .shared import (
 
 class ExampleProvider(OpenAICompatibleProvider):
     """Example OpenAI-compatible provider."""
-    
+
+    PROVIDER_TYPE = ProviderType.EXAMPLE
     FRIENDLY_NAME = "Example"
-    
+    HELP_SUMMARY = "Example models"
+    API_KEY_ENV = "EXAMPLE_API_KEY"
+    API_KEY_PLACEHOLDER = "your_example_api_key_here"
+
     # Define models using ModelCapabilities (consistent with other providers)
     MODEL_CAPABILITIES = {
         "example-model-large": ModelCapabilities(
@@ -184,9 +236,6 @@ class ExampleProvider(OpenAICompatibleProvider):
     def __init__(self, api_key: str, **kwargs):
         kwargs.setdefault("base_url", "https://api.example.com/v1")
         super().__init__(api_key, **kwargs)
-
-    def get_provider_type(self) -> ProviderType:
-        return ProviderType.EXAMPLE
 ```
 
 `OpenAICompatibleProvider` already exposes the declared models via
@@ -196,30 +245,39 @@ shown above.
 
 ### 3. Register Your Provider
 
-Add environment variable mapping in `providers/registry.py`:
+One edit. Append your class to `_build_registered_provider_classes()` in
+[`providers/registry.py`](../providers/registry.py), at the point in the
+cascade where it belongs:
 
 ```python
-# In _get_api_key_for_provider (providers/registry.py), add:
-    ProviderType.EXAMPLE: "EXAMPLE_API_KEY",
+    return [
+        GeminiModelProvider,
+        OpenAIModelProvider,
+        AzureOpenAIProvider,
+        XAIModelProvider,
+        DIALModelProvider,
+        ExampleModelProvider,   # native APIs first...
+        CustomProvider,         # ...then local/self-hosted...
+        OpenCodeGoProvider,
+        OpenRouterProvider,     # ...and the catch-all stays LAST
+    ]
 ```
 
-Add to `server.py`:
+List position **is** the priority: `PROVIDER_PRIORITY_ORDER` is derived from
+this order. `OpenRouterProvider` must remain last — it fabricates capabilities
+for any name containing `/`, so moving it earlier would hijack routing for
+every other provider.
 
-1. **Import your provider**:
-```python
-from providers.example import ExampleModelProvider
-```
+Nothing else needs editing. The API-key lookup, the `configure_providers()`
+registration loop, the startup debug log, the "no providers configured" help
+text, the `listmodels` roster and the test-isolation fixture all derive from
+your class attributes and this list.
 
-2. **Add to `configure_providers()` function**:
-```python
-# Check for Example API key
-example_key = os.getenv("EXAMPLE_API_KEY")
-if example_key:
-    ModelProviderRegistry.register_provider(ProviderType.EXAMPLE, ExampleModelProvider)
-    logger.info("Example API key found - Example models available")
-```
-
-3. **Add to provider priority** (edit `ModelProviderRegistry.PROVIDER_PRIORITY_ORDER` in `providers/registry.py`): insert your provider in the list at the appropriate point in the cascade of native → custom → catch-all providers.
+> **Historical note:** older revisions of this guide asked you to also add an
+> entry to `_get_api_key_for_provider`'s key map, an `if os.getenv(...)` block
+> in `configure_providers()`, and a line in `PROVIDER_PRIORITY_ORDER`. Those
+> hand-maintained mirrors were removed — forgetting one of them is what
+> silently hid the OpenCode Go provider.
 
 ### 4. Environment Configuration
 

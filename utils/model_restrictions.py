@@ -7,11 +7,14 @@ models can be used from each provider for cost control, compliance, or
 standardization purposes.
 
 Environment Variables:
-- OPENAI_ALLOWED_MODELS: Comma-separated list of allowed OpenAI models
-- GOOGLE_ALLOWED_MODELS: Comma-separated list of allowed Gemini models
-- XAI_ALLOWED_MODELS: Comma-separated list of allowed X.AI GROK models
-- OPENROUTER_ALLOWED_MODELS: Comma-separated list of allowed OpenRouter models
-- DIAL_ALLOWED_MODELS: Comma-separated list of allowed DIAL models
+    Every registered provider has one, and they are NOT enumerated here -- an
+    enumeration in this file is exactly the drift that made three providers
+    silently unrestrictable. Each provider class declares its own via
+    ``ALLOWED_MODELS_ENV``, defaulting to
+    ``f"{provider_type.value.upper()}_ALLOWED_MODELS"``. Ask the code:
+    ``ModelProviderRegistry.allowed_models_env_vars(provider_type)``.
+
+    An unset or empty value means "no restriction", not "allow nothing".
 
 Example:
     OPENAI_ALLOWED_MODELS=o3-mini,o4-mini
@@ -53,8 +56,20 @@ class ModelRestrictionService:
             from providers.registry import ModelProviderRegistry
 
             return ModelProviderRegistry.allowed_models_env_vars(provider_type)
-        except Exception:  # pragma: no cover - policy must never fail to load
-            return (f"{provider_type.value.upper()}_ALLOWED_MODELS",)
+        except (ImportError, AttributeError, NameError) as exc:
+            # Policy must never fail to load, but it must not degrade silently
+            # either: for AZURE the fallback drops AZURE_OPENAI_ALLOWED_MODELS
+            # -- the documented name -- and the service is a process-lifetime
+            # singleton, so one unlucky early call would bake that in.
+            fallback = f"{provider_type.value.upper()}_ALLOWED_MODELS"
+            logger.warning(
+                "Could not resolve the allow-list variable for %s from the provider registry (%s); "
+                "falling back to %s. A provider-declared override would be ignored.",
+                provider_type.value,
+                exc,
+                fallback,
+            )
+            return (fallback,)
 
     def __init__(self):
         """Initialize the restriction service by loading from environment."""
@@ -102,6 +117,17 @@ class ModelRestrictionService:
         for provider_type, allowed_models in self.restrictions.items():
             provider = provider_instances.get(provider_type)
             if not provider:
+                continue
+
+            # Providers that serve models beyond their manifest cannot be typo-checked
+            # against it: OpenRouter accepts any "vendor/model" name and a custom
+            # endpoint serves whatever it is pointed at, so an entry absent from
+            # list_models() is legitimate and warning about it is a false positive.
+            if getattr(type(provider), "ACCEPTS_UNLISTED_MODELS", False):
+                logger.debug(
+                    "Skipping allow-list typo check for %s - it accepts models outside its manifest",
+                    provider_type.value,
+                )
                 continue
 
             # Get all supported models using the clean polymorphic interface
