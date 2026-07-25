@@ -385,6 +385,15 @@ def test_listmodels_custom_section_honours_the_allow_list():
     # get_capabilities("ollama-llama") succeeds under CUSTOM_ALLOWED_MODELS=local-llama.
     assert "`ollama-llama`" in custom_section
 
+    # Pin the Summary count for a restricted custom setup. It reads 2, not 1,
+    # because is_allowed() writes the resolved canonical back into the live
+    # allow-list (utils/model_restrictions.py) while answering -- so enumerating
+    # aliases here grows the set the Summary then counts. That mutation is
+    # pre-existing and load-bearing (removing it fails two other tests), but
+    # this listing is what makes it fire from a read-only path, so pin the
+    # number: a later non-mutating fix must move it deliberately, not silently.
+    assert "**Total Available Models**: 2" in content, content
+
 
 # ---------------------------------------------------------------------------
 # Allow-list typo check -- ask the provider, do not set-compare the manifest
