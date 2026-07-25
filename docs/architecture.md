@@ -58,10 +58,15 @@ flowchart TD
   names to instantiated tool objects. `filter_disabled_tools()` removes any
   tool listed in the `DISABLED_TOOLS` env var, except `ESSENTIAL_TOOLS`
   (`version`, `listmodels`) which are always available.
-- **Registers providers from env.** `configure_providers()` checks
-  `GEMINI_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `XAI_API_KEY`,
-  `DIAL_API_KEY`, `OPENROUTER_API_KEY`, and `CUSTOM_API_URL`. Each present key
-  registers the corresponding provider class with `ModelProviderRegistry`.
+- **Registers providers from env.** `configure_providers()` iterates
+  `providers.registry.REGISTERED_PROVIDER_CLASSES` and calls each class's
+  `from_env()`. The env vars it reads are not listed here — each provider
+  class declares its own (`API_KEY_ENV`, `REQUIRED_ENV`, `OPTIONAL_ENV`), and
+  every roster in the codebase derives from those declarations, so this prose
+  cannot drift out of date the way a hand-copied key list does. Ask the code:
+  `ModelProviderRegistry.credential_env_vars(provider_type)`. Each provider
+  whose `from_env()` returns an instance is registered with
+  `ModelProviderRegistry`.
 - **Handles `list_tools`** by iterating `TOOLS` and emitting `Tool` objects
   with the JSON Schema each tool advertises via `get_input_schema()`.
 - **Handles `call_tool`** as the central dispatcher. For every call it:
