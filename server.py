@@ -397,23 +397,16 @@ def configure_providers():
         ValueError: If no valid providers can be constructed, or if auto-mode
             is enabled but every available model is filtered out by restrictions.
     """
-    # Log environment variable status for debugging
-    logger.debug("Checking environment variables for API keys...")
-    api_keys_to_check = [
-        "OPENAI_API_KEY",
-        "OPENROUTER_API_KEY",
-        "GEMINI_API_KEY",
-        "XAI_API_KEY",
-        "OPENCODE_API_KEY",
-        "CUSTOM_API_URL",
-    ]
-    for key in api_keys_to_check:
-        value = get_env(key)
-        logger.debug(f"  {key}: {'[PRESENT]' if value else '[MISSING]'}")
     from providers import ModelProviderRegistry
     from providers.registry import REGISTERED_PROVIDER_CLASSES
-    from providers.shared import ProviderType
     from utils.model_restrictions import get_restriction_service
+
+    # Log environment variable status for debugging. Derived from the provider
+    # classes, so a new provider's key is logged automatically.
+    logger.debug("Checking environment variables for API keys...")
+    for provider_cls in REGISTERED_PROVIDER_CLASSES:
+        for key in provider_cls.gating_env_vars():
+            logger.debug(f"  {key}: {'[PRESENT]' if get_env(key) else '[MISSING]'}")
 
     valid_providers: list[str] = []
     registered_providers: list[str] = []
@@ -428,7 +421,7 @@ def configure_providers():
             continue
         provider_type = provider.get_provider_type()
         ModelProviderRegistry.register_provider(provider_type, provider)
-        friendly = getattr(provider_cls, "FRIENDLY_NAME", provider_cls.__name__)
+        friendly = provider_cls.display_label()
         valid_providers.append(friendly)
         registered_providers.append(provider_type.value)
         logger.info("Registered provider: %s", provider_type.value)
@@ -439,16 +432,12 @@ def configure_providers():
 
     # Require at least one valid provider
     if not valid_providers:
-        raise ValueError(
-            "At least one API configuration is required. Please set either:\n"
-            "- GEMINI_API_KEY for Gemini models\n"
-            "- OPENAI_API_KEY for OpenAI models\n"
-            "- XAI_API_KEY for X.AI GROK models\n"
-            "- DIAL_API_KEY for DIAL models\n"
-            "- OPENCODE_API_KEY for OpenCode Go models\n"
-            "- OPENROUTER_API_KEY for OpenRouter (multiple models)\n"
-            "- CUSTOM_API_URL for local models (Ollama, vLLM, etc.)"
+        options = "\n".join(
+            f"- {', '.join(provider_cls.gating_env_vars())} for {provider_cls.help_summary()}"
+            for provider_cls in REGISTERED_PROVIDER_CLASSES
+            if provider_cls.gating_env_vars()
         )
+        raise ValueError("At least one API configuration is required. Please set either:\n" + options)
 
     logger.info(f"Available providers: {', '.join(valid_providers)}")
 
@@ -493,8 +482,7 @@ def configure_providers():
 
         # Validate restrictions against known models
         provider_instances = {}
-        provider_types_to_validate = [ProviderType.GOOGLE, ProviderType.OPENAI, ProviderType.XAI, ProviderType.DIAL]
-        for provider_type in provider_types_to_validate:
+        for provider_type in ModelProviderRegistry.PROVIDER_PRIORITY_ORDER:
             provider = ModelProviderRegistry.get_provider(provider_type)
             if provider:
                 provider_instances[provider_type] = provider
@@ -510,9 +498,16 @@ def configure_providers():
     if IS_AUTO_MODE:
         available_models = ModelProviderRegistry.get_available_models(respect_restrictions=True)
         if not available_models:
+            active_allowlists = [
+                var
+                for provider_cls in REGISTERED_PROVIDER_CLASSES
+                for var in provider_cls.allowed_models_env_vars()
+                if get_env(var)
+            ]
+            named = ", ".join(active_allowlists) if active_allowlists else "your *_ALLOWED_MODELS"
             logger.error(
                 "Auto mode is enabled but no models are available after applying restrictions. "
-                "Please check your OPENAI_ALLOWED_MODELS and GOOGLE_ALLOWED_MODELS settings."
+                f"Please check your {named} settings."
             )
             raise ValueError(
                 "No models available for auto mode due to restrictions. "
@@ -577,8 +572,9 @@ async def handle_list_tools() -> list[Tool]:
         )
 
     # Log cache efficiency info
-    openrouter_key_for_cache = get_env("OPENROUTER_API_KEY")
-    if openrouter_key_for_cache and openrouter_key_for_cache != "your_openrouter_api_key_here":
+    from providers.openrouter import OpenRouterProvider
+
+    if OpenRouterProvider.is_configured():
         logger.debug("OpenRouter registry cache used efficiently across all tool schemas")
 
     logger.debug(f"Returning {len(tools)} tools to MCP client")

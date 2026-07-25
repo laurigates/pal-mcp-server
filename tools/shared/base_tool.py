@@ -280,59 +280,6 @@ class BaseTool(ABC):
 
         return False
 
-    def _get_available_models(self) -> list[str]:
-        """
-        Get list of models available from enabled providers.
-
-        Only returns models from providers that have valid API keys configured.
-        This fixes the namespace collision bug where models from disabled providers
-        were shown to the CLI, causing routing conflicts.
-
-        Returns:
-            List of model names from enabled providers only
-        """
-        from providers.registry import ModelProviderRegistry
-
-        # Get models from enabled providers only (those with valid API keys)
-        all_models = ModelProviderRegistry.get_available_model_names()
-
-        # Add OpenRouter models if OpenRouter is configured
-        openrouter_key = get_env("OPENROUTER_API_KEY")
-        if openrouter_key and openrouter_key != "your_openrouter_api_key_here":
-            try:
-                registry = self._get_openrouter_registry()
-                # Add all aliases from the registry (includes OpenRouter cloud models)
-                for alias in registry.list_aliases():
-                    if alias not in all_models:
-                        all_models.append(alias)
-            except Exception as e:
-                import logging
-
-                logging.debug(f"Failed to add OpenRouter models to enum: {e}")
-
-        # Add custom models if custom API is configured
-        custom_url = get_env("CUSTOM_API_URL")
-        if custom_url:
-            try:
-                registry = self._get_custom_registry()
-                for alias in registry.list_aliases():
-                    if alias not in all_models:
-                        all_models.append(alias)
-            except Exception as e:
-                import logging
-
-                logging.debug(f"Failed to add custom models to enum: {e}")
-
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_models = []
-        for model in all_models:
-            if model not in seen:
-                seen.add(model)
-                unique_models.append(model)
-
-        return unique_models
-
     def _format_available_models_list(self) -> str:
         """Return a human-friendly list of available models or guidance when none found."""
 
@@ -1322,9 +1269,11 @@ When recommending searches, be specific about what information you need and why 
         # Get models from enabled providers only (those with valid API keys)
         all_models = ModelProviderRegistry.get_available_model_names()
 
+        from providers.custom import CustomProvider
+        from providers.openrouter import OpenRouterProvider
+
         # Add OpenRouter models and their aliases when OpenRouter is configured
-        openrouter_key = get_env("OPENROUTER_API_KEY")
-        if openrouter_key and openrouter_key != "your_openrouter_api_key_here":
+        if OpenRouterProvider.is_configured():
             try:
                 registry = self._get_openrouter_registry()
 
@@ -1337,8 +1286,7 @@ When recommending searches, be specific about what information you need and why 
                 logging.debug(f"Failed to add OpenRouter models to enum: {exc}")
 
         # Add custom models (and their aliases) when a custom endpoint is available
-        custom_url = get_env("CUSTOM_API_URL")
-        if custom_url:
+        if get_env(CustomProvider.REQUIRED_ENV[0]):
             try:
                 registry = self._get_custom_registry()
                 for alias in registry.list_aliases():

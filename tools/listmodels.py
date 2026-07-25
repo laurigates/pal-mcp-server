@@ -2,7 +2,8 @@
 List Models Tool - Display all available models organized by provider
 
 This tool provides a comprehensive view of all AI models available in the system,
-organized by their provider (Gemini, OpenAI, X.AI, OpenRouter, Custom).
+organized by their provider, as declared by
+``providers.registry.REGISTERED_PROVIDER_CLASSES``.
 It shows which providers are configured and what models can be used.
 """
 
@@ -82,7 +83,9 @@ class ListModelsTool(BaseTool):
         Returns:
             Formatted list of models by provider
         """
-        from providers.registry import ModelProviderRegistry
+        from providers.custom import CustomProvider
+        from providers.openrouter import OpenRouterProvider
+        from providers.registry import REGISTERED_PROVIDER_CLASSES, ModelProviderRegistry
         from providers.shared import ProviderType
         from utils.model_restrictions import get_restriction_service
 
@@ -96,15 +99,15 @@ class ListModelsTool(BaseTool):
             for model_name, provider_type in restricted_map.items():
                 restricted_models_by_provider.setdefault(provider_type, []).append(model_name)
 
-        # Map provider types to friendly names and their models
-        provider_info = {
-            ProviderType.GOOGLE: {"name": "Google Gemini", "env_key": "GEMINI_API_KEY"},
-            ProviderType.OPENAI: {"name": "OpenAI", "env_key": "OPENAI_API_KEY"},
-            ProviderType.AZURE: {"name": "Azure OpenAI", "env_key": "AZURE_OPENAI_API_KEY"},
-            ProviderType.XAI: {"name": "X.AI (Grok)", "env_key": "XAI_API_KEY"},
-            ProviderType.DIAL: {"name": "AI DIAL", "env_key": "DIAL_API_KEY"},
-            ProviderType.OPENCODE_GO: {"name": "OpenCode Go", "env_key": "OPENCODE_API_KEY"},
-        }
+        # OpenRouter and Custom render bespoke sections further down, so they
+        # are excluded from the generic roster loop -- but their labels and env
+        # keys still come from the same provider classes.
+        bespoke_sections = (ProviderType.OPENROUTER, ProviderType.CUSTOM)
+        roster_classes = [
+            provider_cls
+            for provider_cls in REGISTERED_PROVIDER_CLASSES
+            if provider_cls.provider_type() not in bespoke_sections
+        ]
 
         def format_model_entry(provider, display_name: str) -> list[str]:
             try:
@@ -146,12 +149,12 @@ class ListModelsTool(BaseTool):
             return lines
 
         # Check each native provider type
-        for provider_type, info in provider_info.items():
-            # Check if provider is enabled
+        for provider_cls in roster_classes:
+            provider_type = provider_cls.provider_type()
             provider = ModelProviderRegistry.get_provider(provider_type)
             is_configured = provider is not None
 
-            output_lines.append(f"## {info['name']} {'✅' if is_configured else '❌'}")
+            output_lines.append(f"## {provider_cls.display_label()} {'✅' if is_configured else '❌'}")
 
             if is_configured:
                 output_lines.append("**Status**: Configured and available")
@@ -201,15 +204,14 @@ class ListModelsTool(BaseTool):
                         output_lines.append("\n**Aliases**:")
                         output_lines.extend(sorted(aliases))
             else:
-                output_lines.append(f"**Status**: Not configured (set {info['env_key']})")
+                output_lines.append(f"**Status**: Not configured (set {', '.join(provider_cls.gating_env_vars())})")
 
             output_lines.append("")
 
         # Check OpenRouter
-        openrouter_key = get_env("OPENROUTER_API_KEY")
-        is_openrouter_configured = openrouter_key and openrouter_key != "your_openrouter_api_key_here"
+        is_openrouter_configured = OpenRouterProvider.is_configured()
 
-        output_lines.append(f"## OpenRouter {'✅' if is_openrouter_configured else '❌'}")
+        output_lines.append(f"## {OpenRouterProvider.display_label()} {'✅' if is_openrouter_configured else '❌'}")
 
         if is_openrouter_configured:
             output_lines.append("**Status**: Configured and available")
@@ -261,8 +263,10 @@ class ListModelsTool(BaseTool):
 
                             allowed_set = restriction_service.get_allowed_models(ProviderType.OPENROUTER) or set()
                             if allowed_set:
+                                allowlist_var = OpenRouterProvider.allowed_models_env_vars()[0]
                                 output_lines.append(
-                                    f"\n*OpenRouter models restricted by OPENROUTER_ALLOWED_MODELS: {', '.join(sorted(allowed_set))}*"
+                                    f"\n*OpenRouter models restricted by {allowlist_var}: "
+                                    f"{', '.join(sorted(allowed_set))}*"
                                 )
                         else:
                             output_lines.append("- *No models allowed by current restriction policy.*")
@@ -308,15 +312,16 @@ class ListModelsTool(BaseTool):
                 logger.exception("Error listing OpenRouter models: %s", e)
                 output_lines.append(f"**Error loading models**: {str(e)}")
         else:
-            output_lines.append("**Status**: Not configured (set OPENROUTER_API_KEY)")
+            output_lines.append(f"**Status**: Not configured (set {OpenRouterProvider.API_KEY_ENV})")
             output_lines.append("**Note**: Provides access to GPT-5, O3, Mistral, and many more")
 
         output_lines.append("")
 
         # Check Custom API
-        custom_url = get_env("CUSTOM_API_URL")
+        custom_url_var = CustomProvider.REQUIRED_ENV[0]
+        custom_url = get_env(custom_url_var)
 
-        output_lines.append(f"## Custom/Local API {'✅' if custom_url else '❌'}")
+        output_lines.append(f"## {CustomProvider.display_label()} {'✅' if custom_url else '❌'}")
 
         if custom_url:
             output_lines.append("**Status**: Configured and available")
@@ -343,7 +348,7 @@ class ListModelsTool(BaseTool):
             except Exception as e:
                 output_lines.append(f"**Error loading custom models**: {str(e)}")
         else:
-            output_lines.append("**Status**: Not configured (set CUSTOM_API_URL)")
+            output_lines.append(f"**Status**: Not configured (set {custom_url_var})")
             output_lines.append("**Example**: CUSTOM_API_URL=http://localhost:11434 (for Ollama)")
 
         output_lines.append("")
@@ -353,11 +358,9 @@ class ListModelsTool(BaseTool):
 
         # Count configured providers
         configured_count = sum(
-            [
-                1
-                for provider_type, info in provider_info.items()
-                if ModelProviderRegistry.get_provider(provider_type) is not None
-            ]
+            1
+            for provider_cls in roster_classes
+            if ModelProviderRegistry.get_provider(provider_cls.provider_type()) is not None
         )
         if is_openrouter_configured:
             configured_count += 1
