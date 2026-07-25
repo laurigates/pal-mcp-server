@@ -33,13 +33,6 @@ class ModelProvider(ABC):
     OPTIONAL_ENV: ClassVar[tuple[str, ...]] = ()
     ALLOWED_MODELS_ENV: ClassVar[tuple[str, ...]] = ()
 
-    #: True when the provider serves models beyond the ones its manifest
-    #: lists, so an allow-list entry that is absent from ``list_models()`` is
-    #: legitimate rather than a typo. OpenRouter fabricates capabilities for
-    #: any ``vendor/model`` name and a custom endpoint serves whatever it is
-    #: pointed at, so the startup typo check must not scold either of them.
-    ACCEPTS_UNLISTED_MODELS: ClassVar[bool] = False
-
     MODEL_CAPABILITIES: dict[str, Any] = {}
     MAX_RETRIES: ClassVar[int] = 4
     RETRY_DELAYS: ClassVar[list[float]] = [1.0, 3.0, 5.0, 8.0]

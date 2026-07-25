@@ -40,9 +40,6 @@ class CustomProvider(OpenAICompatibleProvider):
     BASE_URL_ENV: ClassVar[str] = "CUSTOM_API_URL"
     REQUIRED_ENV = (BASE_URL_ENV,)
     OPTIONAL_ENV = ("CUSTOM_API_KEY", "CUSTOM_MODEL_NAME", "CUSTOM_MODELS_CONFIG_PATH")
-    # A custom endpoint serves whatever it is pointed at, so conf/custom_models.json
-    # is a convenience catalogue rather than an exhaustive one.
-    ACCEPTS_UNLISTED_MODELS = True
 
     # Model registry for managing configurations and aliases
     _registry: CustomEndpointModelRegistry | None = None

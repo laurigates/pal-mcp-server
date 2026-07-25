@@ -356,12 +356,18 @@ needs additional alias handling beyond the shared behaviour.
 ## Quick Checklist
 
 - [ ] Added to `ProviderType` enum in `providers/shared/provider_type.py`
-- [ ] Created provider class with all required methods
-- [ ] Added API key mapping in `providers/registry.py`
-- [ ] Added to provider priority order in `registry.py`
-- [ ] Imported and registered in `server.py`
+- [ ] Created provider class, implementing `generate_content()`
+- [ ] Declared the metadata block: `PROVIDER_TYPE`, `FRIENDLY_NAME`, `API_KEY_ENV`,
+      `API_KEY_PLACEHOLDER`, and any of `DISPLAY_NAME` / `HELP_SUMMARY` /
+      `REQUIRED_ENV` / `OPTIONAL_ENV` / `ALLOWED_MODELS_ENV` that apply
+- [ ] Appended the class to `_build_registered_provider_classes()` in `providers/registry.py`
+      (list position is the priority; OpenRouter stays last)
+- [ ] `uv run pytest tests/test_provider_metadata.py` passes — the drift guards
 - [ ] Basic tests verify model validation and capabilities
 - [ ] Tested with real API calls
+
+There is deliberately no step here for the API-key map, the priority list, or a
+`server.py` registration block: all three are derived from the two steps above.
 
 ## Examples
 

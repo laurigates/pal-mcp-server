@@ -161,6 +161,12 @@ class TestModelRestrictionService:
                 "o4-mini": {"context_window": 200000},
             }
             mock_provider.list_models.return_value = ["o3", "o3-mini", "o4-mini"]
+            # The typo check asks the provider whether it would accept each
+            # allow-list entry, rather than set-comparing against its manifest
+            # (OpenRouter legitimately serves names its manifest omits). A bare
+            # MagicMock would answer truthy for everything, so model the real
+            # contract here.
+            mock_provider.validate_model_name.side_effect = lambda name: name in {"o3", "o3-mini", "o4-mini"}
 
             provider_instances = {ProviderType.OPENAI: mock_provider}
             service.validate_against_known_models(provider_instances)
