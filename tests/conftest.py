@@ -64,36 +64,34 @@ env_config.reload_env({"PAL_MCP_FORCE_ENV_OVERRIDE": "false"})
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-# Provider classes are needed by the session bootstrap fixture below.
-from providers.gemini import GeminiModelProvider  # noqa: E402
-from providers.openai import OpenAIModelProvider  # noqa: E402
-from providers.registry import ModelProviderRegistry  # noqa: E402
+# The provider roster is needed by the session bootstrap fixture below.
+from providers.registry import (  # noqa: E402
+    PROVIDER_CLASS_BY_TYPE,
+    REGISTERED_PROVIDER_CLASSES,
+    ModelProviderRegistry,
+)
 from providers.shared import ProviderType  # noqa: E402
-from providers.xai import XAIModelProvider  # noqa: E402
+
+#: The provider set the bulk of the unit suite assumes is available.
+DEFAULT_TEST_PROVIDERS: tuple[ProviderType, ...] = (
+    ProviderType.GOOGLE,
+    ProviderType.OPENAI,
+    ProviderType.XAI,
+)
 
 
 def _set_dummy_keys_if_missing():
     """Set dummy API keys only when they are completely absent."""
-    for var in ("GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY"):
-        if not os.environ.get(var):
-            os.environ[var] = "dummy-key-for-tests"
+    for provider_type in DEFAULT_TEST_PROVIDERS:
+        env_var = PROVIDER_CLASS_BY_TYPE[provider_type].API_KEY_ENV
+        if env_var and not os.environ.get(env_var):
+            os.environ[env_var] = "dummy-key-for-tests"
 
 
 def _register_default_providers():
     """Register the providers every unit test expects to be available."""
-    ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
-    ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-    ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
-
-    # Register CUSTOM provider when running prompt regression integration tests.
-    if os.getenv("CUSTOM_API_URL") and "test_prompt_regression.py" in os.getenv("PYTEST_CURRENT_TEST", ""):
-        from providers.custom import CustomProvider
-
-        def custom_provider_factory(api_key=None):
-            base_url = os.getenv("CUSTOM_API_URL", "")
-            return CustomProvider(api_key=api_key or "", base_url=base_url)
-
-        ModelProviderRegistry.register_provider(ProviderType.CUSTOM, custom_provider_factory)
+    for provider_type in DEFAULT_TEST_PROVIDERS:
+        ModelProviderRegistry.register_provider(provider_type, PROVIDER_CLASS_BY_TYPE[provider_type])
 
 
 def pytest_configure(config):
@@ -111,6 +109,10 @@ def pytest_configure(config):
         "markers",
         "no_mock_provider: opt out of the default mock_provider fixture for tests "
         "that exercise real provider resolution / auto-mode logic.",
+    )
+    config.addinivalue_line(
+        "markers",
+        "ambient_provider_env: keep the real provider environment instead of the scrubbed one.",
     )
 
     # Seed the test-time defaults *before* collection so module-level
@@ -164,38 +166,49 @@ def project_path(tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def _ensure_default_providers_registered():
-    """Restore the default provider registry before each test.
+def _isolated_provider_registry(request, monkeypatch):
+    """Derived provider isolation: env + registry, for every test."""
+    import utils.model_restrictions as model_restrictions
 
-    Several tests intentionally clear the registry singleton (or call
-    ``unregister_provider`` in ``setup_method`` / ``teardown_method``).
-    Without re-registration here, subsequent tests that rely on
-    Gemini/OpenAI/XAI being present fail in test-order-dependent ways.
+    keep_ambient_env = (
+        request.node.get_closest_marker("ambient_provider_env") is not None
+        or request.node.get_closest_marker("integration") is not None
+    )
 
-    This fixture runs unconditionally (autouse) — it deals with
-    *registry* state and is orthogonal to the ``mock_provider`` fixture,
-    which only stubs ``BaseTool.is_effective_auto_mode``.
-    """
+    if not keep_ambient_env:
+        for provider_cls in REGISTERED_PROVIDER_CLASSES:
+            for var in provider_cls.credential_env_vars():
+                monkeypatch.delenv(var, raising=False)
+
     registry = ModelProviderRegistry()
-    if ProviderType.GOOGLE not in registry._providers:
-        ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
-    if ProviderType.OPENAI not in registry._providers:
-        ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-    if ProviderType.XAI not in registry._providers:
-        ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
+    saved_providers = dict(registry._providers)
+    saved_initialized = dict(registry._initialized_providers)
+    registry._providers.clear()
+    registry._initialized_providers.clear()
 
-    if (
-        os.getenv("CUSTOM_API_URL")
-        and "test_prompt_regression.py" in os.getenv("PYTEST_CURRENT_TEST", "")
-        and ProviderType.CUSTOM not in registry._providers
-    ):
-        from providers.custom import CustomProvider
+    if keep_ambient_env:
+        # Ambient-env tests (the local-Ollama integration suite) want whatever
+        # the real environment configures. Derived from the roster, so this
+        # replaces the old hardcoded CUSTOM_API_URL/PYTEST_CURRENT_TEST branch.
+        for provider_cls in REGISTERED_PROVIDER_CLASSES:
+            if provider_cls.is_configured():
+                ModelProviderRegistry.register_provider(provider_cls.provider_type(), provider_cls)
+    else:
+        for provider_type in DEFAULT_TEST_PROVIDERS:
+            provider_cls = PROVIDER_CLASS_BY_TYPE[provider_type]
+            if provider_cls.API_KEY_ENV:
+                monkeypatch.setenv(provider_cls.API_KEY_ENV, "dummy-key-for-tests")
+            ModelProviderRegistry.register_provider(provider_type, provider_cls)
 
-        def custom_provider_factory(api_key=None):
-            base_url = os.getenv("CUSTOM_API_URL", "")
-            return CustomProvider(api_key=api_key or "", base_url=base_url)
-
-        ModelProviderRegistry.register_provider(ProviderType.CUSTOM, custom_provider_factory)
+    model_restrictions._restriction_service = None
+    try:
+        yield
+    finally:
+        model_restrictions._restriction_service = None
+        registry._providers.clear()
+        registry._initialized_providers.clear()
+        registry._providers.update(saved_providers)
+        registry._initialized_providers.update(saved_initialized)
 
 
 @pytest.fixture
@@ -216,23 +229,6 @@ def mock_provider(monkeypatch):
     from tools.shared.base_tool import BaseTool
 
     monkeypatch.setattr(BaseTool, "is_effective_auto_mode", lambda self: False)
-
-
-@pytest.fixture(autouse=True)
-def _clear_model_restriction_env(monkeypatch):
-    """Ensure per-test isolation from user-defined model restriction env vars."""
-
-    restriction_vars = [
-        "OPENAI_ALLOWED_MODELS",
-        "GOOGLE_ALLOWED_MODELS",
-        "XAI_ALLOWED_MODELS",
-        "OPENROUTER_ALLOWED_MODELS",
-        "DIAL_ALLOWED_MODELS",
-        "OPENCODE_GO_ALLOWED_MODELS",
-    ]
-
-    for var in restriction_vars:
-        monkeypatch.delenv(var, raising=False)
 
 
 @pytest.fixture(autouse=True)
