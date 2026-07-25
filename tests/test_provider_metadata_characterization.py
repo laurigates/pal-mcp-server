@@ -370,7 +370,7 @@ def test_listmodels_custom_section_honours_the_allow_list():
         model_restrictions._restriction_service = None
         ModelProviderRegistry.register_provider(ProviderType.CUSTOM, CustomProvider)
         try:
-            content = asyncio.run(ListModelsTool().execute({}))[0].text
+            payload = asyncio.run(ListModelsTool().execute({}))[0].text
         finally:
             model_restrictions._restriction_service = None
             env_utils.reload_env({})
@@ -380,7 +380,7 @@ def test_listmodels_custom_section_honours_the_allow_list():
     # absent token returns the whole string silently -- which is how an earlier
     # version of this test spent four commits "scoped" to the whole document --
     # and json.loads turns that failure mode into an exception instead.
-    rendered = json.loads(content)["content"]
+    rendered = json.loads(payload)["content"]
     custom_section = rendered.split("## Custom/Local API")[1].split("\n## ")[0]
     assert "**Custom Models (policy restricted)**:" in custom_section
     assert "`local-llama`" in custom_section
@@ -421,7 +421,7 @@ def test_listmodels_custom_section_honours_the_allow_list():
     assert custom_section.count("\n- `") == 3, custom_section
     for name in ("gemma4:e4b", "local-llama", "ollama-llama"):
         assert f"`{name}`" in custom_section, (name, custom_section)
-    assert "**Total Available Models**: 2" in content, content
+    assert "**Total Available Models**: 2" in rendered, rendered
 
 
 # ---------------------------------------------------------------------------
