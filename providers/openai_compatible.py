@@ -79,11 +79,12 @@ class OpenAICompatibleProvider(ModelProvider):
                     )
 
     def _parse_allowed_models(self) -> set[str] | None:
-        """Parse allowed models from environment variable."""
-        provider_type = self.get_provider_type().value.upper()
-        env_var = f"{provider_type}_ALLOWED_MODELS"
-        models_str = get_env(env_var, "") or ""
-        if models_str:
+        """Parse allowed models from the env vars this provider declares."""
+        env_vars = self._allowed_models_env_vars()
+        for env_var in env_vars:
+            models_str = get_env(env_var, "") or ""
+            if not models_str:
+                continue
             models = {m.strip().lower() for m in models_str.split(",") if m.strip()}
             if models:
                 logging.info(f"Configured allowed models for {self.FRIENDLY_NAME}: {sorted(models)}")
@@ -92,7 +93,7 @@ class OpenAICompatibleProvider(ModelProvider):
         if self.get_provider_type() not in [ProviderType.GOOGLE, ProviderType.OPENAI]:
             logging.info(
                 f"Model allow-list not configured for {self.FRIENDLY_NAME} - all models permitted. "
-                f"To restrict access, set {env_var} with comma-separated model names."
+                f"To restrict access, set {env_vars[0]} with comma-separated model names."
             )
         return None
 

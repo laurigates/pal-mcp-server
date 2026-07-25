@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
-from utils.env import get_env
 
 from .openai_compatible import OpenAICompatibleProvider
 from .registries.opencode_go import OpenCodeGoModelRegistry
@@ -35,7 +34,12 @@ class OpenCodeGoProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
     sensible defaults from that set.
     """
 
+    PROVIDER_TYPE = ProviderType.OPENCODE_GO
     FRIENDLY_NAME = "OpenCode Go"
+    HELP_SUMMARY = "OpenCode Go models"
+    API_KEY_ENV = "OPENCODE_API_KEY"
+    API_KEY_PLACEHOLDER = "your_opencode_api_key_here"
+    OPTIONAL_ENV = ("OPENCODE_GO_MODELS_CONFIG_PATH",)
 
     REGISTRY_CLASS = OpenCodeGoModelRegistry
     MODEL_CAPABILITIES: ClassVar[dict[str, ModelCapabilities]] = {}
@@ -54,26 +58,6 @@ class OpenCodeGoProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
         self._ensure_registry()
         super().__init__(api_key, **kwargs)
         self._invalidate_capability_cache()
-
-    @classmethod
-    def from_env(cls) -> "OpenCodeGoProvider | None":
-        """Construct a provider from environment variables.
-
-        Reads ``OPENCODE_API_KEY`` (the same variable OpenCode itself uses) and
-        rejects the documented placeholder value.
-
-        Returns:
-            A configured provider instance, or ``None`` when the API key is
-            missing or set to the placeholder string.
-        """
-        api_key = get_env("OPENCODE_API_KEY")
-        if not api_key or api_key == "your_opencode_api_key_here":
-            return None
-        return cls(api_key=api_key)
-
-    def get_provider_type(self) -> ProviderType:
-        """Get the provider type."""
-        return ProviderType.OPENCODE_GO
 
     def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> str | None:
         """Get OpenCode Go's preferred model for a given tool category.

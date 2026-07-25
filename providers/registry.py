@@ -1,7 +1,7 @@
 """Model provider registry for managing available providers."""
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from utils.env import get_env
 
@@ -41,18 +41,8 @@ class ModelProviderRegistry:
     _providers: dict[ProviderType, type[ModelProvider]] = {}
     _initialized_providers: dict[ProviderType, ModelProvider] = {}
 
-    # Provider priority order for model selection
-    # Native APIs first, then custom endpoints, then catch-all providers
-    PROVIDER_PRIORITY_ORDER = [
-        ProviderType.GOOGLE,  # Direct Gemini access
-        ProviderType.OPENAI,  # Direct OpenAI access
-        ProviderType.AZURE,  # Azure-hosted OpenAI deployments
-        ProviderType.XAI,  # Direct X.AI GROK access
-        ProviderType.DIAL,  # DIAL unified API access
-        ProviderType.CUSTOM,  # Local/self-hosted models
-        ProviderType.OPENCODE_GO,  # Curated open-source coding gateway (subscription)
-        ProviderType.OPENROUTER,  # Catch-all for cloud models
-    ]
+    # Derived at the bottom of this module from REGISTERED_PROVIDER_CLASSES.
+    PROVIDER_PRIORITY_ORDER: ClassVar[list[ProviderType]] = []
 
     def __new__(cls):
         """Singleton pattern for registry."""
@@ -362,22 +352,11 @@ class ModelProviderRegistry:
         Returns:
             API key string or None if not found
         """
-        key_mapping = {
-            ProviderType.GOOGLE: "GEMINI_API_KEY",
-            ProviderType.OPENAI: "OPENAI_API_KEY",
-            ProviderType.AZURE: "AZURE_OPENAI_API_KEY",
-            ProviderType.XAI: "XAI_API_KEY",
-            ProviderType.OPENROUTER: "OPENROUTER_API_KEY",
-            ProviderType.CUSTOM: "CUSTOM_API_KEY",  # Can be empty for providers that don't need auth
-            ProviderType.DIAL: "DIAL_API_KEY",
-            ProviderType.OPENCODE_GO: "OPENCODE_API_KEY",
-        }
-
-        env_var = key_mapping.get(provider_type)
-        if not env_var:
+        provider_cls = PROVIDER_CLASS_BY_TYPE.get(provider_type)
+        if provider_cls is None or not provider_cls.API_KEY_ENV:
             return None
 
-        return get_env(env_var)
+        return get_env(provider_cls.API_KEY_ENV)
 
     @classmethod
     def _get_allowed_models_for_provider(cls, provider: ModelProvider, provider_type: ProviderType) -> list[str]:
@@ -496,6 +475,25 @@ class ModelProviderRegistry:
             cls._providers = {}
 
     @classmethod
+    def provider_class_for(cls, provider_type: ProviderType) -> type[ModelProvider] | None:
+        """Resolve the declaring class for a ProviderType."""
+        return PROVIDER_CLASS_BY_TYPE.get(provider_type)
+
+    @classmethod
+    def credential_env_vars(cls, provider_type: ProviderType) -> tuple[str, ...]:
+        """Every env var that can activate/configure this provider."""
+        provider_cls = PROVIDER_CLASS_BY_TYPE.get(provider_type)
+        return provider_cls.credential_env_vars() if provider_cls is not None else ()
+
+    @classmethod
+    def allowed_models_env_vars(cls, provider_type: ProviderType) -> tuple[str, ...]:
+        """Allow-list env vars for a provider, most specific first."""
+        provider_cls = PROVIDER_CLASS_BY_TYPE.get(provider_type)
+        if provider_cls is not None:
+            return provider_cls.allowed_models_env_vars()
+        return (f"{provider_type.value.upper()}_ALLOWED_MODELS",)
+
+    @classmethod
     def unregister_provider(cls, provider_type: ProviderType) -> None:
         """Unregister a provider (mainly for testing)."""
         instance = cls()
@@ -542,3 +540,15 @@ def _build_registered_provider_classes() -> list[type[ModelProvider]]:
 # resilient to that (it dispatches via ``provider.get_provider_type()``),
 # and tests that care about identity import the provider class directly.
 REGISTERED_PROVIDER_CLASSES: list[type[ModelProvider]] = _build_registered_provider_classes()
+
+#: ProviderType -> declaring class. Total over ProviderType by construction;
+#: guarded by tests/test_provider_metadata.py.
+PROVIDER_CLASS_BY_TYPE: dict[ProviderType, type[ModelProvider]] = {
+    provider_cls.provider_type(): provider_cls for provider_cls in REGISTERED_PROVIDER_CLASSES
+}
+
+# Priority IS list order. Assigned after the class body because the class list
+# is built at module scope below the class definition.
+ModelProviderRegistry.PROVIDER_PRIORITY_ORDER = [
+    provider_cls.provider_type() for provider_cls in REGISTERED_PROVIDER_CLASSES
+]

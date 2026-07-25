@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
-from utils.env import get_env
 
 from .openai_compatible import OpenAICompatibleProvider
 from .registries.xai import XAIModelRegistry
@@ -23,7 +22,13 @@ class XAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
     maps tool-category preferences to the appropriate GROK model.
     """
 
+    PROVIDER_TYPE = ProviderType.XAI
     FRIENDLY_NAME = "X.AI"
+    DISPLAY_NAME = "X.AI (Grok)"
+    HELP_SUMMARY = "X.AI GROK models"
+    API_KEY_ENV = "XAI_API_KEY"
+    API_KEY_PLACEHOLDER = "your_xai_api_key_here"
+    OPTIONAL_ENV = ("XAI_MODELS_CONFIG_PATH",)
 
     REGISTRY_CLASS = XAIModelRegistry
     MODEL_CAPABILITIES: ClassVar[dict[str, ModelCapabilities]] = {}
@@ -39,26 +44,6 @@ class XAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
         self._ensure_registry()
         super().__init__(api_key, **kwargs)
         self._invalidate_capability_cache()
-
-    @classmethod
-    def from_env(cls) -> "XAIModelProvider | None":
-        """Construct a provider from environment variables.
-
-        Reads ``XAI_API_KEY`` and rejects the documented placeholder
-        value.
-
-        Returns:
-            A configured provider instance, or ``None`` when the API key is
-            missing or set to the placeholder string.
-        """
-        api_key = get_env("XAI_API_KEY")
-        if not api_key or api_key == "your_xai_api_key_here":
-            return None
-        return cls(api_key=api_key)
-
-    def get_provider_type(self) -> ProviderType:
-        """Get the provider type."""
-        return ProviderType.XAI
 
     def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> str | None:
         """Get XAI's preferred model for a given category from allowed models.
