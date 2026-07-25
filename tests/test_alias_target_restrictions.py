@@ -238,6 +238,11 @@ class TestAliasTargetRestrictions:
 
         mock_provider = MagicMock()
         mock_provider.list_models.return_value = ["model1", "model2", "target-model"]
+        # The check asks the provider whether it recognises each entry, and only
+        # builds the "known models" list for the warning. A bare MagicMock would
+        # answer truthy, so no warning would fire and list_models would never be
+        # reached.
+        mock_provider.validate_model_name.side_effect = lambda name: name in {"model1", "model2", "target-model"}
 
         # Set up a restriction that should trigger validation
         service.restrictions = {ProviderType.OPENAI: {"invalid-model"}}

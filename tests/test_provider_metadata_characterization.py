@@ -378,9 +378,12 @@ def test_listmodels_custom_section_honours_the_allow_list():
     custom_section = content.split("## Custom/Local API")[1].split("\n## ")[0]
     assert "**Custom Models (policy restricted)**:" in custom_section
     assert "`local-llama`" in custom_section
-    # Sibling aliases of the same endpoint are blocked at call time, so they
-    # must not be advertised as available.
-    assert "`ollama-llama`" not in custom_section
+    # Sibling aliases resolving to the same canonical model ARE permitted at
+    # call time -- is_allowed() implements alias equivalence -- so the listing
+    # must show them rather than under-advertise a usable model. Verified
+    # directly: with a registered CUSTOM provider and a cold cache,
+    # get_capabilities("ollama-llama") succeeds under CUSTOM_ALLOWED_MODELS=local-llama.
+    assert "`ollama-llama`" in custom_section
 
 
 # ---------------------------------------------------------------------------
