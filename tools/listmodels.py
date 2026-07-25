@@ -331,19 +331,31 @@ class ListModelsTool(BaseTool):
             try:
                 registry = CustomEndpointModelRegistry()
                 custom_models = []
+                has_restrictions = bool(
+                    restriction_service and restriction_service.has_restrictions(ProviderType.CUSTOM)
+                )
 
                 for alias in registry.list_aliases():
+                    # CUSTOM_ALLOWED_MODELS is enforced at call time by
+                    # OpenAICompatibleProvider, so a name listed here that the
+                    # policy blocks would be advertised and then rejected.
+                    if has_restrictions and not restriction_service.is_allowed(ProviderType.CUSTOM, alias):
+                        continue
                     config = registry.resolve(alias)
                     if config:
                         custom_models.append((alias, config))
 
                 if custom_models:
-                    output_lines.append("\n**Custom Models**:")
+                    output_lines.append(
+                        "\n**Custom Models (policy restricted)**:" if has_restrictions else "\n**Custom Models**:"
+                    )
                     for alias, config in custom_models:
                         context_str = f"{config.context_window // 1000}K" if config.context_window else "?"
                         output_lines.append(f"- `{alias}` → `{config.model_name}` ({context_str} context)")
                         if config.description:
                             output_lines.append(f"  - {config.description}")
+                elif has_restrictions:
+                    output_lines.append("\n*No models are currently allowed by restriction policy.*")
 
             except Exception as e:
                 output_lines.append(f"**Error loading custom models**: {str(e)}")

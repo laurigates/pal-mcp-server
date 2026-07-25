@@ -299,3 +299,85 @@ def test_temperature_supporting_opencode_siblings_are_unaffected():
     registry = OpenCodeGoModelRegistry()
     for name in ("glm-5.2", "deepseek-v4-pro", "qwen3.7-max"):
         assert registry.resolve(name).supports_temperature is True, name
+
+
+# ---------------------------------------------------------------------------
+# is_configured() -- the single implementation of the placeholder comparison
+# that used to be copy-pasted into server.py and tools/shared/base_tool.py.
+# ---------------------------------------------------------------------------
+
+
+def test_is_configured_rejects_the_scaffolded_placeholder():
+    """A .env left at its scaffolded value must not read as configured.
+
+    ``.env.example`` ships ``OPENROUTER_API_KEY=your_openrouter_api_key_here``,
+    so this is the common case, not a corner case. Before the refactor the
+    comparison was inlined at four call sites; it now lives here only, which
+    makes this the guard for all of them.
+    """
+    for provider_cls in REGISTERED_PROVIDER_CLASSES:
+        placeholder = provider_cls.API_KEY_PLACEHOLDER
+        if not placeholder:
+            continue
+        env = dict.fromkeys(provider_cls.gating_env_vars(), "real-value")
+        env[provider_cls.API_KEY_ENV] = placeholder
+        with patch.dict(os.environ, env, clear=True):
+            assert provider_cls.is_configured() is False, provider_cls.__name__
+
+
+def test_is_configured_accepts_a_real_key():
+    """The negative test above is only meaningful if the positive one holds."""
+    for provider_cls in REGISTERED_PROVIDER_CLASSES:
+        gating = provider_cls.gating_env_vars()
+        if not gating:
+            continue
+        with patch.dict(os.environ, {var: f"real-{var.lower()}" for var in gating}, clear=True):
+            assert provider_cls.is_configured() is True, provider_cls.__name__
+
+
+def test_is_configured_requires_every_gating_var():
+    """Azure needs endpoint as well as key; Custom needs the URL."""
+    for provider_cls in REGISTERED_PROVIDER_CLASSES:
+        gating = provider_cls.gating_env_vars()
+        if len(gating) < 2:
+            continue
+        for omitted in gating:
+            env = {var: f"real-{var.lower()}" for var in gating if var != omitted}
+            with patch.dict(os.environ, env, clear=True):
+                assert provider_cls.is_configured() is False, (provider_cls.__name__, omitted)
+
+
+def test_listmodels_custom_section_honours_the_allow_list():
+    """CUSTOM_ALLOWED_MODELS must filter the listing, not just the call.
+
+    ``OpenAICompatibleProvider`` has always enforced this variable at call
+    time, so a name shown here that policy blocks is advertised and then
+    rejected. The generic roster loop and the OpenRouter section already
+    filtered; the bespoke Custom section did not.
+    """
+    import asyncio
+
+    env = {
+        "CUSTOM_API_URL": "http://localhost:11434/v1",
+        "CUSTOM_ALLOWED_MODELS": "local-llama",
+        "DEFAULT_MODEL": "local-llama",
+    }
+    with patch.dict(os.environ, env, clear=True):
+        import utils.env as env_utils
+        import utils.model_restrictions as model_restrictions
+
+        env_utils.reload_env(env)
+        model_restrictions._restriction_service = None
+        ModelProviderRegistry.register_provider(ProviderType.CUSTOM, CustomProvider)
+        try:
+            content = asyncio.run(ListModelsTool().execute({}))[0].text
+        finally:
+            model_restrictions._restriction_service = None
+            env_utils.reload_env({})
+
+    custom_section = content.split("## Custom/Local API")[1].split("\n## ")[0]
+    assert "**Custom Models (policy restricted)**:" in custom_section
+    assert "`local-llama`" in custom_section
+    # Sibling aliases of the same endpoint are blocked at call time, so they
+    # must not be advertised as available.
+    assert "`ollama-llama`" not in custom_section
