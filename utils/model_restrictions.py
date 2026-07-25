@@ -46,45 +46,48 @@ class ModelRestrictionService:
           commands, etc.).
     """
 
-    # Environment variable names
-    ENV_VARS = {
-        ProviderType.OPENAI: "OPENAI_ALLOWED_MODELS",
-        ProviderType.GOOGLE: "GOOGLE_ALLOWED_MODELS",
-        ProviderType.XAI: "XAI_ALLOWED_MODELS",
-        ProviderType.OPENROUTER: "OPENROUTER_ALLOWED_MODELS",
-        ProviderType.DIAL: "DIAL_ALLOWED_MODELS",
-    }
+    @staticmethod
+    def env_vars_for(provider_type: ProviderType) -> tuple[str, ...]:
+        """Allow-list env vars for a provider, most specific first."""
+        try:
+            from providers.registry import ModelProviderRegistry
+
+            return ModelProviderRegistry.allowed_models_env_vars(provider_type)
+        except Exception:  # pragma: no cover - policy must never fail to load
+            return (f"{provider_type.value.upper()}_ALLOWED_MODELS",)
 
     def __init__(self):
         """Initialize the restriction service by loading from environment."""
         self.restrictions: dict[ProviderType, set[str]] = {}
+        self._env_var_used: dict[ProviderType, str] = {}
         self._alias_resolution_cache: dict[ProviderType, dict[str, str]] = defaultdict(dict)
         self._load_from_env()
 
     def _load_from_env(self) -> None:
-        """Load restrictions from environment variables."""
-        for provider_type, env_var in self.ENV_VARS.items():
-            env_value = get_env(env_var)
+        """Load restrictions for every provider type."""
+        for provider_type in ProviderType:
+            env_vars = self.env_vars_for(provider_type)
+            for env_var in env_vars:
+                env_value = get_env(env_var)
 
-            if env_value is None or env_value == "":
-                # Not set or empty - no restrictions (allow all models)
-                logger.debug(f"{env_var} not set or empty - all {provider_type.value} models allowed")
-                continue
+                if env_value is None or env_value == "":
+                    continue
 
-            # Parse comma-separated list
-            models = set()
-            for model in env_value.split(","):
-                cleaned = model.strip().lower()
-                if cleaned:
-                    models.add(cleaned)
+                models = set()
+                for model in env_value.split(","):
+                    cleaned = model.strip().lower()
+                    if cleaned:
+                        models.add(cleaned)
 
-            if models:
-                self.restrictions[provider_type] = models
-                self._alias_resolution_cache[provider_type] = {}
-                logger.info(f"{provider_type.value} allowed models: {sorted(models)}")
-            else:
-                # All entries were empty after cleaning - treat as no restrictions
+                if models:
+                    self.restrictions[provider_type] = models
+                    self._env_var_used[provider_type] = env_var
+                    self._alias_resolution_cache[provider_type] = {}
+                    logger.info(f"{provider_type.value} allowed models: {sorted(models)}")
+                    break
                 logger.debug(f"{env_var} contains only whitespace - all {provider_type.value} models allowed")
+            else:
+                logger.debug(f"No allow-list set for {provider_type.value} - all models allowed")
 
     def validate_against_known_models(self, provider_instances: dict[ProviderType, any]) -> None:
         """
@@ -119,7 +122,7 @@ class ModelRestrictionService:
             for allowed_model in allowed_models:
                 if allowed_model not in supported_models:
                     logger.warning(
-                        f"Model '{allowed_model}' in {self.ENV_VARS[provider_type]} "
+                        f"Model '{allowed_model}' in {self._env_var_used.get(provider_type, self.env_vars_for(provider_type)[0])} "
                         f"is not a recognized {provider_type.value} model. "
                         f"Please check for typos. Known models: {sorted(supported_models)}"
                     )
