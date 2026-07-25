@@ -26,7 +26,13 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
 
     REGISTRY_CLASS = GeminiModelRegistry
     MODEL_CAPABILITIES: ClassVar[dict[str, ModelCapabilities]] = {}
+    PROVIDER_TYPE = ProviderType.GOOGLE
     FRIENDLY_NAME = "Gemini"
+    DISPLAY_NAME = "Google Gemini"
+    HELP_SUMMARY = "Gemini models"
+    API_KEY_ENV = "GEMINI_API_KEY"
+    API_KEY_PLACEHOLDER = "your_gemini_api_key_here"
+    OPTIONAL_ENV = ("GEMINI_BASE_URL", "GEMINI_MODELS_CONFIG_PATH")
 
     THINKING_BUDGETS = {
         "minimal": 0.005,
@@ -57,8 +63,8 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             A configured provider instance, or ``None`` when the API key is
             missing or set to the placeholder string.
         """
-        api_key = get_env("GEMINI_API_KEY")
-        if not api_key or api_key == "your_gemini_api_key_here":
+        api_key = cls.api_key_from_env()
+        if api_key is None:
             return None
         kwargs: dict[str, object] = {"api_key": api_key}
         base_url = get_env("GEMINI_BASE_URL")
@@ -108,9 +114,6 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             logger.debug("Using custom Gemini HTTP timeout: %ss", resolved)
             return resolved
         return None
-
-    def get_provider_type(self) -> ProviderType:
-        return ProviderType.GOOGLE
 
     def _build_request(
         self,

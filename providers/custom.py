@@ -29,7 +29,13 @@ class CustomProvider(OpenAICompatibleProvider):
           behaviour across environments.
     """
 
+    PROVIDER_TYPE = ProviderType.CUSTOM
     FRIENDLY_NAME = "Custom API"
+    DISPLAY_NAME = "Custom/Local API"
+    HELP_SUMMARY = "local models (Ollama, vLLM, etc.)"
+    API_KEY_ENV = "CUSTOM_API_KEY"
+    REQUIRED_ENV = ("CUSTOM_API_URL",)
+    OPTIONAL_ENV = ("CUSTOM_API_KEY", "CUSTOM_MODEL_NAME", "CUSTOM_MODELS_CONFIG_PATH")
 
     # Model registry for managing configurations and aliases
     _registry: CustomEndpointModelRegistry | None = None
@@ -150,11 +156,6 @@ class CustomProvider(OpenAICompatibleProvider):
             canonical_name,
         )
         return None
-
-    def get_provider_type(self) -> ProviderType:
-        """Identify this provider for restriction and logging logic."""
-
-        return ProviderType.CUSTOM
 
     # ------------------------------------------------------------------
     # Registry helpers

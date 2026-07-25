@@ -18,7 +18,13 @@ logger = logging.getLogger(__name__)
 class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
     """Client for the DIAL aggregation service."""
 
+    PROVIDER_TYPE = ProviderType.DIAL
     FRIENDLY_NAME = "DIAL"
+    DISPLAY_NAME = "AI DIAL"
+    HELP_SUMMARY = "DIAL models"
+    API_KEY_ENV = "DIAL_API_KEY"
+    API_KEY_PLACEHOLDER = "your_dial_api_key_here"
+    OPTIONAL_ENV = ("DIAL_API_HOST", "DIAL_API_VERSION", "DIAL_MODELS_CONFIG_PATH")
 
     REGISTRY_CLASS = DialModelRegistry
     MODEL_CAPABILITIES: ClassVar[dict[str, ModelCapabilities]] = {}
@@ -63,27 +69,6 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
             event_hooks={"request": [remove_auth_header]},
         )
         logger.info(f"Initialized DIAL provider with host: {dial_host} and api-version: {self.api_version}")
-
-    @classmethod
-    def from_env(cls) -> "DIALModelProvider | None":
-        """Construct a provider from environment variables.
-
-        Reads ``DIAL_API_KEY`` and rejects the documented placeholder
-        value. Host (``DIAL_API_HOST``) and version (``DIAL_API_VERSION``)
-        are honoured by ``__init__`` directly.
-
-        Returns:
-            A configured provider instance, or ``None`` when the API key is
-            missing or set to the placeholder string.
-        """
-        api_key = get_env("DIAL_API_KEY")
-        if not api_key or api_key == "your_dial_api_key_here":
-            return None
-        return cls(api_key=api_key)
-
-    def get_provider_type(self) -> ProviderType:
-        """Get the provider type."""
-        return ProviderType.DIAL
 
     def _get_deployment_client(self, deployment: str):
         """Get or create a cached client for a specific deployment."""

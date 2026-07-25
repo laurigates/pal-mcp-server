@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
+from utils.env import get_env
+
 from .shared import ModelCapabilities, ModelResponse, ProviderType
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,20 @@ logger = logging.getLogger(__name__)
 
 class ModelProvider(ABC):
     """Abstract base class for model backends."""
+
+    # ------------------------------------------------------------------
+    # Declarative provider metadata - the single source of truth.
+    # ------------------------------------------------------------------
+
+    PROVIDER_TYPE: ClassVar[ProviderType]
+    FRIENDLY_NAME: ClassVar[str] = ""
+    DISPLAY_NAME: ClassVar[str | None] = None
+    HELP_SUMMARY: ClassVar[str | None] = None
+    API_KEY_ENV: ClassVar[str | None] = None
+    API_KEY_PLACEHOLDER: ClassVar[str | None] = None
+    REQUIRED_ENV: ClassVar[tuple[str, ...]] = ()
+    OPTIONAL_ENV: ClassVar[tuple[str, ...]] = ()
+    ALLOWED_MODELS_ENV: ClassVar[tuple[str, ...]] = ()
 
     MODEL_CAPABILITIES: dict[str, Any] = {}
     MAX_RETRIES: ClassVar[int] = 4
@@ -26,9 +42,93 @@ class ModelProvider(ABC):
         self.config = kwargs
         self._sorted_capabilities_cache: list[tuple[str, ModelCapabilities]] | None = None
 
-    @abstractmethod
+    # ------------------------------------------------------------------
+    # Metadata accessors - classmethods, no instantiation required.
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def provider_type(cls) -> ProviderType:
+        try:
+            return cls.PROVIDER_TYPE
+        except AttributeError as exc:  # pragma: no cover - programming error
+            raise NotImplementedError(f"{cls.__name__} must declare PROVIDER_TYPE") from exc
+
+    @classmethod
+    def display_label(cls) -> str:
+        return cls.DISPLAY_NAME or cls.FRIENDLY_NAME or cls.__name__
+
+    @classmethod
+    def help_summary(cls) -> str:
+        return cls.HELP_SUMMARY or f"{cls.FRIENDLY_NAME or cls.__name__} models"
+
+    @classmethod
+    def allowed_models_env_vars(cls) -> tuple[str, ...]:
+        if cls.ALLOWED_MODELS_ENV:
+            return cls.ALLOWED_MODELS_ENV
+        return (f"{cls.provider_type().value.upper()}_ALLOWED_MODELS",)
+
+    def _allowed_models_env_vars(self) -> tuple[str, ...]:
+        """Instance-level twin of :meth:`allowed_models_env_vars`.
+
+        Resolves through ``self.get_provider_type()`` so ad-hoc subclasses
+        (notably the test doubles that override the instance method but
+        declare no ``PROVIDER_TYPE``) keep the historical derivation.
+        """
+        declared = type(self).ALLOWED_MODELS_ENV
+        if declared:
+            return declared
+        return (f"{self.get_provider_type().value.upper()}_ALLOWED_MODELS",)
+
+    @classmethod
+    def gating_env_vars(cls) -> tuple[str, ...]:
+        keys: list[str] = []
+        if cls.API_KEY_ENV and cls.API_KEY_ENV not in cls.OPTIONAL_ENV:
+            keys.append(cls.API_KEY_ENV)
+        keys.extend(cls.REQUIRED_ENV)
+        return tuple(dict.fromkeys(keys))
+
+    @classmethod
+    def credential_env_vars(cls) -> tuple[str, ...]:
+        keys: list[str] = []
+        if cls.API_KEY_ENV:
+            keys.append(cls.API_KEY_ENV)
+        keys.extend(cls.REQUIRED_ENV)
+        keys.extend(cls.OPTIONAL_ENV)
+        keys.extend(cls.allowed_models_env_vars())
+        return tuple(dict.fromkeys(keys))
+
+    @classmethod
+    def api_key_from_env(cls) -> str | None:
+        if not cls.API_KEY_ENV:
+            return None
+        value = get_env(cls.API_KEY_ENV)
+        if not value:
+            return None
+        if cls.API_KEY_PLACEHOLDER and value == cls.API_KEY_PLACEHOLDER:
+            return None
+        return value
+
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Env-only 'can this provider activate?' check."""
+        for var in cls.gating_env_vars():
+            value = get_env(var)
+            if not value:
+                return False
+            if var == cls.API_KEY_ENV and cls.API_KEY_PLACEHOLDER and value == cls.API_KEY_PLACEHOLDER:
+                return False
+        return bool(cls.gating_env_vars())
+
+    @classmethod
+    def from_env(cls) -> "ModelProvider | None":
+        api_key = cls.api_key_from_env()
+        if api_key is None:
+            return None
+        return cls(api_key=api_key)
+
     def get_provider_type(self) -> ProviderType:
         """Return the concrete provider identity."""
+        return type(self).provider_type()
 
     def get_capabilities(self, model_name: str) -> ModelCapabilities:
         """Resolve capability metadata for a model name."""

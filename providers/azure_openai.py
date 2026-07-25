@@ -24,7 +24,14 @@ logger = logging.getLogger(__name__)
 class AzureOpenAIProvider(OpenAICompatibleProvider):
     """Thin Azure wrapper that reuses the OpenAI-compatible request pipeline."""
 
+    PROVIDER_TYPE = ProviderType.AZURE
     FRIENDLY_NAME = "Azure OpenAI"
+    HELP_SUMMARY = "Azure-hosted OpenAI deployments"
+    API_KEY_ENV = "AZURE_OPENAI_API_KEY"
+    API_KEY_PLACEHOLDER = "your_azure_openai_key_here"
+    REQUIRED_ENV = ("AZURE_OPENAI_ENDPOINT",)
+    OPTIONAL_ENV = ("AZURE_OPENAI_API_VERSION", "AZURE_MODELS_CONFIG_PATH")
+    ALLOWED_MODELS_ENV = ("AZURE_OPENAI_ALLOWED_MODELS", "AZURE_ALLOWED_MODELS")
     DEFAULT_API_VERSION = "2024-02-15-preview"
 
     MODEL_CAPABILITIES: dict[str, ModelCapabilities] = {}
@@ -42,8 +49,8 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
             A configured provider instance, or ``None`` when configuration
             is incomplete or no Azure models are configured.
         """
-        api_key = get_env("AZURE_OPENAI_API_KEY")
-        if not api_key or api_key == "your_azure_openai_key_here":
+        api_key = cls.api_key_from_env()
+        if api_key is None:
             return None
         azure_endpoint = get_env("AZURE_OPENAI_ENDPOINT")
         if not azure_endpoint:
@@ -105,9 +112,6 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
 
     def get_all_model_capabilities(self) -> dict[str, ModelCapabilities]:
         return dict(self._capabilities)
-
-    def get_provider_type(self) -> ProviderType:
-        return ProviderType.AZURE
 
     def get_capabilities(self, model_name: str) -> ModelCapabilities:  # type: ignore[override]
         lowered = model_name.lower()
@@ -318,13 +322,3 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
             provider=ProviderType.AZURE,
             metadata={**raw_response.metadata, "deployment": deployment_name},
         )
-
-    def _parse_allowed_models(self) -> set[str] | None:  # type: ignore[override]
-        explicit = get_env("AZURE_OPENAI_ALLOWED_MODELS")
-        if explicit:
-            models = {m.strip().lower() for m in explicit.split(",") if m.strip()}
-            if models:
-                logger.info("Configured allowed models for Azure OpenAI: %s", sorted(models))
-                self._allowed_alias_cache = {}
-                return models
-        return super()._parse_allowed_models()
