@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## [10.4.1](https://github.com/laurigates/pal-mcp-server/compare/v10.4.0...v10.4.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* address review — silence false typo warnings, close doc drift ([93f4391](https://github.com/laurigates/pal-mcp-server/commit/93f43918b6b2efee9e842dbf09615aef5a19953a))
+* check allow-list entries by asking the provider, not the manifest ([d4c0127](https://github.com/laurigates/pal-mcp-server/commit/d4c0127152c6620412baf08a5dd30fd438d61f39))
+* **listmodels:** apply CUSTOM_ALLOWED_MODELS to the custom models listing ([62e2b4e](https://github.com/laurigates/pal-mcp-server/commit/62e2b4e974ae4644e0f581150bd44b790d1cf300))
+* **listmodels:** match the call path's alias equivalence, correct a wrong comment ([d98790b](https://github.com/laurigates/pal-mcp-server/commit/d98790b14e68cbd489d3daec1e87867abbd3c639))
+* **opencode-go:** stop sending temperature to kimi-k2.7-code ([3cac724](https://github.com/laurigates/pal-mcp-server/commit/3cac724da512a163a4d27a6ea045e24a8322ad2d))
+* **restrictions:** honour allow-lists for every provider, not a curated five ([6cc5e97](https://github.com/laurigates/pal-mcp-server/commit/6cc5e9795b061319203884a0802867bac9ad7fc1))
+
 ## [10.4.0](https://github.com/laurigates/pal-mcp-server/compare/v10.3.0...v10.4.0) (2026-07-19)
 
 
