@@ -238,9 +238,8 @@ class TestAliasTargetRestrictions:
 
         mock_provider = MagicMock()
         mock_provider.list_models.return_value = ["model1", "model2", "target-model"]
-        # The check asks the provider whether it recognises each entry, so model
-        # that contract rather than letting a bare MagicMock answer truthy to
-        # everything. This assertion (list_models called) does NOT depend on it
+        # The check asks the provider whether it recognises each entry, so stub
+        # that rather than letting a bare MagicMock answer truthy to everything. This assertion (list_models called) does NOT depend on it
         # -- known_models is built unconditionally -- but
         # test_model_restrictions.py::test_validation_against_known_models does,
         # because it asserts on the warning text.

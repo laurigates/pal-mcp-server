@@ -385,13 +385,32 @@ def test_listmodels_custom_section_honours_the_allow_list():
     # get_capabilities("ollama-llama") succeeds under CUSTOM_ALLOWED_MODELS=local-llama.
     assert "`ollama-llama`" in custom_section
 
-    # Pin the Summary count for a restricted custom setup. It reads 2, not 1,
-    # because is_allowed() writes the resolved canonical back into the live
-    # allow-list (utils/model_restrictions.py) while answering -- so enumerating
-    # aliases here grows the set the Summary then counts. That mutation is
-    # pre-existing and load-bearing (removing it fails two other tests), but
-    # this listing is what makes it fire from a read-only path, so pin the
-    # number: a later non-mutating fix must move it deliberately, not silently.
+    # This render disagrees with itself: three bullets above, two below.
+    # Both numbers are pinned so a later reader cannot reconcile them by
+    # "fixing" whichever one they meet first.
+    #
+    # Section = 3: list_aliases() yields the canonical plus both aliases, and
+    # all three genuinely run under this allow-list (alias equivalence).
+    #
+    # Summary = 2: _collect_restricted_display_names enumerates the allow-list
+    # itself rather than intersecting it with what the provider advertises, and
+    # the allow-list has been WIDENED from {local-llama} to
+    # {local-llama, gemma4:e4b} before this section is ever reached --
+    # is_allowed() writes the resolved canonical back into the live set while
+    # answering. Measured: the widening fires in get_available_models() at the
+    # top of execute(), via list_models() -> one-arg is_allowed(), NOT in the
+    # Custom-section loop below. Deleting that loop leaves the count at 2.
+    #
+    # So the mutating read-only path is list_models -> is_allowed, reached by
+    # every caller of get_available_models -- not something this tool
+    # introduced. It is pre-existing and load-bearing (deleting the write
+    # fails test_error_listing_respects_env_restrictions and
+    # test_openrouter_mixed_alias_and_full_names), hence a follow-up rather
+    # than a fix here. Pinned so that follow-up has to move these numbers
+    # deliberately.
+    assert content.count("`gemma4:e4b` →") == 1, content
+    assert content.count("`local-llama` →") == 1, content
+    assert content.count("`ollama-llama` →") == 1, content
     assert "**Total Available Models**: 2" in content, content
 
 
