@@ -375,10 +375,13 @@ def test_listmodels_custom_section_honours_the_allow_list():
             model_restrictions._restriction_service = None
             env_utils.reload_env({})
 
-    # content is the JSON-serialised tool payload, so newlines inside it are
-    # the two characters backslash-n, not "\n". Split on that or the section
-    # boundary is never found and every assertion below sees the whole document.
-    custom_section = content.split("## Custom/Local API")[1].split("\\n## ")[0]
+    # Parse rather than string-match: ListModelsTool returns model_dump_json(),
+    # so matching the raw payload means matching its escaping. str.split on an
+    # absent token returns the whole string silently -- which is how an earlier
+    # version of this test spent four commits "scoped" to the whole document --
+    # and json.loads turns that failure mode into an exception instead.
+    rendered = json.loads(content)["content"]
+    custom_section = rendered.split("## Custom/Local API")[1].split("\n## ")[0]
     assert "**Custom Models (policy restricted)**:" in custom_section
     assert "`local-llama`" in custom_section
     # Sibling aliases resolving to the same canonical model ARE permitted at
@@ -415,7 +418,7 @@ def test_listmodels_custom_section_honours_the_allow_list():
     # place in the file that renders `x` -> `x` for a canonical entry (the
     # roster loop and OpenRouter both suppress a self-arrow), so keying on the
     # arrow would fail this test for a purely cosmetic alignment cleanup.
-    assert custom_section.count("\\n- `") == 3, custom_section
+    assert custom_section.count("\n- `") == 3, custom_section
     for name in ("gemma4:e4b", "local-llama", "ollama-llama"):
         assert f"`{name}`" in custom_section, (name, custom_section)
     assert "**Total Available Models**: 2" in content, content
