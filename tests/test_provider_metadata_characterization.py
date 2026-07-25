@@ -384,73 +384,87 @@ def test_listmodels_custom_section_honours_the_allow_list():
 
 
 # ---------------------------------------------------------------------------
-# ACCEPTS_UNLISTED_MODELS -- providers whose manifest is not exhaustive
+# Allow-list typo check -- ask the provider, do not set-compare the manifest
 # ---------------------------------------------------------------------------
 
 
-def test_catch_all_providers_declare_that_they_accept_unlisted_models():
-    """OpenRouter and Custom serve models their manifests do not list."""
-    accepting = {p.provider_type() for p in REGISTERED_PROVIDER_CLASSES if p.ACCEPTS_UNLISTED_MODELS}
-    assert accepting == {ProviderType.OPENROUTER, ProviderType.CUSTOM}
+def _warnings_for(provider, provider_type, allowed):
+    """Run the startup typo check and return the warnings it emitted.
 
-
-def test_allow_list_typo_check_skips_providers_accepting_unlisted_models():
-    """A valid `vendor/model` allow-list entry must not be called a typo.
-
-    Widening the startup validation loop to every provider made
-    ``validate_against_known_models`` compare OpenRouter's allow-list against
-    its *curated* manifest, while ``_lookup_capabilities`` fabricates
-    capabilities for any name containing "/". Without the skip, a perfectly
-    valid config warns "check for typos" on every startup.
+    ``validate_model_name`` consults the *singleton* restriction service via
+    ``_ensure_model_allowed``, so the service under test has to be the
+    singleton or the allow-list entries would be judged against a different
+    policy than the one being validated.
     """
     import logging
 
     import utils.model_restrictions as model_restrictions
 
+    service = model_restrictions.ModelRestrictionService()
+    service.restrictions = {provider_type: set(allowed)}
+
+    logger = logging.getLogger("utils.model_restrictions")
+    records = []
+    handler = logging.Handler()
+    handler.emit = records.append
+    logger.addHandler(handler)
+    previous = model_restrictions._restriction_service
+    model_restrictions._restriction_service = service
+    try:
+        service.validate_against_known_models({provider_type: provider})
+    finally:
+        model_restrictions._restriction_service = previous
+        logger.removeHandler(handler)
+
+    return [r.getMessage() for r in records if r.levelno >= logging.WARNING]
+
+
+def test_no_typo_warning_for_a_model_openrouter_actually_serves():
+    """`vendor/model` is fabricated by _lookup_capabilities, so it is valid.
+
+    Widening the startup validation loop to every provider would otherwise
+    scold a correct config on every startup.
+    """
     provider = OpenRouterProvider(api_key="test-key")
     assert provider.validate_model_name("vendor/some-model") is True
 
-    service = model_restrictions.ModelRestrictionService()
-    service.restrictions = {ProviderType.OPENROUTER: {"vendor/some-model"}}
-
-    logger = logging.getLogger("utils.model_restrictions")
-    records = []
-    handler = logging.Handler()
-    handler.emit = records.append
-    logger.addHandler(handler)
-    try:
-        service.validate_against_known_models({ProviderType.OPENROUTER: provider})
-    finally:
-        logger.removeHandler(handler)
-
-    warnings = [r for r in records if r.levelno >= logging.WARNING]
-    assert warnings == [], [r.getMessage() for r in warnings]
+    assert _warnings_for(provider, ProviderType.OPENROUTER, {"vendor/some-model"}) == []
 
 
-def test_allow_list_typo_check_still_warns_for_manifest_bound_providers():
-    """The skip must not disable the check where the manifest IS exhaustive."""
-    import logging
+def test_typo_warning_still_fires_for_a_bad_openrouter_alias():
+    """A misspelled curated alias has no "/" and is not fabricated.
 
-    import utils.model_restrictions as model_restrictions
+    Skipping OpenRouter wholesale would give this signal up; asking the
+    provider per entry keeps it.
+    """
+    provider = OpenRouterProvider(api_key="test-key")
+    assert provider.validate_model_name("opuss") is False
 
+    messages = _warnings_for(provider, ProviderType.OPENROUTER, {"opuss"})
+    assert any("opuss" in m and "check for typos" in m for m in messages), messages
+
+
+def test_typo_warning_still_fires_for_manifest_bound_providers():
+    """The manifest is authoritative for OpenAI, so a typo must warn."""
     provider = OpenAIModelProvider(api_key="test-key")
-    assert provider.ACCEPTS_UNLISTED_MODELS is False
-
-    service = model_restrictions.ModelRestrictionService()
-    service.restrictions = {ProviderType.OPENAI: {"gpt-nonexistent-typo"}}
-
-    logger = logging.getLogger("utils.model_restrictions")
-    records = []
-    handler = logging.Handler()
-    handler.emit = records.append
-    logger.addHandler(handler)
-    try:
-        service.validate_against_known_models({ProviderType.OPENAI: provider})
-    finally:
-        logger.removeHandler(handler)
-
-    messages = [r.getMessage() for r in records if r.levelno >= logging.WARNING]
+    messages = _warnings_for(provider, ProviderType.OPENAI, {"gpt-nonexistent-typo"})
     assert any("gpt-nonexistent-typo" in m and "check for typos" in m for m in messages), messages
+
+
+def test_typo_warning_fires_for_a_custom_endpoint_typo():
+    """Custom's manifest IS exhaustive - _lookup_capabilities returns None for
+    anything absent from custom_models.json, so validate_model_name is False
+    and a typo'd CUSTOM_ALLOWED_MODELS must not pass silently.
+
+    Regression guard: an earlier revision exempted Custom from this check on
+    the false premise that it "serves whatever it is pointed at", which would
+    have produced an empty custom listing with nothing in the logs.
+    """
+    provider = CustomProvider(api_key="", base_url="http://localhost:11434/v1")
+    assert provider.validate_model_name("some-arbitrary-model") is False
+
+    messages = _warnings_for(provider, ProviderType.CUSTOM, {"gemma4:e4-b"})
+    assert any("gemma4:e4-b" in m and "check for typos" in m for m in messages), messages
 
 
 def test_custom_base_url_env_is_named_not_positional():

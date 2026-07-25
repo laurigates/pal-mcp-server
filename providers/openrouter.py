@@ -37,9 +37,6 @@ class OpenRouterProvider(OpenAICompatibleProvider):
     API_KEY_ENV = "OPENROUTER_API_KEY"
     API_KEY_PLACEHOLDER = "your_openrouter_api_key_here"
     OPTIONAL_ENV = ("OPENROUTER_REFERER", "OPENROUTER_TITLE", "OPENROUTER_MODELS_CONFIG_PATH")
-    # _lookup_capabilities fabricates capabilities for any name containing "/",
-    # so conf/openrouter_models.json is a curated subset of what OpenRouter serves.
-    ACCEPTS_UNLISTED_MODELS = True
 
     # Custom headers required by OpenRouter
     DEFAULT_HEADERS = {

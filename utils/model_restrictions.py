@@ -119,38 +119,39 @@ class ModelRestrictionService:
             if not provider:
                 continue
 
-            # Providers that serve models beyond their manifest cannot be typo-checked
-            # against it: OpenRouter accepts any "vendor/model" name and a custom
-            # endpoint serves whatever it is pointed at, so an entry absent from
-            # list_models() is legitimate and warning about it is a false positive.
-            if getattr(type(provider), "ACCEPTS_UNLISTED_MODELS", False):
-                logger.debug(
-                    "Skipping allow-list typo check for %s - it accepts models outside its manifest",
-                    provider_type.value,
-                )
-                continue
-
-            # Get all supported models using the clean polymorphic interface
+            # Ask the provider whether it would accept each name, rather than
+            # set-comparing against its manifest. The manifest is authoritative
+            # for most providers, but OpenRouter's `_lookup_capabilities`
+            # fabricates capabilities for any "vendor/model" name, so a valid
+            # entry absent from conf/openrouter_models.json is not a typo.
+            # Asking the provider gets both right, and still catches a typo'd
+            # OpenRouter *alias* ("opuss"), which a provider-wide skip would not.
             try:
-                # Gather canonical models and aliases with consistent formatting
-                all_models = provider.list_models(
-                    respect_restrictions=False,
-                    include_aliases=True,
-                    lowercase=True,
-                    unique=True,
+                known_models = sorted(
+                    provider.list_models(
+                        respect_restrictions=False,
+                        include_aliases=True,
+                        lowercase=True,
+                        unique=True,
+                    )
                 )
-                supported_models = set(all_models)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover - diagnostic aid only
                 logger.debug(f"Could not get model list from {provider_type.value} provider: {e}")
-                supported_models = set()
+                known_models = []
 
-            # Check each allowed model
+            env_var = self._env_var_used.get(provider_type, self.env_vars_for(provider_type)[0])
             for allowed_model in allowed_models:
-                if allowed_model not in supported_models:
+                try:
+                    recognized = provider.validate_model_name(allowed_model)
+                except Exception as e:  # pragma: no cover - never block startup on this check
+                    logger.debug(f"Could not validate '{allowed_model}' against {provider_type.value}: {e}")
+                    continue
+
+                if not recognized:
                     logger.warning(
-                        f"Model '{allowed_model}' in {self._env_var_used.get(provider_type, self.env_vars_for(provider_type)[0])} "
+                        f"Model '{allowed_model}' in {env_var} "
                         f"is not a recognized {provider_type.value} model. "
-                        f"Please check for typos. Known models: {sorted(supported_models)}"
+                        f"Please check for typos. Known models: {known_models}"
                     )
 
     def is_allowed(self, provider_type: ProviderType, model_name: str, original_name: str | None = None) -> bool:
