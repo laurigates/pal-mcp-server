@@ -1,6 +1,7 @@
 """Custom API provider implementation."""
 
 import logging
+from typing import ClassVar
 
 from utils.env import get_env
 
@@ -34,8 +35,14 @@ class CustomProvider(OpenAICompatibleProvider):
     DISPLAY_NAME = "Custom/Local API"
     HELP_SUMMARY = "local models (Ollama, vLLM, etc.)"
     API_KEY_ENV = "CUSTOM_API_KEY"
-    REQUIRED_ENV = ("CUSTOM_API_URL",)
+    #: Named rather than reached as REQUIRED_ENV[0]: consumers need "the base
+    #: URL variable", not "whichever required variable happens to be first".
+    BASE_URL_ENV: ClassVar[str] = "CUSTOM_API_URL"
+    REQUIRED_ENV = (BASE_URL_ENV,)
     OPTIONAL_ENV = ("CUSTOM_API_KEY", "CUSTOM_MODEL_NAME", "CUSTOM_MODELS_CONFIG_PATH")
+    # A custom endpoint serves whatever it is pointed at, so conf/custom_models.json
+    # is a convenience catalogue rather than an exhaustive one.
+    ACCEPTS_UNLISTED_MODELS = True
 
     # Model registry for managing configurations and aliases
     _registry: CustomEndpointModelRegistry | None = None

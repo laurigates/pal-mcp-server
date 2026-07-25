@@ -318,7 +318,7 @@ class ListModelsTool(BaseTool):
         output_lines.append("")
 
         # Check Custom API
-        custom_url_var = CustomProvider.REQUIRED_ENV[0]
+        custom_url_var = CustomProvider.BASE_URL_ENV
         custom_url = get_env(custom_url_var)
 
         output_lines.append(f"## {CustomProvider.display_label()} {'✅' if custom_url else '❌'}")

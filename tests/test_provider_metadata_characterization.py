@@ -381,3 +381,79 @@ def test_listmodels_custom_section_honours_the_allow_list():
     # Sibling aliases of the same endpoint are blocked at call time, so they
     # must not be advertised as available.
     assert "`ollama-llama`" not in custom_section
+
+
+# ---------------------------------------------------------------------------
+# ACCEPTS_UNLISTED_MODELS -- providers whose manifest is not exhaustive
+# ---------------------------------------------------------------------------
+
+
+def test_catch_all_providers_declare_that_they_accept_unlisted_models():
+    """OpenRouter and Custom serve models their manifests do not list."""
+    accepting = {p.provider_type() for p in REGISTERED_PROVIDER_CLASSES if p.ACCEPTS_UNLISTED_MODELS}
+    assert accepting == {ProviderType.OPENROUTER, ProviderType.CUSTOM}
+
+
+def test_allow_list_typo_check_skips_providers_accepting_unlisted_models():
+    """A valid `vendor/model` allow-list entry must not be called a typo.
+
+    Widening the startup validation loop to every provider made
+    ``validate_against_known_models`` compare OpenRouter's allow-list against
+    its *curated* manifest, while ``_lookup_capabilities`` fabricates
+    capabilities for any name containing "/". Without the skip, a perfectly
+    valid config warns "check for typos" on every startup.
+    """
+    import logging
+
+    import utils.model_restrictions as model_restrictions
+
+    provider = OpenRouterProvider(api_key="test-key")
+    assert provider.validate_model_name("vendor/some-model") is True
+
+    service = model_restrictions.ModelRestrictionService()
+    service.restrictions = {ProviderType.OPENROUTER: {"vendor/some-model"}}
+
+    logger = logging.getLogger("utils.model_restrictions")
+    records = []
+    handler = logging.Handler()
+    handler.emit = records.append
+    logger.addHandler(handler)
+    try:
+        service.validate_against_known_models({ProviderType.OPENROUTER: provider})
+    finally:
+        logger.removeHandler(handler)
+
+    warnings = [r for r in records if r.levelno >= logging.WARNING]
+    assert warnings == [], [r.getMessage() for r in warnings]
+
+
+def test_allow_list_typo_check_still_warns_for_manifest_bound_providers():
+    """The skip must not disable the check where the manifest IS exhaustive."""
+    import logging
+
+    import utils.model_restrictions as model_restrictions
+
+    provider = OpenAIModelProvider(api_key="test-key")
+    assert provider.ACCEPTS_UNLISTED_MODELS is False
+
+    service = model_restrictions.ModelRestrictionService()
+    service.restrictions = {ProviderType.OPENAI: {"gpt-nonexistent-typo"}}
+
+    logger = logging.getLogger("utils.model_restrictions")
+    records = []
+    handler = logging.Handler()
+    handler.emit = records.append
+    logger.addHandler(handler)
+    try:
+        service.validate_against_known_models({ProviderType.OPENAI: provider})
+    finally:
+        logger.removeHandler(handler)
+
+    messages = [r.getMessage() for r in records if r.levelno >= logging.WARNING]
+    assert any("gpt-nonexistent-typo" in m and "check for typos" in m for m in messages), messages
+
+
+def test_custom_base_url_env_is_named_not_positional():
+    """Consumers ask for the base-URL variable by name, not by tuple index."""
+    assert CustomProvider.BASE_URL_ENV == "CUSTOM_API_URL"
+    assert CustomProvider.BASE_URL_ENV in CustomProvider.REQUIRED_ENV
