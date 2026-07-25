@@ -375,7 +375,10 @@ def test_listmodels_custom_section_honours_the_allow_list():
             model_restrictions._restriction_service = None
             env_utils.reload_env({})
 
-    custom_section = content.split("## Custom/Local API")[1].split("\n## ")[0]
+    # content is the JSON-serialised tool payload, so newlines inside it are
+    # the two characters backslash-n, not "\n". Split on that or the section
+    # boundary is never found and every assertion below sees the whole document.
+    custom_section = content.split("## Custom/Local API")[1].split("\\n## ")[0]
     assert "**Custom Models (policy restricted)**:" in custom_section
     assert "`local-llama`" in custom_section
     # Sibling aliases resolving to the same canonical model ARE permitted at
@@ -408,9 +411,13 @@ def test_listmodels_custom_section_honours_the_allow_list():
     # test_openrouter_mixed_alias_and_full_names), hence a follow-up rather
     # than a fix here. Pinned so that follow-up has to move these numbers
     # deliberately.
-    assert content.count("`gemma4:e4b` →") == 1, content
-    assert content.count("`local-llama` →") == 1, content
-    assert content.count("`ollama-llama` →") == 1, content
+    # Assert the bullet count, not the arrow: the custom section is the only
+    # place in the file that renders `x` -> `x` for a canonical entry (the
+    # roster loop and OpenRouter both suppress a self-arrow), so keying on the
+    # arrow would fail this test for a purely cosmetic alignment cleanup.
+    assert custom_section.count("\\n- `") == 3, custom_section
+    for name in ("gemma4:e4b", "local-llama", "ollama-llama"):
+        assert f"`{name}`" in custom_section, (name, custom_section)
     assert "**Total Available Models**: 2" in content, content
 
 
