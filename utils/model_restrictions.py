@@ -111,6 +111,16 @@ class ModelRestrictionService:
         This should be called after providers are initialized to warn about
         typos or invalid model names in the restriction lists.
 
+        Note:
+            ``provider.validate_model_name`` routes through
+            ``_ensure_model_allowed``, which consults the *module singleton*
+            restriction service rather than ``self``. In production they are
+            the same object (``server.py`` validates the service it just
+            fetched), so this is correct there -- but a caller holding a
+            locally-constructed service must patch
+            ``utils.model_restrictions._restriction_service`` for the results
+            to mean anything.
+
         Args:
             provider_instances: Dictionary of provider type to provider instance
         """
@@ -126,6 +136,10 @@ class ModelRestrictionService:
             # entry absent from conf/openrouter_models.json is not a typo.
             # Asking the provider gets both right, and still catches a typo'd
             # OpenRouter *alias* ("opuss"), which a provider-wide skip would not.
+            # Built unconditionally rather than only when a warning fires: three
+            # tests pin that validation goes through this alias-aware
+            # polymorphic call, and one capability walk per restricted provider
+            # at startup is not worth loosening that contract for.
             try:
                 known_models = sorted(
                     provider.list_models(
@@ -140,7 +154,11 @@ class ModelRestrictionService:
                 known_models = []
 
             env_var = self._env_var_used.get(provider_type, self.env_vars_for(provider_type)[0])
-            for allowed_model in allowed_models:
+            # sorted() rather than iterating the set directly: is_allowed() can
+            # add to self.restrictions[provider_type] while resolving aliases,
+            # which would be a "Set changed size during iteration" away from a
+            # crash. Also makes warning order deterministic.
+            for allowed_model in sorted(allowed_models):
                 try:
                     recognized = provider.validate_model_name(allowed_model)
                 except Exception as e:  # pragma: no cover - never block startup on this check

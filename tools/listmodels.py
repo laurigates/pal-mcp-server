@@ -343,17 +343,15 @@ class ListModelsTool(BaseTool):
                     # OpenAICompatibleProvider, so a name listed here that the
                     # policy blocks would be advertised and then rejected.
                     #
-                    # Deliberately checks the alias alone rather than passing
-                    # (canonical, alias) as the call path does. is_allowed()
-                    # memoises alias->canonical in _alias_resolution_cache, and
-                    # once any alias of a model is allowed the canonical is
-                    # cached as allowed too -- so the (canonical, alias) form
-                    # returns True for *every* sibling alias once the cache is
-                    # warm, which it always is here because get_available_models()
-                    # above warms it. That would make this listing depend on what
-                    # ran before it. The alias-only check is stable and matches
-                    # what the operator asked for.
-                    if has_restrictions and not restriction_service.is_allowed(ProviderType.CUSTOM, alias):
+                    # Pass (canonical, alias) exactly as the call path does.
+                    # is_allowed() implements alias equivalence: an allow-list
+                    # naming one alias permits every name resolving to the same
+                    # canonical model, so those siblings DO run and belong in
+                    # the listing. Checking the alias alone would hide them and
+                    # under-advertise usable models.
+                    if has_restrictions and not restriction_service.is_allowed(
+                        ProviderType.CUSTOM, config.model_name, alias
+                    ):
                         continue
                     custom_models.append((alias, config))
 

@@ -126,6 +126,12 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
             return super().get_capabilities(canonical)
         return super().get_capabilities(model_name)
 
+    # NOTE: this returns True from the deployment/canonical lookups below
+    # *before* reaching _ensure_model_allowed, so it answers "is this a known
+    # name" rather than "...and is it permitted". That asymmetry with the other
+    # providers is deliberate and load-bearing: the startup allow-list typo
+    # check in utils/model_restrictions.py wants recognition, not policy.
+    # "Fixing" the inconsistency would silently change that check.
     def validate_model_name(self, model_name: str) -> bool:  # type: ignore[override]
         lowered = model_name.lower()
         if lowered in self._deployment_alias_lookup or lowered in self._canonical_lookup:
