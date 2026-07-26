@@ -41,8 +41,10 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          # Keep in step with [tool.uv] required-version, and with the uv base
-          # image in Dockerfile.
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # The annotation below is inert unless the org Renovate config enables a
+          # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.11.x"
           enable-cache: true
