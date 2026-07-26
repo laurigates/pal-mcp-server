@@ -21,15 +21,17 @@ For breaking changes, use any commit type above with `BREAKING CHANGE:` in the c
 - `style: <description>` - Code style/formatting changes
 - `test: <description>` - Test additions/changes
 
-### Docker Build Triggering:
+### Container Builds:
 
-Docker builds are **independent** of versioning and trigger based on:
+`container.yml` follows the org build-once/promote model, so container builds are tied to
+the release cycle rather than to individual PRs:
 
-**Automatic**: When PRs modify relevant files:
-- Python files (`*.py`), `requirements*.txt`, `pyproject.toml`
-- Docker files (`Dockerfile`, `docker-compose.yml`, `.dockerignore`)
+- **Release PR**: the release-please PR builds and pushes `ghcr.io/laurigates/pal-mcp-server:next-<version>`.
+- **Tag push**: the `v<version>` tag promotes that same image to `<version>`, `<major>.<minor>`,
+  and `<major>` — a manifest retag, not a rebuild — then signs it with cosign and scans it with Trivy.
 
-**Manual**: Add the `docker-build` label to force builds for any PR.
+Ordinary PRs do not build a container image. If your change touches `Dockerfile` and you want
+it verified before the release PR, build it locally: `docker build -t pal-mcp-server:test .`
 
 ## Description
 

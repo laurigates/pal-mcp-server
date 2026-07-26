@@ -160,12 +160,32 @@ Releases are automated by **release-please**:
 1. Commit with conventional-commit messages (`feat:` minor, `fix:` patch, `feat!:` / `BREAKING CHANGE:` major).
 2. Push to `main`.
 3. `release-please.yml` opens (or updates) a release PR with the proposed version bump and `CHANGELOG.md` diff.
-4. Review and merge the release PR. release-please tags the release and updates `pyproject.toml`'s version.
+4. Review and merge the release PR. release-please tags the release (`v<version>`) and updates `pyproject.toml`'s version.
 5. `config.__version__` is derived dynamically from `pyproject.toml` via `importlib.metadata` — no manual sync needed.
+6. On release, `release-please.yml`'s `publish-pypi` job builds with `uv build` and publishes to PyPI; the `v<version>` tag push makes `container.yml` promote the container image.
 
 **Don't manually edit**: `CHANGELOG.md`, the `version` field in `pyproject.toml`. release-please owns them.
 
-Authentication uses the **laurigates-release-please GitHub App** (not a PAT): `release-please.yml` mints a token via `actions/create-github-app-token` from the `RELEASE_PLEASE_APP_ID` variable + `RELEASE_PLEASE_PRIVATE_KEY` secret, both pushed by `gitops` to repos flagged `release_please = true`.
+Authentication uses the **laurigates-release-please GitHub App** (not a PAT). `release-please.yml` is a thin caller for `laurigates/.github/.github/workflows/reusable-release-please.yml@main`, which mints the token via `actions/create-github-app-token`. The caller passes the `RELEASE_PLEASE_APP_ID` variable as the workflow's `app-id` input and the `RELEASE_PLEASE_PRIVATE_KEY` secret as `APP_PRIVATE_KEY` — both pushed by `gitops` to repos flagged `release_please = true`.
+
+## Continuous Integration
+
+Every workflow with an org-wide equivalent is a thin caller for `laurigates/.github` (`@main`):
+
+| Workflow | Reusable workflow called |
+|---|---|
+| `claude.yml` / `claude-code-review.yml` | `reusable-claude.yml` / `reusable-claude-review.yml` |
+| `release-please.yml` | `reusable-release-please.yml` (+ a local `publish-pypi` job) |
+| `container.yml` | `reusable-container-build.yml` / `reusable-container-release.yml` |
+| `security.yml` | `reusable-security-owasp.yml` / `reusable-security-secrets.yml` |
+| `quality.yml` | `reusable-quality-code-smell.yml` |
+| `enforce-conventional-commits.yml` | `reusable-enforce-conventional-commits.yml` |
+| `renovate.yml` | `reusable-renovate.yml` |
+| `clear-autorelease-labels.yml` | `reusable-clear-autorelease-labels.yml` |
+
+`test.yml` is the deliberate exception — there is no Python/uv reusable workflow upstream, so the pytest matrix and ruff lint jobs stay inline here.
+
+Callers declare `permissions:` explicitly because the repo's default workflow permissions are read-only, and the reusable workflows' declared scopes are capped by the caller's.
 
 ## Troubleshooting
 
