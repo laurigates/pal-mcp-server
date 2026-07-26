@@ -75,7 +75,14 @@ echo ""
 # already and you will stage it; the case worth catching is the other one.
 if git rev-parse --git-dir >/dev/null 2>&1; then
     dirty_after="$(git diff --name-only HEAD 2>/dev/null || true)"
-    rewritten="$(comm -13 <(sort <<<"$dirty_before") <(sort <<<"$dirty_after"))"
+    # LC_ALL=C so `sort` and `comm` cannot disagree about collation — GNU honours
+    # LC_COLLATE in both, but this script is the documented local gate on macOS
+    # too, and these are filenames whose order is arbitrary anyway. `|| true`
+    # because an advisory warning must never fail the gate after every check has
+    # already passed.
+    rewritten="$(LC_ALL=C comm -13 \
+        <(LC_ALL=C sort <<<"$dirty_before") \
+        <(LC_ALL=C sort <<<"$dirty_after") || true)"
     if [[ -n "${rewritten//[[:space:]]/}" ]]; then
         echo "⚠️  ruff rewrote files you had not modified — stage them too:"
         sed 's/^/     /' <<<"$rewritten"
