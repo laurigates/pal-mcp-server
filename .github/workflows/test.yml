@@ -28,7 +28,9 @@ jobs:
         with:
           # Pinned: uv lock --check is load-bearing, and a uv that bumps
           # the lockfile revision would redden every open PR at once.
-          # Keep in step with [tool.uv] required-version in pyproject.toml.
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.11.x"
           enable-cache: true
 
@@ -54,7 +56,9 @@ jobs:
         with:
           # Pinned: uv lock --check is load-bearing, and a uv that bumps
           # the lockfile revision would redden every open PR at once.
-          # Keep in step with [tool.uv] required-version in pyproject.toml.
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.11.x"
           enable-cache: true
 

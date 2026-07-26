@@ -248,7 +248,9 @@ which python                              # check which interpreter MCP is using
 
 ## Environment Requirements
 
-- **uv** ≥ 0.8, < 0.12 (managed dependencies + venv) — enforced by `[tool.uv] required-version`. CI pins the same range via `version:` on `setup-uv`; bump the two together. The floor is the oldest uv that reads this lockfile's `revision = 3`, and the ceiling exists because `uv lock --check` in CI fails the moment a newer uv rewrites that revision.
+- **uv** ≥ 0.8.17, < 0.12 (managed dependencies + venv) — enforced by `[tool.uv] required-version`, which uv applies to every project command including `uv sync --frozen`. The ceiling exists because `uv lock --check` in CI fails the moment a newer uv rewrites the lockfile's `revision`; the floor is the version verified to read `revision = 3`.
+
+  **Three places pin uv and must be bumped together**: `[tool.uv] required-version`, `version:` on `setup-uv` in the workflows, and the uv base image in `Dockerfile`. Renovate tracks the Dockerfile pin natively; the `setup-uv` inputs carry `# renovate:` annotations, which only produce PRs if the org Renovate config enables a matching `customManager` — otherwise treat those two as a manual bump.
 - **Python ≥ 3.10** (transitively required by `mcp`; pinned via `.python-version`)
 - **`.env`** with provider API keys (created by `./run-server.sh` on first run)
 - **Optional**: Ollama for free integration tests

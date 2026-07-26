@@ -50,10 +50,17 @@ py-modules = ["server", "config"]
 [tool.uv]
 # CI asserts `uv lock --check`, so a uv that rewrites the lockfile revision
 # turns every open PR red at once. This bound makes that fail locally, with a
-# clear message, instead of producing a lock CI will reject. The floor is the
-# oldest uv that reads this lockfile's `revision = 3`; keep the ceiling in step
-# with the `version:` pinned on setup-uv in .github/workflows/.
-required-version = ">=0.8,<0.12"
+# clear message, instead of producing a lock CI will reject. uv enforces it on
+# every project command, `uv sync --frozen` included.
+#
+# Three places pin uv and must move together:
+#   1. this bound
+#   2. `version:` on setup-uv in .github/workflows/ (test, release-lock, release-please)
+#   3. the uv base image in Dockerfile
+#
+# The floor is 0.8.17 because that is the version verified to read this
+# lockfile's `revision = 3`, not the first one that does.
+required-version = ">=0.8.17,<0.12"
 
 [tool.ruff]
 target-version = "py310"

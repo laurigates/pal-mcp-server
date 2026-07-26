@@ -1,7 +1,18 @@
 # ===========================================
 # STAGE 1: Build dependencies with uv
 # ===========================================
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+# Pinned to the uv this unversioned tag already resolves to. Astral stopped
+# publishing bookworm-slim variants after 0.9 — `0.10-`/`0.11-python3.12-bookworm-slim`
+# do not exist — so `:python3.12-bookworm-slim` is frozen at 0.9.30 (built
+# 2026-02-04) rather than tracking latest. Stating that explicitly keeps
+# `[tool.uv] required-version` in pyproject.toml honest: the container's uv is
+# a third place that bound applies to, via `uv sync --frozen` below.
+#
+# This variant is no longer maintained. Migrating to the trixie-slim line
+# (`0.11-python3.12-trixie-slim`) is the real fix and would align the container
+# with CI's uv, but container.yml only builds on the release PR and tag push, so
+# it cannot be verified here. Tracked separately.
+FROM ghcr.io/astral-sh/uv:0.9.30-python3.12-bookworm-slim AS builder
 
 # Configure uv for reproducible, container-friendly installs:
 # - link mode "copy" works on every filesystem (cache mounts are scoped)
