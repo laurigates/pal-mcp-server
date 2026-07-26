@@ -196,9 +196,14 @@ Callers declare `permissions:` explicitly because the repo's default workflow pe
 
 ### Lockfile drift or stale env
 ```bash
-uv sync --group dev --reinstall          # recreate the venv from uv.lock
-uv lock --upgrade                         # update lockfile to newest allowed versions
+uv lock                                   # fix a red "Verify lockfile is current"
+uv sync --group dev --reinstall           # recreate the venv from uv.lock
+uv lock --upgrade                         # deliberate dependency refresh — NOT a drift fix
 ```
+
+`uv lock` does a minimal update and is the same command `release-lock.yml` runs, so it produces the one-line diff CI is asking for. Reach for `--upgrade` only when you actually want every dependency re-resolved to the newest allowed version — using it to clear drift buries a one-line fix in a lockfile-wide diff.
+
+Note that `uv sync` silently re-locks when the lockfile is stale, so it repairs drift in your working tree without saying so. That is why `code_quality_checks.sh` runs `uv lock --check` *before* syncing: otherwise the script would fix the problem locally, report success, and leave you to commit everything except the fix.
 
 ### Lint or format issues
 ```bash

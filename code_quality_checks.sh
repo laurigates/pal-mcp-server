@@ -14,6 +14,21 @@ if ! command -v uv &> /dev/null; then
     exit 1
 fi
 
+# Must come before the sync: `uv sync` re-locks when the lockfile is stale, so
+# running it first would repair the drift in your working tree and leave this
+# check passing on a fix you never staged. CI has no such sync — it runs
+# `uv lock --check` against what you committed and fails.
+echo "🔒 Step 0: Lockfile is current (uv lock --check)"
+echo "------------------------------------------------"
+if ! uv lock --check; then
+    echo ""
+    echo "❌ uv.lock is out of date. Run 'uv lock' and commit the result."
+    echo "   (Use 'uv lock --upgrade' only for a deliberate dependency refresh —"
+    echo "    it re-resolves everything, not just the drift.)"
+    exit 1
+fi
+echo ""
+
 echo "📦 Syncing dependencies..."
 uv sync --group dev --quiet
 echo ""
@@ -45,6 +60,7 @@ echo ""
 
 echo "🎉 All Code Quality Checks Passed!"
 echo "=================================="
+echo "✅ Lockfile current (uv lock --check)"
 echo "✅ Lint (ruff)"
 echo "✅ Format (ruff format)"
 echo "✅ Type check (ty)"
