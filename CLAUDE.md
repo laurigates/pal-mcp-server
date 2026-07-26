@@ -183,7 +183,10 @@ Every workflow with an org-wide equivalent is a thin caller for `laurigates/.git
 | `renovate.yml` | `reusable-renovate.yml` |
 | `clear-autorelease-labels.yml` | `reusable-clear-autorelease-labels.yml` |
 
-`test.yml` is the deliberate exception — there is no Python/uv reusable workflow upstream, so the pytest matrix and ruff lint jobs stay inline here.
+Two workflows stay inline because nothing upstream covers them:
+
+- **`test.yml`** — there is no Python/uv reusable workflow, so the pytest matrix and ruff lint jobs live here. Its `lint` job also runs `uv lock --check`.
+- **`release-lock.yml`** — release-please bumps `pyproject.toml`'s version without relocking, and `uv.lock` records that version, so every release PR would otherwise fail `uv lock --check`. This workflow runs `uv lock` on the release PR and commits the result using the release App token (a `GITHUB_TOKEN` push would not re-trigger the failed check).
 
 Callers declare `permissions:` explicitly because the repo's default workflow permissions are read-only, and the reusable workflows' declared scopes are capped by the caller's.
 

@@ -41,9 +41,13 @@ jobs:
         with:
           enable-cache: true
 
-      # release-please bumps pyproject.toml's version but never touches
-      # uv.lock, and `uv sync` silently re-resolves instead of complaining, so
-      # the drift is invisible without an explicit assertion.
+      # `uv sync` silently re-resolves instead of complaining, and the
+      # Dockerfile's `--frozen` means "don't update the lock" rather than
+      # "assert it is current", so drift is invisible without this.
+      #
+      # No release-please exception on purpose: release-lock.yml relocks that
+      # PR in place. This step can go red once on the release PR's first run,
+      # before the relock push lands — the rerun that push triggers is green.
       - name: Verify lockfile is current
         run: uv lock --check
 
