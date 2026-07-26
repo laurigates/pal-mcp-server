@@ -14,7 +14,13 @@ echo ""
 # No venv activation: the toolchain is uv-managed, so `uv run` resolves against
 # .venv itself. The previous version sourced .pal_venv/bin/activate and exited 1
 # when it was missing — which is every current checkout, since run-server.sh
-# stopped creating .pal_venv.
+# stopped creating .pal_venv. Every interpreter invocation below therefore has to
+# go through `uv run`; a bare `python` would be the system one, or missing
+# entirely on a distro that ships only python3.
+#
+# --locked on those calls because `uv run` performs an implicit sync, and that
+# sync re-locks a stale lockfile — the thing code_quality_checks.sh and
+# run-server.sh both refuse to do silently.
 if ! command -v uv &> /dev/null; then
     echo "❌ uv not found. Install: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
@@ -68,7 +74,7 @@ echo "🏃 Running integration tests..."
 echo "------------------------------"
 
 # Run only integration tests (marked with @pytest.mark.integration)
-uv run --group dev pytest tests/ -v -m "integration" --tb=short
+uv run --locked --group dev pytest tests/ -v -m "integration" --tb=short
 
 echo ""
 echo "✅ Integration tests completed!"
@@ -78,7 +84,7 @@ echo ""
 if [[ "$1" == "--with-simulator" ]]; then
     echo "🤖 Running simulator tests..."
     echo "----------------------------"
-    python communication_simulator_test.py --verbose
+    uv run --locked python communication_simulator_test.py --verbose
     echo ""
     echo "✅ Simulator tests completed!"
 fi
