@@ -2,6 +2,7 @@ name: Security
 
 on:
   pull_request:
+    branches: [main]
     types: [opened, synchronize, reopened]
 
 # Each push to a PR supersedes the previous scan; don't pay for reviews of

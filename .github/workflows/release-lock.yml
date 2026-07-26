@@ -61,6 +61,10 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
+          # Pinned: uv lock --check is load-bearing, and a uv that bumps
+          # the lockfile revision would redden every open PR at once.
+          # Keep in step with [tool.uv] required-version in pyproject.toml.
+          version: "0.11.x"
           enable-cache: true
 
       - name: Relock

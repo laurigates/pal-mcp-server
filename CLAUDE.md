@@ -248,7 +248,7 @@ which python                              # check which interpreter MCP is using
 
 ## Environment Requirements
 
-- **uv** ≥ 0.5 (managed dependencies + venv)
+- **uv** ≥ 0.8, < 0.12 (managed dependencies + venv) — enforced by `[tool.uv] required-version`. CI pins the same range via `version:` on `setup-uv`; bump the two together. The floor is the oldest uv that reads this lockfile's `revision = 3`, and the ceiling exists because `uv lock --check` in CI fails the moment a newer uv rewrites that revision.
 - **Python ≥ 3.10** (transitively required by `mcp`; pinned via `.python-version`)
 - **`.env`** with provider API keys (created by `./run-server.sh` on first run)
 - **Optional**: Ollama for free integration tests
