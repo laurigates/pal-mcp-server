@@ -12,6 +12,17 @@ on:
   push:
     tags: ['v*.*.*']
 
+# The release PR gets two pushes — release-please's, then release-lock.yml's
+# relock — and both would build the same :next-<version> tag. Without this the
+# two runs race, and the one that *finishes* last wins, which is not
+# necessarily the one built from the newer tree. A stale winner then fails the
+# release job's build-context freshness check and forces a full rebuild,
+# silently losing the promote path. A tag push has its own github.ref, so the
+# release job is never a cancellation candidate.
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
 # Explicit grant so the reusable workflows get the token scopes they declare
 # even when the repo's default workflow permissions are read-only.
 permissions:

@@ -47,7 +47,9 @@ jobs:
       #
       # No release-please exception on purpose: release-lock.yml relocks that
       # PR in place. This step can go red once on the release PR's first run,
-      # before the relock push lands — the rerun that push triggers is green.
+      # before the relock push lands. That red does not linger — checks are
+      # evaluated against the head SHA, so once the relock lands the PR shows
+      # only the new green run, and the failed one stays in the Actions tab.
       - name: Verify lockfile is current
         run: uv lock --check
 

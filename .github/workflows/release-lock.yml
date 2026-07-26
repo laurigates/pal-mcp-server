@@ -8,19 +8,33 @@ name: "Release: refresh uv.lock"
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
     branches: [main]
 
+# release-please force-pushes its branch whenever a new commit lands on main.
+# Two pushes in quick succession would otherwise leave the older run pushing a
+# commit built on a SHA that no longer exists on the branch — rejected as a
+# non-fast-forward, reddening this check even though the newer run did the
+# right thing.
+concurrency:
+  group: release-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+# The App token below does both the checkout and the push, so GITHUB_TOKEN
+# needs nothing beyond read. This is the one workflow holding the release App's
+# private key — worth being tight here.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   relock:
-    # Only release-please's own PRs, and only from this repo — a fork PR gets a
-    # read-only token and could not push anyway.
+    # The exact branch release-please cuts, matching container.yml's guard —
+    # not a `release-please--` prefix, which any pushable branch could claim.
+    # Same-repo check because a fork PR gets a read-only token and could not
+    # push anyway.
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      startsWith(github.head_ref, 'release-please--')
+      github.head_ref == 'release-please--branches--main'
     runs-on: ubuntu-latest
     steps:
       # The App token, not GITHUB_TOKEN: a GITHUB_TOKEN push does not re-trigger
@@ -34,10 +48,15 @@ jobs:
           app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
 
+      # persist-credentials: false keeps the token out of .git/config, where it
+      # would otherwise be readable by the build backends `uv lock` runs to
+      # build sdists for any dependency shipping no wheel. The push below
+      # supplies it explicitly instead.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -50,6 +69,14 @@ jobs:
       # No-op once the lock is current, so the synchronize event this push
       # triggers does not start another round.
       - name: Commit if the lock moved
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+          # Via env rather than inline: a branch name is attacker-controllable
+          # in the general case, and interpolating one straight into a shell
+          # script is a command-injection shape even when a guard above pins it
+          # to a literal.
+          BRANCH: ${{ github.head_ref }}
+          REPO: ${{ github.repository }}
         run: |
           if git diff --quiet -- uv.lock; then
             echo "uv.lock already current."
@@ -59,4 +86,4 @@ jobs:
           git config user.email "laurigates-release-please[bot]@users.noreply.github.com"
           git add uv.lock
           git commit -m "chore: refresh uv.lock for the version bump"
-          git push
+          git push "https://x-access-token:${TOKEN}@github.com/${REPO}.git" "HEAD:${BRANCH}"
