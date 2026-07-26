@@ -4,6 +4,15 @@ on:
   pull_request:
     branches: [main]
 
+# Mostly to stop a force-push (or the relock commit on a release PR) leaving a
+# second copy of the 3-way matrix running against code that has been replaced.
+# It does not suppress the transient red described on the lockfile check below:
+# lint reaches that step well inside the minute the relock takes, so the failure
+# has usually already happened by the time cancellation lands.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest

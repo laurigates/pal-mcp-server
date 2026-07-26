@@ -38,10 +38,14 @@ jobs:
     # check keeps a fork that happens to use the same branch name from starting
     # a build that can only fail — fork PRs get a read-only GITHUB_TOKEN, so the
     # push is rejected regardless of the permissions block above.
+    # Exact match, not a prefix: release-please-config.json has one unnamed
+    # root package, so the branch name is fixed. startsWith would also match a
+    # --components-- suffixed branch that release-lock.yml would not relock,
+    # leaving lint red on that PR with no automated way out.
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      startsWith(github.head_ref, 'release-please--branches--main')
+      github.head_ref == 'release-please--branches--main'
     uses: laurigates/.github/.github/workflows/reusable-container-build.yml@main
     with:
       image-name: laurigates/pal-mcp-server

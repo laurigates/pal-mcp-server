@@ -188,6 +188,8 @@ Two workflows stay inline because nothing upstream covers them:
 - **`test.yml`** — there is no Python/uv reusable workflow, so the pytest matrix and ruff lint jobs live here. Its `lint` job also runs `uv lock --check`.
 - **`release-lock.yml`** — release-please bumps `pyproject.toml`'s version without relocking, and `uv.lock` records that version, so every release PR would otherwise fail `uv lock --check`. This workflow runs `uv lock` on the release PR and commits the result using the release App token (a `GITHUB_TOKEN` push would not re-trigger the failed check).
 
+**When merging a release PR, wait for `Container` to go green.** The relock commit supersedes the first container build, and the replacement starts from a cold cache. Merging before it finishes means `:next-<version>` never gets pushed, so the tag-push release job finds nothing to promote and falls back to a full rebuild — a slower release, still green, easy to miss.
+
 Callers declare `permissions:` explicitly because the repo's default workflow permissions are read-only, and the reusable workflows' declared scopes are capped by the caller's.
 
 ## Troubleshooting
