@@ -28,7 +28,7 @@ uv sync --group dev
 
 `uv sync` creates `.venv/` and installs the project plus dev dependencies from `uv.lock`. No `source .venv/bin/activate` needed — prefix commands with `uv run` and uv resolves them against the locked environment.
 
-> The MCP server bootstrap (`./run-server.sh`) still maintains its own `.pal_venv/` because it has to provision an environment on machines that may not have uv. Day-to-day development uses `.venv/` via uv.
+> The MCP server bootstrap (`./run-server.sh`) uses the same uv-managed `.venv/` as day-to-day development. It requires uv on PATH and exits if it is missing, rather than provisioning its own environment. (The stale `.pal_venv` entries in ruff's `extend-exclude` and `.pre-commit-config.yaml` are harmless leftovers.)
 
 ## Code Quality
 
@@ -38,7 +38,9 @@ uv sync --group dev
 ./code_quality_checks.sh
 ```
 
-Runs (in order): `uv sync --group dev`, `ruff check --fix`, `ruff format`, `ruff check` (verify), `ty check`, `pytest -m "not integration"`. Must pass 100% before commit.
+Runs (in order): `uv lock --check`, `uv sync --group dev`, `ruff check --fix`, `ruff format`, `ruff check` (verify), `ty check`, `pytest -m "not integration"`. Must pass 100% before commit.
+
+The lockfile check is deliberately first: `uv sync` re-locks silently when the lockfile is stale, so running it earlier would repair the drift in your working tree and leave the check passing on a fix you never staged.
 
 ### Individual checks
 
@@ -114,7 +116,7 @@ uv run python communication_simulator_test.py --individual memory_validation --v
 ./run-server.sh -f      # follow logs
 ```
 
-`run-server.sh` handles cross-platform Python install, `.pal_venv` provisioning, `.env` creation, and MCP client registration. It already prefers `uv venv` when uv is on PATH.
+`run-server.sh` handles the Python install, dependency sync into `.venv/`, `.env` creation, and MCP client registration. It requires uv and syncs with `--frozen`, so it installs exactly what `uv.lock` records rather than re-locking a fresh clone.
 
 ### Logs
 
@@ -137,9 +139,10 @@ matches = LogUtils.search_logs_for_pattern("TOOL_CALL.*debug")
 ## Development Workflow
 
 ### Before changes
-1. `uv sync --group dev` (ensure lockfile-current environment)
-2. `./code_quality_checks.sh` (baseline)
-3. `tail -n 50 logs/mcp_server.log` (server health)
+1. `./code_quality_checks.sh` (baseline — syncs the environment itself)
+2. `tail -n 50 logs/mcp_server.log` (server health)
+
+Don't run `uv sync` first. It re-locks silently, which defeats the script's lockfile check — the script syncs for you, after that check.
 
 ### After changes
 1. `./code_quality_checks.sh`

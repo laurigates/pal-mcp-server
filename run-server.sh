@@ -179,7 +179,10 @@ check_api_keys() {
 sync_dependencies() {
     print_info "Syncing dependencies with uv..."
     # Runtime sync only — dev tools live in [dependency-groups.dev].
-    if ! uv sync; then
+    # --frozen installs exactly what uv.lock records. A bare `uv sync` would
+    # silently re-lock, which is the last thing a bootstrap should do to a
+    # fresh clone behind the user's back.
+    if ! uv sync --frozen; then
         print_error "uv sync failed"
         return 1
     fi

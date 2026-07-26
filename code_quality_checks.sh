@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # PAL MCP Server - Code Quality Checks
-# Runs lint, format, type-check, and unit tests via uv.
+# Runs the lockfile check, lint, format, type-check, and unit tests via uv.
 # ALL checks must pass 100% for CI to succeed.
+# The lockfile check runs FIRST, before the sync — see the comment at that step.
 
 set -euo pipefail
 
@@ -26,6 +27,12 @@ if ! uv lock --check; then
     echo "   (Use 'uv lock --upgrade' only for a deliberate dependency refresh —"
     echo "    it re-resolves everything, not just the drift.)"
     exit 1
+fi
+# The check above compares your working tree; CI compares what you committed.
+# Those diverge exactly when uv.lock is modified-but-unstaged, so say so rather
+# than let "Ready for commit" overstate what was verified.
+if ! git diff --quiet HEAD -- uv.lock 2>/dev/null; then
+    echo "⚠️  uv.lock differs from HEAD — make sure it is in your commit."
 fi
 echo ""
 
