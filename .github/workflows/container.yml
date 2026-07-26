@@ -1,0 +1,66 @@
+name: Container
+
+# Build-once / promote, per the org convention:
+#   release-please PR → build and push ghcr.io/…:next-<version>
+#   v<version> tag    → promote that manifest to <version>, <major>.<minor>, <major>
+# The release job falls back to a full rebuild if the pre-release image is
+# missing or its build context has drifted.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    tags: ['v*.*.*']
+
+# The release PR gets two pushes — release-please's, then release-lock.yml's
+# relock — and both would build the same :next-<version> tag. Without this the
+# two runs race, and the one that *finishes* last wins, which is not
+# necessarily the one built from the newer tree. A stale winner then fails the
+# release job's build-context freshness check and forces a full rebuild,
+# silently losing the promote path. A tag push has its own github.ref, so the
+# release job is never a cancellation candidate.
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
+# Explicit grant so the reusable workflows get the token scopes they declare
+# even when the repo's default workflow permissions are read-only.
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  actions: read
+
+jobs:
+  build:
+    # Only release-please PRs carry the bumped version that names the
+    # pre-release image, so only those are worth pre-building. The same-repo
+    # check keeps a fork that happens to use the same branch name from starting
+    # a build that can only fail — fork PRs get a read-only GITHUB_TOKEN, so the
+    # push is rejected regardless of the permissions block above.
+    # Exact match, not a prefix: release-please-config.json has one unnamed
+    # root package, so the branch name is fixed. startsWith would also match a
+    # --components-- suffixed branch that release-lock.yml would not relock,
+    # leaving lint red on that PR with no automated way out.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'release-please--branches--main'
+    uses: laurigates/.github/.github/workflows/reusable-container-build.yml@main
+    with:
+      image-name: laurigates/pal-mcp-server
+      platforms: linux/amd64,linux/arm64
+      cache-scope: pal-mcp-server
+      # The reusable default reads package.json; this project's version lives in
+      # pyproject.toml, which release-please bumps on the release PR.
+      version-command: >-
+        python3 -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])"
+
+  release:
+    if: github.event_name == 'push'
+    uses: laurigates/.github/.github/workflows/reusable-container-release.yml@main
+    with:
+      image-name: laurigates/pal-mcp-server
+      tag-prefix: v
+      platforms: linux/amd64,linux/arm64
+      cache-scope: pal-mcp-server

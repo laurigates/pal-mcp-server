@@ -28,7 +28,11 @@ uv sync --group dev
 
 `uv sync` creates `.venv/` and installs the project plus dev dependencies from `uv.lock`. No `source .venv/bin/activate` needed — prefix commands with `uv run` and uv resolves them against the locked environment.
 
-> The MCP server bootstrap (`./run-server.sh`) still maintains its own `.pal_venv/` because it has to provision an environment on machines that may not have uv. Day-to-day development uses `.venv/` via uv.
+Running `uv sync` directly is safe on a fresh clone, where the lockfile is current by definition. Once you are changing dependencies, let `./code_quality_checks.sh` do the syncing — it checks the lockfile *before* syncing, and a bare `uv sync` would quietly repair any drift first. See [Before changes](#before-changes).
+
+> The MCP server bootstrap (`./run-server.sh`) uses the same uv-managed `.venv/` as day-to-day development. It requires uv on PATH and exits if it is missing, rather than provisioning its own environment.
+>
+> **`.pal_venv` cleanup is outstanding.** Around nineteen files still reference the retired `.pal_venv/`, and not all of them are inert: the `pal-mcp-server` wrapper, the example MCP client configs (`claude_config_example.json`, `examples/*.json`), the setup docs, and both PowerShell scripts still point at a directory nothing creates any more. The PowerShell pair also still runs the retired pip/black/isort stack, so a Windows contributor's local gate checks less than CI does. Treat any `.pal_venv` path you meet as suspect.
 
 ## Code Quality
 
@@ -38,7 +42,9 @@ uv sync --group dev
 ./code_quality_checks.sh
 ```
 
-Runs (in order): `uv sync --group dev`, `ruff check --fix`, `ruff format`, `ruff check` (verify), `ty check`, `pytest -m "not integration"`. Must pass 100% before commit.
+Runs (in order): `uv lock --check`, `uv sync --group dev`, `ruff check --fix`, `ruff format`, `ruff check` (verify), `ty check`, `pytest -m "not integration"`. Must pass 100% before commit.
+
+The lockfile check is deliberately first: `uv sync` re-locks silently when the lockfile is stale, so running it earlier would repair the drift in your working tree and leave the check passing on a fix you never staged.
 
 ### Individual checks
 
@@ -114,7 +120,7 @@ uv run python communication_simulator_test.py --individual memory_validation --v
 ./run-server.sh -f      # follow logs
 ```
 
-`run-server.sh` handles cross-platform Python install, `.pal_venv` provisioning, `.env` creation, and MCP client registration. It already prefers `uv venv` when uv is on PATH.
+`run-server.sh` handles the Python install, dependency sync into `.venv/`, `.env` creation, and MCP client registration. It requires uv and syncs with `--locked`, so it installs exactly what `uv.lock` records and errors out if the lockfile is stale rather than either re-locking your checkout or silently building an environment that is missing a dependency you just added.
 
 ### Logs
 
@@ -137,9 +143,10 @@ matches = LogUtils.search_logs_for_pattern("TOOL_CALL.*debug")
 ## Development Workflow
 
 ### Before changes
-1. `uv sync --group dev` (ensure lockfile-current environment)
-2. `./code_quality_checks.sh` (baseline)
-3. `tail -n 50 logs/mcp_server.log` (server health)
+1. `./code_quality_checks.sh` (baseline — syncs the environment itself)
+2. `tail -n 50 logs/mcp_server.log` (server health)
+
+Don't run `uv sync` first. It re-locks silently, which defeats the script's lockfile check — the script syncs for you, after that check.
 
 ### After changes
 1. `./code_quality_checks.sh`
@@ -160,20 +167,50 @@ Releases are automated by **release-please**:
 1. Commit with conventional-commit messages (`feat:` minor, `fix:` patch, `feat!:` / `BREAKING CHANGE:` major).
 2. Push to `main`.
 3. `release-please.yml` opens (or updates) a release PR with the proposed version bump and `CHANGELOG.md` diff.
-4. Review and merge the release PR. release-please tags the release and updates `pyproject.toml`'s version.
+4. Review and merge the release PR. release-please tags the release (`v<version>`) and updates `pyproject.toml`'s version.
 5. `config.__version__` is derived dynamically from `pyproject.toml` via `importlib.metadata` — no manual sync needed.
+6. On release, `release-please.yml`'s `publish-pypi` job builds with `uv build` and publishes to PyPI; the `v<version>` tag push makes `container.yml` promote the container image.
 
 **Don't manually edit**: `CHANGELOG.md`, the `version` field in `pyproject.toml`. release-please owns them.
 
-Authentication uses the **laurigates-release-please GitHub App** (not a PAT): `release-please.yml` mints a token via `actions/create-github-app-token` from the `RELEASE_PLEASE_APP_ID` variable + `RELEASE_PLEASE_PRIVATE_KEY` secret, both pushed by `gitops` to repos flagged `release_please = true`.
+Authentication uses the **laurigates-release-please GitHub App** (not a PAT). `release-please.yml` is a thin caller for `laurigates/.github/.github/workflows/reusable-release-please.yml@main`, which mints the token via `actions/create-github-app-token`. The caller passes the `RELEASE_PLEASE_APP_ID` variable as the workflow's `app-id` input and the `RELEASE_PLEASE_PRIVATE_KEY` secret as `APP_PRIVATE_KEY` — both pushed by `gitops` to repos flagged `release_please = true`.
+
+## Continuous Integration
+
+Every workflow with an org-wide equivalent is a thin caller for `laurigates/.github` (`@main`):
+
+| Workflow | Reusable workflow called |
+|---|---|
+| `claude.yml` / `claude-code-review.yml` | `reusable-claude.yml` / `reusable-claude-review.yml` |
+| `release-please.yml` | `reusable-release-please.yml` (+ a local `publish-pypi` job) |
+| `container.yml` | `reusable-container-build.yml` / `reusable-container-release.yml` |
+| `security.yml` | `reusable-security-owasp.yml` / `reusable-security-secrets.yml` |
+| `quality.yml` | `reusable-quality-code-smell.yml` |
+| `enforce-conventional-commits.yml` | `reusable-enforce-conventional-commits.yml` |
+| `renovate.yml` | `reusable-renovate.yml` |
+| `clear-autorelease-labels.yml` | `reusable-clear-autorelease-labels.yml` |
+
+Two workflows stay inline because nothing upstream covers them:
+
+- **`test.yml`** — there is no Python/uv reusable workflow, so the pytest matrix and ruff lint jobs live here. Its `lint` job also runs `uv lock --check`.
+- **`release-lock.yml`** — release-please bumps `pyproject.toml`'s version without relocking, and `uv.lock` records that version, so every release PR would otherwise fail `uv lock --check`. This workflow runs `uv lock` on the release PR and commits the result using the release App token (a `GITHUB_TOKEN` push would not re-trigger the failed check).
+
+**When merging a release PR, wait for `Container` to go green.** The relock commit supersedes the first container build, and the replacement starts from a cold cache. Merging before it finishes means `:next-<version>` never gets pushed, so the tag-push release job finds nothing to promote and falls back to a full rebuild — a slower release, still green, easy to miss.
+
+Callers declare `permissions:` explicitly because the repo's default workflow permissions are read-only, and the reusable workflows' declared scopes are capped by the caller's.
 
 ## Troubleshooting
 
 ### Lockfile drift or stale env
 ```bash
-uv sync --group dev --reinstall          # recreate the venv from uv.lock
-uv lock --upgrade                         # update lockfile to newest allowed versions
+uv lock                                   # fix a red "Verify lockfile is current"
+uv sync --group dev --reinstall           # recreate the venv from uv.lock
+uv lock --upgrade                         # deliberate dependency refresh — NOT a drift fix
 ```
+
+`uv lock` does a minimal update and is the same command `release-lock.yml` runs, so it produces the one-line diff CI is asking for. Reach for `--upgrade` only when you actually want every dependency re-resolved to the newest allowed version — using it to clear drift buries a one-line fix in a lockfile-wide diff.
+
+Note that `uv sync` silently re-locks when the lockfile is stale, so it repairs drift in your working tree without saying so. That is why `code_quality_checks.sh` runs `uv lock --check` *before* syncing: otherwise the script would fix the problem locally, report success, and leave you to commit everything except the fix.
 
 ### Lint or format issues
 ```bash
@@ -223,7 +260,11 @@ which python                              # check which interpreter MCP is using
 
 ## Environment Requirements
 
-- **uv** ≥ 0.5 (managed dependencies + venv)
+- **uv** ≥ 0.8.17, < 0.12 (managed dependencies + venv) — enforced by `[tool.uv] required-version`, which uv applies to every project command including `uv sync --frozen`. The ceiling exists because `uv lock --check` in CI fails the moment a newer uv rewrites the lockfile's `revision`; the floor is the version verified to read `revision = 3`.
+
+  **Three places pin uv and must be bumped together**: `[tool.uv] required-version`, `version:` on `setup-uv` in the workflows, and the uv base image in `Dockerfile`. **Assume nothing proposes any of them automatically.** The `setup-uv` inputs carry `# renovate:` annotations, but those only produce PRs if the org Renovate config enables a matching `customManager`, and the pinned value is a range (`0.11.x`) rather than an exact version, which such a manager may match without being able to bump. The Dockerfile pin looks like the one Renovate handles natively, but it is pinned to a discontinued variant — Astral publishes no `*-python3.12-bookworm-slim` tag above 0.9.30 — so the `dockerfile` manager will propose nothing until that image line moves.
+
+  The bound spans four minor series only because of that stale container image. CI and contributors alone would be fine at `>=0.11,<0.12`; migrating the builder to the maintained `trixie-slim` line is what would let the bound narrow to a single minor, which is what makes `uv lock --check` fully trustworthy.
 - **Python ≥ 3.10** (transitively required by `mcp`; pinned via `.python-version`)
 - **`.env`** with provider API keys (created by `./run-server.sh` on first run)
 - **Optional**: Ollama for free integration tests

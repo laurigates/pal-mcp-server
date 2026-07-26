@@ -11,15 +11,28 @@ echo "=============================================="
 echo "These tests use real API calls with your configured keys"
 echo ""
 
-# Activate virtual environment
-if [[ -f ".pal_venv/bin/activate" ]]; then
-    source .pal_venv/bin/activate
-    echo "✅ Using virtual environment"
-else
-    echo "❌ No virtual environment found!"
-    echo "Please run: ./run-server.sh first"
+# No venv activation: the toolchain is uv-managed, so `uv run` resolves against
+# .venv itself. The previous version sourced .pal_venv/bin/activate and exited 1
+# when it was missing — which is every current checkout, since run-server.sh
+# stopped creating .pal_venv. Every interpreter invocation below therefore has to
+# go through `uv run`; a bare `python` would be the system one, or missing
+# entirely on a distro that ships only python3.
+#
+# --locked on those calls because `uv run` performs an implicit sync, and that
+# sync re-locks a stale lockfile — the thing code_quality_checks.sh and
+# run-server.sh both refuse to do silently.
+#
+# Both calls take the same flags deliberately, and name --group dev explicitly
+# rather than relying on [tool.uv] leaving default-groups at its ["dev"] default,
+# so setting default-groups later changes neither line. Note this is *more*
+# explicit than the rest of the repo, not consistent with it: code_quality_checks.sh
+# and test.yml pass --group dev to `uv sync`, and all their `uv run` calls still
+# rely on the default.
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv not found. Install: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
 fi
+echo "✅ Using the uv-managed environment (.venv)"
 
 # Check for .env file
 if [[ ! -f ".env" ]]; then
@@ -68,7 +81,7 @@ echo "🏃 Running integration tests..."
 echo "------------------------------"
 
 # Run only integration tests (marked with @pytest.mark.integration)
-python -m pytest tests/ -v -m "integration" --tb=short
+uv run --locked --group dev pytest tests/ -v -m "integration" --tb=short
 
 echo ""
 echo "✅ Integration tests completed!"
@@ -78,7 +91,7 @@ echo ""
 if [[ "$1" == "--with-simulator" ]]; then
     echo "🤖 Running simulator tests..."
     echo "----------------------------"
-    python communication_simulator_test.py --verbose
+    uv run --locked --group dev python communication_simulator_test.py --verbose
     echo ""
     echo "✅ Simulator tests completed!"
 fi

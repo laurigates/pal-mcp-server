@@ -4,6 +4,15 @@ on:
   pull_request:
     branches: [main]
 
+# Mostly to stop a force-push (or the relock commit on a release PR) leaving a
+# second copy of the 3-way matrix running against code that has been replaced.
+# It does not suppress the transient red described on the lockfile check below:
+# lint reaches that step well inside the minute the relock takes, so the failure
+# has usually already happened by the time cancellation lands.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,8 +24,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v6
         with:
+          # Pinned: uv lock --check is load-bearing, and a uv that bumps
+          # the lockfile revision would redden every open PR at once.
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # The annotation below is inert unless the org Renovate config enables a
+          # matching customManager; assume this bump is manual.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.11.x"
           enable-cache: true
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -37,9 +54,29 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v6
         with:
+          # Pinned: uv lock --check is load-bearing, and a uv that bumps
+          # the lockfile revision would redden every open PR at once.
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # The annotation below is inert unless the org Renovate config enables a
+          # matching customManager; assume this bump is manual.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.11.x"
           enable-cache: true
+
+      # `uv sync` silently re-resolves instead of complaining, and the
+      # Dockerfile's `--frozen` means "don't update the lock" rather than
+      # "assert it is current", so drift is invisible without this.
+      #
+      # No release-please exception on purpose: release-lock.yml relocks that
+      # PR in place. This step can go red once on the release PR's first run,
+      # before the relock push lands. That red does not linger — checks are
+      # evaluated against the head SHA, so once the relock lands the PR shows
+      # only the new green run, and the failed one stays in the Actions tab.
+      - name: Verify lockfile is current
+        run: uv lock --check
 
       - name: Sync dev dependencies
         run: uv sync --group dev

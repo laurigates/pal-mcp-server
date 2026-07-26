@@ -1,0 +1,97 @@
+name: "Release: refresh uv.lock"
+
+# release-please bumps pyproject.toml's version but never relocks, and uv.lock
+# records the project's own version — so its PR always arrives with a stale
+# lock and `uv lock --check` in test.yml would fail there. Rather than making
+# that guard skip release branches (which would land the drift on main and
+# redden the next contributor's PR instead), relock the release PR in place.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+# release-please force-pushes its branch whenever a new commit lands on main.
+# Two pushes in quick succession would otherwise leave the older run pushing a
+# commit built on a SHA that no longer exists on the branch — rejected as a
+# non-fast-forward, reddening this check even though the newer run did the
+# right thing.
+concurrency:
+  group: release-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+# The App token below does both the checkout and the push, so GITHUB_TOKEN
+# needs nothing beyond read. This is the one workflow holding the release App's
+# private key — worth being tight here.
+permissions:
+  contents: read
+
+jobs:
+  relock:
+    # The exact branch release-please cuts, matching container.yml's guard —
+    # not a `release-please--` prefix, which any pushable branch could claim.
+    # Same-repo check because a fork PR gets a read-only token and could not
+    # push anyway.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'release-please--branches--main'
+    runs-on: ubuntu-latest
+    steps:
+      # The App token, not GITHUB_TOKEN: a GITHUB_TOKEN push does not re-trigger
+      # workflows, so the failed `lint` run would stay red with no way to rerun
+      # itself. Same credentials release-please.yml passes to the reusable
+      # workflow.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
+
+      # persist-credentials: false keeps the token out of .git/config, where it
+      # would otherwise be readable by the build backends `uv lock` runs to
+      # build sdists for any dependency shipping no wheel. The push below
+      # supplies it explicitly instead.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          # Pinned: uv lock --check is load-bearing, and a uv that bumps
+          # the lockfile revision would redden every open PR at once.
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # The annotation below is inert unless the org Renovate config enables a
+          # matching customManager; assume this bump is manual.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.11.x"
+          enable-cache: true
+
+      - name: Relock
+        run: uv lock
+
+      # No-op once the lock is current, so the synchronize event this push
+      # triggers does not start another round.
+      - name: Commit if the lock moved
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+          # Via env rather than inline: a branch name is attacker-controllable
+          # in the general case, and interpolating one straight into a shell
+          # script is a command-injection shape even when a guard above pins it
+          # to a literal.
+          BRANCH: ${{ github.head_ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          if git diff --quiet -- uv.lock; then
+            echo "uv.lock already current."
+            exit 0
+          fi
+          git config user.name "laurigates-release-please[bot]"
+          git config user.email "laurigates-release-please[bot]@users.noreply.github.com"
+          git add uv.lock
+          git commit -m "chore: refresh uv.lock for the version bump"
+          git push "https://x-access-token:${TOKEN}@github.com/${REPO}.git" "HEAD:${BRANCH}"
