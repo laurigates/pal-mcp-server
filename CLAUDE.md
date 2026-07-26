@@ -250,7 +250,9 @@ which python                              # check which interpreter MCP is using
 
 - **uv** ≥ 0.8.17, < 0.12 (managed dependencies + venv) — enforced by `[tool.uv] required-version`, which uv applies to every project command including `uv sync --frozen`. The ceiling exists because `uv lock --check` in CI fails the moment a newer uv rewrites the lockfile's `revision`; the floor is the version verified to read `revision = 3`.
 
-  **Three places pin uv and must be bumped together**: `[tool.uv] required-version`, `version:` on `setup-uv` in the workflows, and the uv base image in `Dockerfile`. Renovate tracks the Dockerfile pin natively; the `setup-uv` inputs carry `# renovate:` annotations, which only produce PRs if the org Renovate config enables a matching `customManager` — otherwise treat those two as a manual bump.
+  **Three places pin uv and must be bumped together**: `[tool.uv] required-version`, `version:` on `setup-uv` in the workflows, and the uv base image in `Dockerfile`. **Assume nothing proposes any of them automatically.** The `setup-uv` inputs carry `# renovate:` annotations, but those only produce PRs if the org Renovate config enables a matching `customManager`, and the pinned value is a range (`0.11.x`) rather than an exact version, which such a manager may match without being able to bump. The Dockerfile pin looks like the one Renovate handles natively, but it is pinned to a discontinued variant — Astral publishes no `*-python3.12-bookworm-slim` tag above 0.9.30 — so the `dockerfile` manager will propose nothing until that image line moves.
+
+  The bound spans four minor series only because of that stale container image. CI and contributors alone would be fine at `>=0.11,<0.12`; migrating the builder to the maintained `trixie-slim` line is what would let the bound narrow to a single minor, which is what makes `uv lock --check` fully trustworthy.
 - **Python ≥ 3.10** (transitively required by `mcp`; pinned via `.python-version`)
 - **`.env`** with provider API keys (created by `./run-server.sh` on first run)
 - **Optional**: Ollama for free integration tests
