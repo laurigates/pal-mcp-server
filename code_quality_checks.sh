@@ -56,6 +56,17 @@ echo "-------------------------------------"
 uv run ruff check .
 echo ""
 
+# Same reasoning as the lockfile warning above, applied to what steps 1-2 just
+# rewrote: `ruff check --fix` and `ruff format` edit files in place, and CI
+# asserts the result against the *committed* tree. Naming the files is the
+# point — a reformat you didn't make shouldn't hide among the ones you did.
+# Advisory, because a modified tree is the normal state mid-work.
+if git rev-parse --git-dir >/dev/null 2>&1 && ! git diff --quiet HEAD; then
+    echo "⚠️  Working tree differs from HEAD — ruff may have rewritten files:"
+    git diff --name-only HEAD | sed 's/^/     /'
+    echo ""
+fi
+
 echo "🔎 Step 4: Type check (ty)"
 echo "--------------------------"
 uv run ty check . || echo "⚠️  ty reported issues (non-blocking during migration)"

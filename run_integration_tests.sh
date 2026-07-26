@@ -22,10 +22,10 @@ echo ""
 # sync re-locks a stale lockfile — the thing code_quality_checks.sh and
 # run-server.sh both refuse to do silently.
 #
-# Both calls take the same flags deliberately. An explicit --group dev on only
-# one of them is a no-op while [tool.uv] leaves default-groups at its ["dev"]
-# default, but would silently give the two steps different environments the day
-# someone sets it.
+# Both calls take the same flags deliberately, and name --group dev explicitly
+# rather than relying on [tool.uv] leaving default-groups at its ["dev"] default
+# — matching code_quality_checks.sh and test.yml. Identical *and* explicit, so
+# setting default-groups later changes neither line.
 if ! command -v uv &> /dev/null; then
     echo "❌ uv not found. Install: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
@@ -79,7 +79,7 @@ echo "🏃 Running integration tests..."
 echo "------------------------------"
 
 # Run only integration tests (marked with @pytest.mark.integration)
-uv run --locked pytest tests/ -v -m "integration" --tb=short
+uv run --locked --group dev pytest tests/ -v -m "integration" --tb=short
 
 echo ""
 echo "✅ Integration tests completed!"
@@ -89,7 +89,7 @@ echo ""
 if [[ "$1" == "--with-simulator" ]]; then
     echo "🤖 Running simulator tests..."
     echo "----------------------------"
-    uv run --locked python communication_simulator_test.py --verbose
+    uv run --locked --group dev python communication_simulator_test.py --verbose
     echo ""
     echo "✅ Simulator tests completed!"
 fi
