@@ -4,6 +4,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# Each push to a PR supersedes the previous scan; don't pay for reviews of
+# code that has already been replaced.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Explicit grant so the reusable workflows get the token scopes they declare
 # (incl. id-token: write for OIDC) even when the repo's default workflow
 # permissions are read-only.
@@ -13,22 +19,32 @@ permissions:
   id-token: write
 
 jobs:
-  # Default file-patterns already cover **/*.py.
-  #
-  # The bot guard matters: these reusable workflows default `allowed-bots` to
-  # empty, so a renovate or release-please PR would otherwise be rejected by
-  # claude-code-action and turn the PR red. Skipping them also keeps dependency
-  # bumps from spending review tokens.
   owasp:
-    if: github.event.pull_request.user.type != 'Bot'
+    # Two guards, both about jobs that would fail rather than tell us anything:
+    # these reusable workflows default `allowed-bots` to empty, so renovate and
+    # release-please PRs get rejected by claude-code-action; and a fork PR gets
+    # no secrets, so CLAUDE_CODE_OAUTH_TOKEN arrives empty.
+    if: >-
+      github.event.pull_request.user.type != 'Bot' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     uses: laurigates/.github/.github/workflows/reusable-security-owasp.yml@main
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    with:
+      # Pinned rather than inherited: upstream's default spans eight languages,
+      # of which only Python exists here.
+      file-patterns: '**/*.py'
 
-  # This server brokers credentials for a dozen providers; scan every changed
-  # file, not just Python.
+  # This server brokers credentials for a dozen providers, so this one scans
+  # every changed file, not just Python.
   secrets-scan:
-    if: github.event.pull_request.user.type != 'Bot'
+    if: >-
+      github.event.pull_request.user.type != 'Bot' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     uses: laurigates/.github/.github/workflows/reusable-security-secrets.yml@main
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    with:
+      # Same as upstream's current default; pinned so the comment above stays
+      # true if that default ever narrows.
+      file-patterns: '**/*'

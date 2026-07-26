@@ -23,9 +23,13 @@ permissions:
 jobs:
   build:
     # Only release-please PRs carry the bumped version that names the
-    # pre-release image, so only those are worth pre-building.
+    # pre-release image, so only those are worth pre-building. The same-repo
+    # check keeps a fork that happens to use the same branch name from starting
+    # a build that can only fail — fork PRs get a read-only GITHUB_TOKEN, so the
+    # push is rejected regardless of the permissions block above.
     if: >-
       github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.head_ref, 'release-please--branches--main')
     uses: laurigates/.github/.github/workflows/reusable-container-build.yml@main
     with:

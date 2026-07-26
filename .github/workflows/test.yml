@@ -41,6 +41,12 @@ jobs:
         with:
           enable-cache: true
 
+      # release-please bumps pyproject.toml's version but never touches
+      # uv.lock, and `uv sync` silently re-resolves instead of complaining, so
+      # the drift is invisible without an explicit assertion.
+      - name: Verify lockfile is current
+        run: uv lock --check
+
       - name: Sync dev dependencies
         run: uv sync --group dev
 
