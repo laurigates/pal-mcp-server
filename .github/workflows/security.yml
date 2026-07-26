@@ -1,0 +1,34 @@
+name: Security
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Explicit grant so the reusable workflows get the token scopes they declare
+# (incl. id-token: write for OIDC) even when the repo's default workflow
+# permissions are read-only.
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  # Default file-patterns already cover **/*.py.
+  #
+  # The bot guard matters: these reusable workflows default `allowed-bots` to
+  # empty, so a renovate or release-please PR would otherwise be rejected by
+  # claude-code-action and turn the PR red. Skipping them also keeps dependency
+  # bumps from spending review tokens.
+  owasp:
+    if: github.event.pull_request.user.type != 'Bot'
+    uses: laurigates/.github/.github/workflows/reusable-security-owasp.yml@main
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+  # This server brokers credentials for a dozen providers; scan every changed
+  # file, not just Python.
+  secrets-scan:
+    if: github.event.pull_request.user.type != 'Bot'
+    uses: laurigates/.github/.github/workflows/reusable-security-secrets.yml@main
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

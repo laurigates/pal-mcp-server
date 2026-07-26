@@ -1,0 +1,26 @@
+name: Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Explicit grant so the reusable workflow gets the token scopes it declares
+# (incl. id-token: write for OIDC) even when the repo's default workflow
+# permissions are read-only.
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  # The reusable workflow defaults `allowed-bots` to empty, so a renovate or
+  # release-please PR would otherwise be rejected by claude-code-action and turn
+  # the PR red. Skipping bots also keeps dependency bumps from spending tokens.
+  code-smell:
+    if: github.event.pull_request.user.type != 'Bot'
+    uses: laurigates/.github/.github/workflows/reusable-quality-code-smell.yml@main
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    with:
+      # Reusable default is JS/TS; this is a Python project.
+      file-patterns: '**/*.py'
