@@ -11,15 +11,15 @@ echo "=============================================="
 echo "These tests use real API calls with your configured keys"
 echo ""
 
-# Activate virtual environment
-if [[ -f ".pal_venv/bin/activate" ]]; then
-    source .pal_venv/bin/activate
-    echo "✅ Using virtual environment"
-else
-    echo "❌ No virtual environment found!"
-    echo "Please run: ./run-server.sh first"
+# No venv activation: the toolchain is uv-managed, so `uv run` resolves against
+# .venv itself. The previous version sourced .pal_venv/bin/activate and exited 1
+# when it was missing — which is every current checkout, since run-server.sh
+# stopped creating .pal_venv.
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv not found. Install: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
 fi
+echo "✅ Using the uv-managed environment (.venv)"
 
 # Check for .env file
 if [[ ! -f ".env" ]]; then
@@ -68,7 +68,7 @@ echo "🏃 Running integration tests..."
 echo "------------------------------"
 
 # Run only integration tests (marked with @pytest.mark.integration)
-python -m pytest tests/ -v -m "integration" --tb=short
+uv run --group dev pytest tests/ -v -m "integration" --tb=short
 
 echo ""
 echo "✅ Integration tests completed!"

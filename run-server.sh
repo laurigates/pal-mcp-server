@@ -179,11 +179,12 @@ check_api_keys() {
 sync_dependencies() {
     print_info "Syncing dependencies with uv..."
     # Runtime sync only — dev tools live in [dependency-groups.dev].
-    # --frozen installs exactly what uv.lock records. A bare `uv sync` would
-    # silently re-lock, which is the last thing a bootstrap should do to a
-    # fresh clone behind the user's back.
-    if ! uv sync --frozen; then
-        print_error "uv sync failed"
+    # --locked, not --frozen: both refuse to re-lock, but --frozen also refuses
+    # to *notice* a stale lock, so someone who added a dependency would get an
+    # environment silently missing it and a ModuleNotFoundError later. --locked
+    # errors here instead, matching code_quality_checks.sh's step 0.
+    if ! uv sync --locked; then
+        print_error "uv sync failed (if the lockfile is stale, run: uv lock)"
         return 1
     fi
     print_success "Dependencies installed into .venv"

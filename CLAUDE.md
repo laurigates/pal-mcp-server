@@ -28,7 +28,11 @@ uv sync --group dev
 
 `uv sync` creates `.venv/` and installs the project plus dev dependencies from `uv.lock`. No `source .venv/bin/activate` needed — prefix commands with `uv run` and uv resolves them against the locked environment.
 
-> The MCP server bootstrap (`./run-server.sh`) uses the same uv-managed `.venv/` as day-to-day development. It requires uv on PATH and exits if it is missing, rather than provisioning its own environment. (The stale `.pal_venv` entries in ruff's `extend-exclude` and `.pre-commit-config.yaml` are harmless leftovers.)
+Running `uv sync` directly is safe on a fresh clone, where the lockfile is current by definition. Once you are changing dependencies, let `./code_quality_checks.sh` do the syncing — it checks the lockfile *before* syncing, and a bare `uv sync` would quietly repair any drift first. See [Before changes](#before-changes).
+
+> The MCP server bootstrap (`./run-server.sh`) uses the same uv-managed `.venv/` as day-to-day development. It requires uv on PATH and exits if it is missing, rather than provisioning its own environment.
+>
+> **`.pal_venv` cleanup is outstanding.** Around nineteen files still reference the retired `.pal_venv/`, and not all of them are inert: the `pal-mcp-server` wrapper, the example MCP client configs (`claude_config_example.json`, `examples/*.json`), the setup docs, and both PowerShell scripts still point at a directory nothing creates any more. The PowerShell pair also still runs the retired pip/black/isort stack, so a Windows contributor's local gate checks less than CI does. Treat any `.pal_venv` path you meet as suspect.
 
 ## Code Quality
 
@@ -116,7 +120,7 @@ uv run python communication_simulator_test.py --individual memory_validation --v
 ./run-server.sh -f      # follow logs
 ```
 
-`run-server.sh` handles the Python install, dependency sync into `.venv/`, `.env` creation, and MCP client registration. It requires uv and syncs with `--frozen`, so it installs exactly what `uv.lock` records rather than re-locking a fresh clone.
+`run-server.sh` handles the Python install, dependency sync into `.venv/`, `.env` creation, and MCP client registration. It requires uv and syncs with `--locked`, so it installs exactly what `uv.lock` records and errors out if the lockfile is stale rather than either re-locking your checkout or silently building an environment that is missing a dependency you just added.
 
 ### Logs
 

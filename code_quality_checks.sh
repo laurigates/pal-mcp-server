@@ -29,9 +29,10 @@ if ! uv lock --check; then
     exit 1
 fi
 # The check above compares your working tree; CI compares what you committed.
-# Those diverge exactly when uv.lock is modified-but-unstaged, so say so rather
-# than let "Ready for commit" overstate what was verified.
-if ! git diff --quiet HEAD -- uv.lock 2>/dev/null; then
+# Those diverge whenever uv.lock differs from HEAD — staged or not — so say so
+# rather than let "Ready for commit" overstate what was verified. Guarded on
+# being in a checkout at all, so a tarball copy doesn't warn about a fine lock.
+if git rev-parse --git-dir >/dev/null 2>&1 && ! git diff --quiet HEAD -- uv.lock; then
     echo "⚠️  uv.lock differs from HEAD — make sure it is in your commit."
 fi
 echo ""
