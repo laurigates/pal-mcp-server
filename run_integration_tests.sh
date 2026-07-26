@@ -23,9 +23,11 @@ echo ""
 # run-server.sh both refuse to do silently.
 #
 # Both calls take the same flags deliberately, and name --group dev explicitly
-# rather than relying on [tool.uv] leaving default-groups at its ["dev"] default
-# — matching code_quality_checks.sh and test.yml. Identical *and* explicit, so
-# setting default-groups later changes neither line.
+# rather than relying on [tool.uv] leaving default-groups at its ["dev"] default,
+# so setting default-groups later changes neither line. Note this is *more*
+# explicit than the rest of the repo, not consistent with it: code_quality_checks.sh
+# and test.yml pass --group dev to `uv sync`, and all their `uv run` calls still
+# rely on the default.
 if ! command -v uv &> /dev/null; then
     echo "❌ uv not found. Install: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1

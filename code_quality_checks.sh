@@ -41,6 +41,14 @@ echo "📦 Syncing dependencies..."
 uv sync --group dev --quiet
 echo ""
 
+# Snapshot what was already dirty, so the warning after step 3 can name only
+# what ruff itself added rather than everything you have been working on.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    dirty_before="$(git diff --name-only HEAD 2>/dev/null || true)"
+else
+    dirty_before=""
+fi
+
 echo "📋 Step 1: Lint (ruff check --fix)"
 echo "----------------------------------"
 uv run ruff check --fix .
@@ -58,13 +66,21 @@ echo ""
 
 # Same reasoning as the lockfile warning above, applied to what steps 1-2 just
 # rewrote: `ruff check --fix` and `ruff format` edit files in place, and CI
-# asserts the result against the *committed* tree. Naming the files is the
-# point — a reformat you didn't make shouldn't hide among the ones you did.
-# Advisory, because a modified tree is the normal state mid-work.
-if git rev-parse --git-dir >/dev/null 2>&1 && ! git diff --quiet HEAD; then
-    echo "⚠️  Working tree differs from HEAD — ruff may have rewritten files:"
-    git diff --name-only HEAD | sed 's/^/     /'
-    echo ""
+# asserts the result against the *committed* tree.
+#
+# Only files ruff added to the dirty set are listed. Printing the whole dirty
+# set would bury the one file that matters among the dozen you are working on,
+# and would fire on every run until nobody reads it. A file you had already
+# modified and ruff also reformatted is missed — but that one is in your diff
+# already and you will stage it; the case worth catching is the other one.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    dirty_after="$(git diff --name-only HEAD 2>/dev/null || true)"
+    rewritten="$(comm -13 <(sort <<<"$dirty_before") <(sort <<<"$dirty_after"))"
+    if [[ -n "${rewritten//[[:space:]]/}" ]]; then
+        echo "⚠️  ruff rewrote files you had not modified — stage them too:"
+        sed 's/^/     /' <<<"$rewritten"
+        echo ""
+    fi
 fi
 
 echo "🔎 Step 4: Type check (ty)"
