@@ -9,15 +9,36 @@ from pathlib import Path
 
 # Dangerous system paths - block these AND all their subdirectories
 # These are system directories where user code should never reside
+#
+# The pseudo-filesystems (/proc, /sys, /dev) are load-bearing, not cosmetic:
+# /proc/self/environ exposes this process's environment, which holds every
+# provider API key. Reading it would embed those keys into a prompt sent to a
+# third-party model. See issue #77 -- and note the read cap in
+# read_file_content() is the general defence, since this list can only ever
+# name the pseudo-files someone thought of.
+#
+# Deliberately NOT listed: /opt and /srv. Both are plausible homes for real
+# user code (/opt/<app>, /srv/www), and blocking them would break legitimate
+# reads for no security gain -- neither exposes process state.
 DANGEROUS_SYSTEM_PATHS = {
     "/",
     "/etc",
     "/usr",
     "/bin",
+    "/sbin",
     "/var",
     "/root",
+    "/boot",
+    "/lib",
+    "/lib64",
+    "/run",
+    # Pseudo-filesystems: process/kernel state, not files on disk
+    "/proc",
+    "/sys",
+    "/dev",
     "C:\\Windows",
     "C:\\Program Files",
+    "C:\\ProgramData",
 }
 
 # User home container paths - block ONLY the exact path, not subdirectories

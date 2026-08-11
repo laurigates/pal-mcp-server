@@ -771,7 +771,12 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
         argument_files = arguments.get("absolute_file_paths")
         if argument_files:
             logger.debug(f"Checking file sizes for {len(argument_files)} files with model {model_name}")
-            file_size_check = check_total_file_size(argument_files, model_name)
+            # Pass the post-history budget so the gate matches what the tool
+            # can actually embed. reconstruct_thread_context (above) sets
+            # _remaining_tokens on continuations; it is absent on fresh calls.
+            file_size_check = check_total_file_size(
+                argument_files, model_name, remaining_tokens=arguments.get("_remaining_tokens")
+            )
             if file_size_check:
                 logger.warning(f"File size check failed for {name} with model {model_name}")
                 raise ToolExecutionError(ToolOutput(**file_size_check).model_dump_json())

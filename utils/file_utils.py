@@ -13,9 +13,18 @@ Key Features:
 - Comprehensive error handling with informative messages
 
 Security Model:
-- All file access is restricted to PROJECT_ROOT and its subdirectories
 - Absolute paths are required to prevent ambiguity
-- Symbolic links are resolved to ensure they stay within bounds
+- Symbolic links are resolved, so a link cannot disguise its destination
+- Resolved paths are checked against a denylist of system directories and
+  pseudo-filesystems (see security_config.DANGEROUS_SYSTEM_PATHS)
+- Reads are capped at max_size against the bytes actually read, not against
+  the size the filesystem reports
+
+Note this is a denylist, NOT containment within a project root: the server's
+purpose is reading the *caller's* files, which live outside its own tree, so
+there is no single root to confine access to. (This block previously claimed
+"all file access is restricted to PROJECT_ROOT and its subdirectories", which
+no code has ever implemented -- see issue #77.)
 
 CONVERSATION MEMORY INTEGRATION:
 This module works with the conversation memory system to support efficient
@@ -462,7 +471,13 @@ def read_file_content(
             content = f"\n--- NOT A FILE: {file_path} ---\nError: Path is not a file\n--- END FILE ---\n"
             return content, estimate_tokens(content)
 
-        # Check file size to prevent memory exhaustion
+        # Check file size to prevent memory exhaustion.
+        #
+        # This stat() check is only a cheap early exit -- it is NOT the
+        # authoritative cap. A pseudo-filesystem entry (procfs) reports
+        # st_size == 0 while read() returns full contents, so a file can lie
+        # its way past this branch. The binding limit is applied to what we
+        # actually read, further down. See issue #77.
         stat_result = path.stat()
         file_size = stat_result.st_size
         logger.debug(f"[FILES] File size for {file_path}: {file_size:,} bytes")
@@ -483,8 +498,25 @@ def read_file_content(
         # Read the file with UTF-8 encoding, replacing invalid characters
         # This ensures we can handle files with mixed encodings
         logger.debug(f"[FILES] Reading file content for {file_path}")
+        # Read one past the cap so an over-limit file is detectable without
+        # pulling the whole thing into memory. This is the authoritative size
+        # check: unlike the stat() branch above it cannot be defeated by a
+        # file that misreports st_size (procfs and friends -- issue #77).
         with open(path, encoding="utf-8", errors="replace") as f:
-            file_content = f.read()
+            file_content = f.read(max_size + 1)
+
+        if len(file_content) > max_size:
+            logger.warning(
+                f"[FILES] File exceeded max_size during read despite reporting "
+                f"{file_size:,} bytes via stat: {file_path}"
+            )
+            modified_at = datetime.fromtimestamp(stat_result.st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
+            content = (
+                f"\n--- FILE TOO LARGE: {file_path} (Last modified: {modified_at}) ---\n"
+                f"File exceeded the {max_size:,} byte limit while reading.\n"
+                "--- END FILE ---\n"
+            )
+            return content, estimate_tokens(content)
 
         logger.debug(f"[FILES] Successfully read {len(file_content)} characters from {file_path}")
 
@@ -628,17 +660,28 @@ def estimate_file_tokens(file_path: str) -> int:
     """
     Estimate tokens for a file using file-type aware ratios.
 
+    Applies the same path policy as the readers (``read_file_content``,
+    ``expand_paths``) before touching the filesystem. Estimation runs at the
+    MCP boundary in ``check_total_file_size``, i.e. *before* any tool executes
+    and therefore before those readers would have validated anything -- so
+    stat'ing the raw caller-supplied string here would expose the size and
+    existence of files that ``is_dangerous_path`` exists to protect. An
+    unreadable path contributes 0, which is what the readers would yield for
+    it anyway.
+
     Args:
-        file_path: Path to the file
+        file_path: Path to the file (must be absolute and pass path policy)
 
     Returns:
-        Estimated token count for the file
+        Estimated token count for the file, or 0 if it is not accessible
     """
     try:
-        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        resolved_path = resolve_and_validate_path(file_path)
+
+        if not resolved_path.exists() or not resolved_path.is_file():
             return 0
 
-        file_size = os.path.getsize(file_path)
+        file_size = resolved_path.stat().st_size
 
         # Get the appropriate ratio for this file type
         from .file_types import get_token_estimation_ratio
@@ -650,7 +693,9 @@ def estimate_file_tokens(file_path: str) -> int:
         return 0
 
 
-def check_files_size_limit(files: list[str], max_tokens: int, threshold_percent: float = 1.0) -> tuple[bool, int, int]:
+def check_files_size_limit(
+    files: list[str], max_tokens: int, threshold_percent: float = 1.0
+) -> tuple[bool, int, int, list[tuple[str, int]]]:
     """
     Check if a list of files would exceed token limits.
 
@@ -660,13 +705,17 @@ def check_files_size_limit(files: list[str], max_tokens: int, threshold_percent:
         threshold_percent: Percentage of max_tokens to use as threshold (0.0-1.0)
 
     Returns:
-        Tuple of (within_limit, total_estimated_tokens, file_count)
+        Tuple of (within_limit, total_estimated_tokens, file_count, per_file)
+        where ``per_file`` is [(path, estimated_tokens), ...] sorted largest
+        first. Callers rejecting a request use it to tell the caller which
+        files to drop -- "too large" is not actionable without it.
     """
     if not files:
-        return True, 0, 0
+        return True, 0, 0, []
 
     total_estimated_tokens = 0
     file_count = 0
+    per_file: list[tuple[str, int]] = []
     threshold = int(max_tokens * threshold_percent)
 
     for file_path in files:
@@ -675,12 +724,14 @@ def check_files_size_limit(files: list[str], max_tokens: int, threshold_percent:
             total_estimated_tokens += estimated_tokens
             if estimated_tokens > 0:  # Only count accessible files
                 file_count += 1
+                per_file.append((file_path, estimated_tokens))
         except Exception:
             # Skip files that can't be accessed for size check
             continue
 
+    per_file.sort(key=lambda entry: entry[1], reverse=True)
     within_limit = total_estimated_tokens <= threshold
-    return within_limit, total_estimated_tokens, file_count
+    return within_limit, total_estimated_tokens, file_count, per_file
 
 
 def read_json_file(file_path: str) -> dict | None:
@@ -802,7 +853,7 @@ def read_file_safely(file_path: str, max_size: int = 10 * 1024 * 1024) -> str | 
         return None
 
 
-def check_total_file_size(files: list[str], model_name: str) -> dict | None:
+def check_total_file_size(files: list[str], model_name: str, remaining_tokens: int | None = None) -> dict | None:
     """
     Check if total file sizes would exceed token threshold before embedding.
 
@@ -816,6 +867,9 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
     Args:
         files: List of file paths to check
         model_name: The resolved model name for context-aware thresholds (required)
+        remaining_tokens: Content budget left after conversation history, from
+            ``arguments["_remaining_tokens"]`` on a continuation. None on a
+            fresh call, where the model's static file allocation applies.
 
     Returns:
         Dict with `code_too_large` response if too large, None if acceptable
@@ -837,38 +891,69 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
     model_context = ModelContext(model_name)
     token_allocation = model_context.calculate_token_allocation()
 
-    # Dynamic threshold based on model capacity
+    # The gate must resolve to the same number the embedding layer will use,
+    # so it shares TokenAllocation.effective_file_budget with
+    # `_prepare_file_content_for_prompt`. Computing it independently is what
+    # let the two diverge: a tiered haircut (0.6/0.7/0.8 by context size) once
+    # refused at 28,311 tokens what the embedder would have taken to 47,185.
+    #
+    # On a continuation `remaining_tokens` is the content budget left after
+    # conversation history, which may be larger *or* smaller than the static
+    # file allocation. Passing it through keeps the gate honest in both
+    # directions -- without it the gate is too lax exactly when a long history
+    # has already consumed the budget.
+    #
+    # No safety margin is folded in for prompt formatting (line numbers and
+    # BEGIN/END delimiters): measured across this repo, size-based estimates
+    # track the formatted token count to within ~1% in aggregate. Where a set
+    # does overshoot, `read_files` degrades gracefully -- it embeds what fits
+    # and appends a "SKIPPED FILES (TOKEN LIMIT)" note naming the omissions,
+    # so overflow is visible to the model rather than silent.
     context_window = token_allocation.total_tokens
-    if context_window >= 1_000_000:  # Gemini-class models
-        threshold_percent = 0.8  # Can be more generous
-    elif context_window >= 500_000:  # Mid-range models
-        threshold_percent = 0.7  # Moderate
-    else:  # OpenAI-class models (200K)
-        threshold_percent = 0.6  # Conservative
+    max_file_tokens = token_allocation.effective_file_budget(remaining_tokens=remaining_tokens)
+    bound_by = "conversation_history" if remaining_tokens is not None else "model_file_allocation"
 
-    max_file_tokens = int(token_allocation.file_tokens * threshold_percent)
-
-    # Use centralized file size checking (threshold already applied to max_file_tokens)
-    within_limit, total_estimated_tokens, file_count = check_files_size_limit(files, max_file_tokens)
+    within_limit, total_estimated_tokens, file_count, per_file = check_files_size_limit(files, max_file_tokens)
 
     if not within_limit:
+        largest = per_file[:10]
+        largest_rendered = "\n".join(f"  - {path} (~{tokens:,} tokens)" for path, tokens in largest)
+        overage = total_estimated_tokens - max_file_tokens
+
+        # Say *why* the limit is what it is. On a continuation the budget can
+        # be far below the model's nominal file allocation because the
+        # conversation history already consumed it -- without that context a
+        # small limit on a large-context model reads as a bug.
+        if bound_by == "conversation_history":
+            why = (
+                f"The limit is the content budget left after this conversation's history, "
+                f"not {model_name}'s full file allocation. Starting a fresh conversation "
+                f"(omit continuation_id) would restore the larger budget."
+            )
+        else:
+            why = f"The limit is {model_name}'s file allocation from its {context_window:,}-token context window."
+
         return {
             "status": "code_too_large",
             "content": (
                 f"The selected files are too large for analysis "
-                f"(estimated {total_estimated_tokens:,} tokens, limit {max_file_tokens:,}). "
-                f"Please select fewer, more specific files that are most relevant "
-                f"to your question, then invoke the tool again."
+                f"(estimated {total_estimated_tokens:,} tokens, limit {max_file_tokens:,} "
+                f"-- over by {overage:,}).\n"
+                f"{why}\n"
+                f"Largest files:\n{largest_rendered}\n"
+                f"Please drop or narrow the largest entries above, then invoke the tool again."
             ),
             "content_type": "text",
             "metadata": {
                 "total_estimated_tokens": total_estimated_tokens,
                 "limit": max_file_tokens,
+                "overage_tokens": overage,
+                "bound_by": bound_by,
                 "file_count": file_count,
-                "threshold_percent": threshold_percent,
+                "largest_files": [{"path": path, "estimated_tokens": tokens} for path, tokens in largest],
                 "model_context_window": context_window,
                 "model_name": model_name,
-                "instructions": "Reduce file selection and try again - all files must fit within budget. If this persists, please use a model with a larger context window where available.",
+                "instructions": "Reduce file selection and try again - all files must fit within budget. Drop from the top of `largest_files` first. If this persists, please use a model with a larger context window where available.",
             },
         }
 
