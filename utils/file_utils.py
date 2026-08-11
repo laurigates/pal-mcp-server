@@ -13,9 +13,18 @@ Key Features:
 - Comprehensive error handling with informative messages
 
 Security Model:
-- All file access is restricted to PROJECT_ROOT and its subdirectories
 - Absolute paths are required to prevent ambiguity
-- Symbolic links are resolved to ensure they stay within bounds
+- Symbolic links are resolved, so a link cannot disguise its destination
+- Resolved paths are checked against a denylist of system directories and
+  pseudo-filesystems (see security_config.DANGEROUS_SYSTEM_PATHS)
+- Reads are capped at max_size against the bytes actually read, not against
+  the size the filesystem reports
+
+Note this is a denylist, NOT containment within a project root: the server's
+purpose is reading the *caller's* files, which live outside its own tree, so
+there is no single root to confine access to. (This block previously claimed
+"all file access is restricted to PROJECT_ROOT and its subdirectories", which
+no code has ever implemented -- see issue #77.)
 
 CONVERSATION MEMORY INTEGRATION:
 This module works with the conversation memory system to support efficient
@@ -462,7 +471,13 @@ def read_file_content(
             content = f"\n--- NOT A FILE: {file_path} ---\nError: Path is not a file\n--- END FILE ---\n"
             return content, estimate_tokens(content)
 
-        # Check file size to prevent memory exhaustion
+        # Check file size to prevent memory exhaustion.
+        #
+        # This stat() check is only a cheap early exit -- it is NOT the
+        # authoritative cap. A pseudo-filesystem entry (procfs) reports
+        # st_size == 0 while read() returns full contents, so a file can lie
+        # its way past this branch. The binding limit is applied to what we
+        # actually read, further down. See issue #77.
         stat_result = path.stat()
         file_size = stat_result.st_size
         logger.debug(f"[FILES] File size for {file_path}: {file_size:,} bytes")
@@ -483,8 +498,25 @@ def read_file_content(
         # Read the file with UTF-8 encoding, replacing invalid characters
         # This ensures we can handle files with mixed encodings
         logger.debug(f"[FILES] Reading file content for {file_path}")
+        # Read one past the cap so an over-limit file is detectable without
+        # pulling the whole thing into memory. This is the authoritative size
+        # check: unlike the stat() branch above it cannot be defeated by a
+        # file that misreports st_size (procfs and friends -- issue #77).
         with open(path, encoding="utf-8", errors="replace") as f:
-            file_content = f.read()
+            file_content = f.read(max_size + 1)
+
+        if len(file_content) > max_size:
+            logger.warning(
+                f"[FILES] File exceeded max_size during read despite reporting "
+                f"{file_size:,} bytes via stat: {file_path}"
+            )
+            modified_at = datetime.fromtimestamp(stat_result.st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
+            content = (
+                f"\n--- FILE TOO LARGE: {file_path} (Last modified: {modified_at}) ---\n"
+                f"File exceeded the {max_size:,} byte limit while reading.\n"
+                "--- END FILE ---\n"
+            )
+            return content, estimate_tokens(content)
 
         logger.debug(f"[FILES] Successfully read {len(file_content)} characters from {file_path}")
 
