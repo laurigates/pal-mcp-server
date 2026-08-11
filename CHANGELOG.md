@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [10.4.2](https://github.com/laurigates/pal-mcp-server/compare/v10.4.1...v10.4.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* **files:** compute the file budget once for the gate and the embedder ([#76](https://github.com/laurigates/pal-mcp-server/issues/76)) ([af47146](https://github.com/laurigates/pal-mcp-server/commit/af47146b5bdac5d4c37099f10cc862a82d79c622)), closes [#77](https://github.com/laurigates/pal-mcp-server/issues/77)
+
 ## [10.4.1](https://github.com/laurigates/pal-mcp-server/compare/v10.4.0...v10.4.1) (2026-07-25)
 
 
