@@ -650,7 +650,9 @@ def estimate_file_tokens(file_path: str) -> int:
         return 0
 
 
-def check_files_size_limit(files: list[str], max_tokens: int, threshold_percent: float = 1.0) -> tuple[bool, int, int]:
+def check_files_size_limit(
+    files: list[str], max_tokens: int, threshold_percent: float = 1.0
+) -> tuple[bool, int, int, list[tuple[str, int]]]:
     """
     Check if a list of files would exceed token limits.
 
@@ -660,13 +662,17 @@ def check_files_size_limit(files: list[str], max_tokens: int, threshold_percent:
         threshold_percent: Percentage of max_tokens to use as threshold (0.0-1.0)
 
     Returns:
-        Tuple of (within_limit, total_estimated_tokens, file_count)
+        Tuple of (within_limit, total_estimated_tokens, file_count, per_file)
+        where ``per_file`` is [(path, estimated_tokens), ...] sorted largest
+        first. Callers rejecting a request use it to tell the caller which
+        files to drop -- "too large" is not actionable without it.
     """
     if not files:
-        return True, 0, 0
+        return True, 0, 0, []
 
     total_estimated_tokens = 0
     file_count = 0
+    per_file: list[tuple[str, int]] = []
     threshold = int(max_tokens * threshold_percent)
 
     for file_path in files:
@@ -675,12 +681,14 @@ def check_files_size_limit(files: list[str], max_tokens: int, threshold_percent:
             total_estimated_tokens += estimated_tokens
             if estimated_tokens > 0:  # Only count accessible files
                 file_count += 1
+                per_file.append((file_path, estimated_tokens))
         except Exception:
             # Skip files that can't be accessed for size check
             continue
 
+    per_file.sort(key=lambda entry: entry[1], reverse=True)
     within_limit = total_estimated_tokens <= threshold
-    return within_limit, total_estimated_tokens, file_count
+    return within_limit, total_estimated_tokens, file_count, per_file
 
 
 def read_json_file(file_path: str) -> dict | None:
@@ -837,38 +845,47 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
     model_context = ModelContext(model_name)
     token_allocation = model_context.calculate_token_allocation()
 
-    # Dynamic threshold based on model capacity
+    # The gate must match the budget the embedding layer actually uses.
+    # `_prepare_file_content_for_prompt` embeds against `file_tokens`, so any
+    # stricter threshold here rejects file sets that would have been embedded
+    # in full. An earlier tiered haircut (0.6/0.7/0.8 by context size) did
+    # exactly that -- for a 262K model it refused at 28,311 tokens what the
+    # embedder would have taken to 47,185.
+    #
+    # No safety margin is folded in for prompt formatting (line numbers and
+    # BEGIN/END delimiters): measured across this repo, size-based estimates
+    # track the formatted token count to within ~1% in aggregate. Where a set
+    # does overshoot, `read_files` degrades gracefully -- it embeds what fits
+    # and appends a "SKIPPED FILES (TOKEN LIMIT)" note naming the omissions,
+    # so overflow is visible to the model rather than silent.
     context_window = token_allocation.total_tokens
-    if context_window >= 1_000_000:  # Gemini-class models
-        threshold_percent = 0.8  # Can be more generous
-    elif context_window >= 500_000:  # Mid-range models
-        threshold_percent = 0.7  # Moderate
-    else:  # OpenAI-class models (200K)
-        threshold_percent = 0.6  # Conservative
+    max_file_tokens = token_allocation.file_tokens
 
-    max_file_tokens = int(token_allocation.file_tokens * threshold_percent)
-
-    # Use centralized file size checking (threshold already applied to max_file_tokens)
-    within_limit, total_estimated_tokens, file_count = check_files_size_limit(files, max_file_tokens)
+    within_limit, total_estimated_tokens, file_count, per_file = check_files_size_limit(files, max_file_tokens)
 
     if not within_limit:
+        largest = per_file[:10]
+        largest_rendered = "\n".join(f"  - {path} (~{tokens:,} tokens)" for path, tokens in largest)
+        overage = total_estimated_tokens - max_file_tokens
         return {
             "status": "code_too_large",
             "content": (
                 f"The selected files are too large for analysis "
-                f"(estimated {total_estimated_tokens:,} tokens, limit {max_file_tokens:,}). "
-                f"Please select fewer, more specific files that are most relevant "
-                f"to your question, then invoke the tool again."
+                f"(estimated {total_estimated_tokens:,} tokens, limit {max_file_tokens:,} "
+                f"-- over by {overage:,}).\n"
+                f"Largest files:\n{largest_rendered}\n"
+                f"Please drop or narrow the largest entries above, then invoke the tool again."
             ),
             "content_type": "text",
             "metadata": {
                 "total_estimated_tokens": total_estimated_tokens,
                 "limit": max_file_tokens,
+                "overage_tokens": overage,
                 "file_count": file_count,
-                "threshold_percent": threshold_percent,
+                "largest_files": [{"path": path, "estimated_tokens": tokens} for path, tokens in largest],
                 "model_context_window": context_window,
                 "model_name": model_name,
-                "instructions": "Reduce file selection and try again - all files must fit within budget. If this persists, please use a model with a larger context window where available.",
+                "instructions": "Reduce file selection and try again - all files must fit within budget. Drop from the top of `largest_files` first. If this persists, please use a model with a larger context window where available.",
             },
         }
 
