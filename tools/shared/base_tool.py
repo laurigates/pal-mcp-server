@@ -983,11 +983,15 @@ class BaseTool(ABC):
             args_to_use = arguments or getattr(self, "_current_arguments", {})
             remaining_budget = args_to_use.get("_remaining_tokens")
 
-        # Use remaining budget if provided, otherwise fall back to max_tokens or model-specific default
+        # Use remaining budget if provided, otherwise fall back to max_tokens or model-specific default.
+        # All three paths route through the shared budget helpers so the MCP-boundary
+        # size gate (check_total_file_size) resolves to the identical number.
+        from utils.model_context import apply_file_reserve
+
         if remaining_budget is not None:
-            effective_max_tokens = remaining_budget - reserve_tokens
+            effective_max_tokens = apply_file_reserve(remaining_budget, reserve_tokens)
         elif max_tokens is not None:
-            effective_max_tokens = max_tokens - reserve_tokens
+            effective_max_tokens = apply_file_reserve(max_tokens, reserve_tokens)
         else:
             # Use model_context for token allocation
             if not model_context:
@@ -1004,7 +1008,7 @@ class BaseTool(ABC):
             try:
                 token_allocation = model_context.calculate_token_allocation()
                 # Standardize on `file_tokens` for consistency and correctness.
-                effective_max_tokens = token_allocation.file_tokens - reserve_tokens
+                effective_max_tokens = token_allocation.effective_file_budget(reserve_tokens=reserve_tokens)
                 logger.debug(
                     f"[FILES] {self.name}: Using model context for {model_context.model_name}: "
                     f"{token_allocation.file_tokens:,} file tokens from {token_allocation.total_tokens:,} total"
@@ -1015,10 +1019,7 @@ class BaseTool(ABC):
                 )
                 # If the context exists but calculation fails, we still need to prevent a crash.
                 # A loud error is logged, and we fall back to a safe default.
-                effective_max_tokens = 100_000 - reserve_tokens
-
-        # Ensure we have a reasonable minimum budget
-        effective_max_tokens = max(1000, effective_max_tokens)
+                effective_max_tokens = apply_file_reserve(100_000, reserve_tokens)
 
         files_to_embed = self.filter_new_files(request_files, continuation_id)
         logger.debug(f"[FILES] {self.name}: Will embed {len(files_to_embed)} files after filtering")

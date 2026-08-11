@@ -3,20 +3,25 @@ Tests for the MCP-boundary file-size gate (``check_total_file_size``).
 
 The gate rejects a tool call outright when the estimated size of the
 attached ``absolute_file_paths`` exceeds the budget, rather than letting
-``read_files`` embed a subset. Two properties matter and had no coverage:
+``read_files`` embed a subset. Three properties matter and had no coverage:
 
-1. The gate's threshold must match the budget the embedding layer
-   actually uses (``TokenAllocation.file_tokens``). A gate that is
-   stricter than the embedder rejects file sets that would have been
-   embedded in full.
-2. The rejection must tell the caller *which* files are expensive.
-   "Too large, pick fewer" is not actionable without per-file sizes.
+1. The gate's threshold must equal the budget the embedding layer actually
+   uses -- both derive it from ``TokenAllocation.effective_file_budget``.
+   A gate stricter than the embedder rejects file sets that would have
+   been embedded in full; a laxer one breaks its own all-or-nothing
+   promise.
+2. On a continuation the budget is what conversation history left over,
+   which may be larger *or* smaller than the static file allocation.
+   Both directions are tested -- capping with ``min()`` would silently
+   re-introduce (1).
+3. The rejection must tell the caller *which* files are expensive and
+   *why* the limit is what it is.
 """
 
 import pytest
 
 from utils.file_utils import check_total_file_size
-from utils.model_context import TokenAllocation
+from utils.model_context import DEFAULT_FILE_RESERVE_TOKENS, TokenAllocation
 
 
 class StubModelContext:
@@ -65,31 +70,86 @@ def _make_file(tmp_path, name: str, estimated_tokens: int):
 # Kimi (and every other 262K model): 262144 * 0.6 content * 0.3 files
 KIMI_CONTEXT = 262_144
 KIMI_FILE_TOKENS = int(int(KIMI_CONTEXT * 0.6) * 0.3)  # 47,185
+KIMI_BUDGET = KIMI_FILE_TOKENS - DEFAULT_FILE_RESERVE_TOKENS  # 46,185
+KIMI_CONTENT_TOKENS = int(KIMI_CONTEXT * 0.6)  # 157,286
 
 
 def test_gate_threshold_equals_embedding_budget(tmp_path, stub_context):
     """The gate must not reject what the embedder would have accepted."""
     stub_context(KIMI_CONTEXT)
-    just_under = _make_file(tmp_path, "a.py", KIMI_FILE_TOKENS - 500)
+    just_under = _make_file(tmp_path, "a.py", KIMI_BUDGET - 500)
 
     assert check_total_file_size([just_under], "kimi") is None
 
 
 def test_gate_rejects_above_embedding_budget(tmp_path, stub_context):
     stub_context(KIMI_CONTEXT)
-    too_big = _make_file(tmp_path, "a.py", KIMI_FILE_TOKENS + 5_000)
+    too_big = _make_file(tmp_path, "a.py", KIMI_BUDGET + 5_000)
 
     result = check_total_file_size([too_big], "kimi")
 
     assert result is not None
     assert result["status"] == "code_too_large"
-    assert result["metadata"]["limit"] == KIMI_FILE_TOKENS
+    assert result["metadata"]["limit"] == KIMI_BUDGET
+    assert result["metadata"]["bound_by"] == "model_file_allocation"
+
+
+def test_gate_reserve_matches_the_embedder(stub_context):
+    """The gate's limit is file_tokens minus the same reserve the embedder holds back."""
+    stub_context(KIMI_CONTEXT)
+    allocation = TokenAllocation(
+        total_tokens=KIMI_CONTEXT,
+        content_tokens=KIMI_CONTENT_TOKENS,
+        response_tokens=0,
+        file_tokens=KIMI_FILE_TOKENS,
+        history_tokens=0,
+    )
+    assert allocation.effective_file_budget() == KIMI_BUDGET
+
+
+def test_long_history_shrinks_the_gate(tmp_path, stub_context):
+    """A continuation whose history ate the budget must not be waved through."""
+    stub_context(KIMI_CONTEXT)
+    remaining = 20_000  # history consumed most of content_tokens
+    # Comfortably under the static allocation, but over what actually remains.
+    files = [_make_file(tmp_path, "a.py", 30_000)]
+
+    assert check_total_file_size(files, "kimi") is None  # fresh call: fits
+    result = check_total_file_size(files, "kimi", remaining_tokens=remaining)
+
+    assert result is not None
+    assert result["metadata"]["limit"] == remaining - DEFAULT_FILE_RESERVE_TOKENS
+    assert result["metadata"]["bound_by"] == "conversation_history"
+
+
+def test_short_history_does_not_shrink_the_gate(tmp_path, stub_context):
+    """Regression: capping with min(file_tokens, remaining) would reject this.
+
+    With a short history the leftover content budget exceeds the static file
+    allocation, and the embedder deliberately uses the larger figure.
+    """
+    stub_context(KIMI_CONTEXT)
+    remaining = KIMI_CONTENT_TOKENS - 10_000  # 147,286 -- well above file_tokens
+    big = _make_file(tmp_path, "a.py", 100_000)  # > file_tokens, < remaining
+
+    assert check_total_file_size([big], "kimi", remaining_tokens=remaining) is None
+
+
+def test_rejection_explains_a_history_bound_limit(tmp_path, stub_context):
+    """A small limit on a huge-context model must explain itself."""
+    stub_context(KIMI_CONTEXT)
+    files = [_make_file(tmp_path, "a.py", 30_000)]
+
+    result = check_total_file_size(files, "kimi", remaining_tokens=5_000)
+
+    assert "history" in result["content"].lower()
+    assert "continuation_id" in result["content"]
 
 
 def test_gate_admits_the_band_the_old_haircut_rejected(tmp_path, stub_context):
     """Regression: a 0.6 haircut rejected 28,311-47,185 tokens needlessly."""
     stub_context(KIMI_CONTEXT)
-    in_old_dead_band = _make_file(tmp_path, "a.py", 35_000)  # > 28,311, < 47,185
+    in_old_dead_band = _make_file(tmp_path, "a.py", 35_000)  # > 28,311, < 46,185
 
     assert check_total_file_size([in_old_dead_band], "kimi") is None
 
@@ -99,13 +159,13 @@ def test_gate_scales_without_cliffs(tmp_path, stub_context, context_window):
     """Gate is a fixed fraction of file_tokens at every context size."""
     stub_context(context_window)
     content_ratio, file_ratio = (0.6, 0.3) if context_window < 300_000 else (0.8, 0.4)
-    file_tokens = int(int(context_window * content_ratio) * file_ratio)
+    budget = int(int(context_window * content_ratio) * file_ratio) - DEFAULT_FILE_RESERVE_TOKENS
 
-    fits = _make_file(tmp_path, "fits.py", file_tokens - 200)
+    fits = _make_file(tmp_path, "fits.py", budget - 200)
     assert check_total_file_size([fits], "m") is None
 
-    over = _make_file(tmp_path, "over.py", file_tokens + 2_000)
-    assert check_total_file_size([over], "m")["metadata"]["limit"] == file_tokens
+    over = _make_file(tmp_path, "over.py", budget + 2_000)
+    assert check_total_file_size([over], "m")["metadata"]["limit"] == budget
 
 
 def test_rejection_names_the_largest_files(tmp_path, stub_context):

@@ -810,7 +810,7 @@ def read_file_safely(file_path: str, max_size: int = 10 * 1024 * 1024) -> str | 
         return None
 
 
-def check_total_file_size(files: list[str], model_name: str) -> dict | None:
+def check_total_file_size(files: list[str], model_name: str, remaining_tokens: int | None = None) -> dict | None:
     """
     Check if total file sizes would exceed token threshold before embedding.
 
@@ -824,6 +824,9 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
     Args:
         files: List of file paths to check
         model_name: The resolved model name for context-aware thresholds (required)
+        remaining_tokens: Content budget left after conversation history, from
+            ``arguments["_remaining_tokens"]`` on a continuation. None on a
+            fresh call, where the model's static file allocation applies.
 
     Returns:
         Dict with `code_too_large` response if too large, None if acceptable
@@ -845,12 +848,17 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
     model_context = ModelContext(model_name)
     token_allocation = model_context.calculate_token_allocation()
 
-    # The gate must match the budget the embedding layer actually uses.
-    # `_prepare_file_content_for_prompt` embeds against `file_tokens`, so any
-    # stricter threshold here rejects file sets that would have been embedded
-    # in full. An earlier tiered haircut (0.6/0.7/0.8 by context size) did
-    # exactly that -- for a 262K model it refused at 28,311 tokens what the
-    # embedder would have taken to 47,185.
+    # The gate must resolve to the same number the embedding layer will use,
+    # so it shares TokenAllocation.effective_file_budget with
+    # `_prepare_file_content_for_prompt`. Computing it independently is what
+    # let the two diverge: a tiered haircut (0.6/0.7/0.8 by context size) once
+    # refused at 28,311 tokens what the embedder would have taken to 47,185.
+    #
+    # On a continuation `remaining_tokens` is the content budget left after
+    # conversation history, which may be larger *or* smaller than the static
+    # file allocation. Passing it through keeps the gate honest in both
+    # directions -- without it the gate is too lax exactly when a long history
+    # has already consumed the budget.
     #
     # No safety margin is folded in for prompt formatting (line numbers and
     # BEGIN/END delimiters): measured across this repo, size-based estimates
@@ -859,7 +867,8 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
     # and appends a "SKIPPED FILES (TOKEN LIMIT)" note naming the omissions,
     # so overflow is visible to the model rather than silent.
     context_window = token_allocation.total_tokens
-    max_file_tokens = token_allocation.file_tokens
+    max_file_tokens = token_allocation.effective_file_budget(remaining_tokens=remaining_tokens)
+    bound_by = "conversation_history" if remaining_tokens is not None else "model_file_allocation"
 
     within_limit, total_estimated_tokens, file_count, per_file = check_files_size_limit(files, max_file_tokens)
 
@@ -867,12 +876,27 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
         largest = per_file[:10]
         largest_rendered = "\n".join(f"  - {path} (~{tokens:,} tokens)" for path, tokens in largest)
         overage = total_estimated_tokens - max_file_tokens
+
+        # Say *why* the limit is what it is. On a continuation the budget can
+        # be far below the model's nominal file allocation because the
+        # conversation history already consumed it -- without that context a
+        # small limit on a large-context model reads as a bug.
+        if bound_by == "conversation_history":
+            why = (
+                f"The limit is the content budget left after this conversation's history, "
+                f"not {model_name}'s full file allocation. Starting a fresh conversation "
+                f"(omit continuation_id) would restore the larger budget."
+            )
+        else:
+            why = f"The limit is {model_name}'s file allocation from its {context_window:,}-token context window."
+
         return {
             "status": "code_too_large",
             "content": (
                 f"The selected files are too large for analysis "
                 f"(estimated {total_estimated_tokens:,} tokens, limit {max_file_tokens:,} "
                 f"-- over by {overage:,}).\n"
+                f"{why}\n"
                 f"Largest files:\n{largest_rendered}\n"
                 f"Please drop or narrow the largest entries above, then invoke the tool again."
             ),
@@ -881,6 +905,7 @@ def check_total_file_size(files: list[str], model_name: str) -> dict | None:
                 "total_estimated_tokens": total_estimated_tokens,
                 "limit": max_file_tokens,
                 "overage_tokens": overage,
+                "bound_by": bound_by,
                 "file_count": file_count,
                 "largest_files": [{"path": path, "estimated_tokens": tokens} for path, tokens in largest],
                 "model_context_window": context_window,

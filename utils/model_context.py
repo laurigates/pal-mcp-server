@@ -36,6 +36,20 @@ from providers import ModelCapabilities, ModelProviderRegistry
 logger = logging.getLogger(__name__)
 
 
+# Tokens held back from the file budget for the prompt content that surrounds
+# the embedded files.
+DEFAULT_FILE_RESERVE_TOKENS = 1_000
+
+# Floor for any file budget. Below this nothing useful can be embedded, and a
+# negative budget would make callers reject everything including empty sets.
+MIN_FILE_BUDGET_TOKENS = 1_000
+
+
+def apply_file_reserve(raw_budget: int, reserve_tokens: int = DEFAULT_FILE_RESERVE_TOKENS) -> int:
+    """Subtract the prompt reserve from a raw budget, clamped to the floor."""
+    return max(MIN_FILE_BUDGET_TOKENS, raw_budget - reserve_tokens)
+
+
 @dataclass
 class TokenAllocation:
     """Token allocation strategy for a model."""
@@ -50,6 +64,36 @@ class TokenAllocation:
     def available_for_prompt(self) -> int:
         """Tokens available for the actual prompt after allocations."""
         return self.content_tokens - self.file_tokens - self.history_tokens
+
+    def effective_file_budget(
+        self,
+        remaining_tokens: int | None = None,
+        reserve_tokens: int = DEFAULT_FILE_RESERVE_TOKENS,
+    ) -> int:
+        """
+        Tokens actually available for embedding file content.
+
+        Single source of truth for the file budget. Both the MCP-boundary
+        size gate (``check_total_file_size``) and the embedding layer
+        (``_prepare_file_content_for_prompt``) must derive their limit from
+        here -- when they computed it independently they diverged, and the
+        gate rejected file sets the embedder would have accepted in full.
+
+        Args:
+            remaining_tokens: Content budget left after conversation history
+                has been reconstructed (``_remaining_tokens``), or None on a
+                fresh call. When present it *replaces* the static file
+                allocation rather than capping it: a short history leaves
+                more room for files than ``file_tokens`` alone, and a long
+                one leaves less. Capping with ``min()`` would re-introduce
+                the false-rejection bug for short conversations.
+            reserve_tokens: Tokens held back for surrounding prompt content.
+
+        Returns:
+            Token budget for file content, never below MIN_FILE_BUDGET_TOKENS.
+        """
+        raw_budget = self.file_tokens if remaining_tokens is None else remaining_tokens
+        return apply_file_reserve(raw_budget, reserve_tokens)
 
 
 class ModelContext:
