@@ -628,17 +628,28 @@ def estimate_file_tokens(file_path: str) -> int:
     """
     Estimate tokens for a file using file-type aware ratios.
 
+    Applies the same path policy as the readers (``read_file_content``,
+    ``expand_paths``) before touching the filesystem. Estimation runs at the
+    MCP boundary in ``check_total_file_size``, i.e. *before* any tool executes
+    and therefore before those readers would have validated anything -- so
+    stat'ing the raw caller-supplied string here would expose the size and
+    existence of files that ``is_dangerous_path`` exists to protect. An
+    unreadable path contributes 0, which is what the readers would yield for
+    it anyway.
+
     Args:
-        file_path: Path to the file
+        file_path: Path to the file (must be absolute and pass path policy)
 
     Returns:
-        Estimated token count for the file
+        Estimated token count for the file, or 0 if it is not accessible
     """
     try:
-        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        resolved_path = resolve_and_validate_path(file_path)
+
+        if not resolved_path.exists() or not resolved_path.is_file():
             return 0
 
-        file_size = os.path.getsize(file_path)
+        file_size = resolved_path.stat().st_size
 
         # Get the appropriate ratio for this file type
         from .file_types import get_token_estimation_ratio

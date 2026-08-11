@@ -186,6 +186,33 @@ def test_rejection_names_the_largest_files(tmp_path, stub_context):
     assert "huge.py" in result["content"]
 
 
+def test_breakdown_does_not_leak_protected_paths(tmp_path, stub_context):
+    """The rejection must not report sizes for paths policy would block.
+
+    The gate runs at the MCP boundary, before any tool executes and so before
+    read_file_content/expand_paths would have validated anything. Reporting a
+    per-file size for /etc/passwd would turn the rejection into an existence
+    and size oracle for exactly the files is_dangerous_path protects.
+    """
+    stub_context(KIMI_CONTEXT)
+    big = _make_file(tmp_path, "big.py", KIMI_BUDGET + 5_000)
+
+    result = check_total_file_size([big, "/etc/passwd", "relative/path.py"], "kimi")
+
+    assert result is not None  # still rejected on the legitimate file
+    reported = [entry["path"] for entry in result["metadata"]["largest_files"]]
+    assert reported == [big]
+    assert "/etc/passwd" not in result["content"]
+
+
+def test_protected_paths_estimate_as_zero():
+    """Path policy is applied before the filesystem is touched."""
+    from utils.file_utils import estimate_file_tokens
+
+    assert estimate_file_tokens("/etc/passwd") == 0
+    assert estimate_file_tokens("relative/path.py") == 0
+
+
 def test_no_files_passes(stub_context):
     stub_context(KIMI_CONTEXT)
     assert check_total_file_size([], "kimi") is None
