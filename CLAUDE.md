@@ -171,6 +171,8 @@ Releases are automated by **release-please**:
 5. `config.__version__` is derived dynamically from `pyproject.toml` via `importlib.metadata` — no manual sync needed.
 6. On release, `release-please.yml`'s `publish-pypi` job builds with `uv build` and publishes to PyPI; the `v<version>` tag push makes `container.yml` promote the container image.
 
+> **Neither of those two steps currently works, and the release still looks green.** The tag and GitHub release are cut by a *different* job, so a failure downstream leaves a convincing release behind. `publish-pypi` has failed on every release from 10.2.2 to 10.4.2 and the package has never appeared on PyPI ([#79](https://github.com/laurigates/pal-mcp-server/issues/79) — needs a trusted publisher registered on PyPI); the v10.4.2 container release failed its Trivy scan after a cold-rebuild fallback ([#80](https://github.com/laurigates/pal-mcp-server/issues/80)). Until both close, **a cut release has no installable artifact** — don't treat a green `Release: release-please` badge or a published GitHub release as proof either one shipped.
+
 **Don't manually edit**: `CHANGELOG.md`, the `version` field in `pyproject.toml`. release-please owns them.
 
 Authentication uses the **laurigates-release-please GitHub App** (not a PAT). `release-please.yml` is a thin caller for `laurigates/.github/.github/workflows/reusable-release-please.yml@main`, which mints the token via `actions/create-github-app-token`. The caller passes the `RELEASE_PLEASE_APP_ID` variable as the workflow's `app-id` input and the `RELEASE_PLEASE_PRIVATE_KEY` secret as `APP_PRIVATE_KEY` — both pushed by `gitops` to repos flagged `release_please = true`.
