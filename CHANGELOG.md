@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [10.4.3](https://github.com/laurigates/pal-mcp-server/compare/v10.4.2...v10.4.3) (2026-08-12)
+
+
+### Bug Fixes
+
+* **release:** publish to PyPI via trusted publishing ([#81](https://github.com/laurigates/pal-mcp-server/issues/81)) ([b9488eb](https://github.com/laurigates/pal-mcp-server/commit/b9488eb6ac0af9bb4d85be90606d64fa7d52778c))
+
 ## [10.4.2](https://github.com/laurigates/pal-mcp-server/compare/v10.4.1...v10.4.2) (2026-08-11)
 
 
