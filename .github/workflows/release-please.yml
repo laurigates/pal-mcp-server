@@ -27,14 +27,28 @@ jobs:
 
   # Build and publish to PyPI only when release-please cut an actual release.
   # The reusable workflow deliberately has no publish step, so this stays in the
-  # caller: uv-native build, then the canonical PyPA publish action. Requires the
-  # PYPI_API_TOKEN secret on the repo.
+  # caller: uv-native build, then the canonical PyPA publish action.
+  #
+  # Publishes via PyPI trusted publishing (OIDC) -- no long-lived token to
+  # rotate or leak, and publishing is scoped to this workflow in this repo.
+  # This requires a matching publisher registered on PyPI; without it the
+  # exchange fails at the publish step. See issue #79.
+  #
+  # This previously passed `password: ${{ secrets.PYPI_API_TOKEN }}` for a
+  # secret that was never created. An empty password makes the action fall
+  # back to OIDC, which then failed for want of id-token: write -- so the
+  # error named the permission and hid the missing credential behind it, and
+  # the job failed on all five releases from 10.2.2 to 10.4.2 without anyone
+  # noticing, because the tag and GitHub release are cut by a different job.
   publish-pypi:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # Required for trusted publishing: lets the job mint the OIDC token
+      # PyPI exchanges for a short-lived upload credential.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +66,6 @@ jobs:
       - name: Build distributions
         run: uv build
 
+      # No `password:` -- omitting it is what selects trusted publishing.
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
