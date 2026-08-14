@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import subprocess
+import threading
 
 from .log_utils import LogUtils
 
@@ -162,26 +163,12 @@ class Calculator:
 
             self.logger.debug(f"Calling MCP tool {tool_name} with proper initialization")
 
-            # Execute the command with proper handling for async responses
-            # For consensus tool and other long-running tools, we need to ensure
-            # the subprocess doesn't close prematurely
-            result = subprocess.run(
-                server_cmd,
-                input=input_data,
-                text=True,
-                capture_output=True,
-                timeout=3600,  # 1 hour timeout
-                check=False,  # Don't raise on non-zero exit code
-            )
-
-            if result.returncode != 0:
-                self.logger.error(f"Standalone server failed with return code {result.returncode}")
-                self.logger.error(f"Stderr: {result.stderr}")
-                # Still try to parse stdout as the response might have been written before the error
-                self.logger.debug(f"Attempting to parse stdout despite error: {result.stdout[:500]}")
+            stdout = self._exchange_over_stdio(server_cmd, input_data, expected_id=2)
+            if stdout is None:
+                return None, None
 
             # Parse the response - look for the tool call response
-            response_data = self._parse_mcp_response(result.stdout, expected_id=2)
+            response_data = self._parse_mcp_response(stdout, expected_id=2)
             if not response_data:
                 return None, None
 
@@ -190,12 +177,81 @@ class Calculator:
 
             return response_data, continuation_id
 
-        except subprocess.TimeoutExpired:
-            self.logger.error(f"MCP tool call timed out after 1 hour: {tool_name}")
-            return None, None
         except Exception as e:
             self.logger.error(f"MCP tool call failed: {e}")
             return None, None
+
+    def _exchange_over_stdio(self, server_cmd: list[str], input_data: str, expected_id: int, timeout: int = 3600):
+        """Send the JSON-RPC batch and read until the reply to ``expected_id`` arrives.
+
+        stdin must stay open until then. The stdio server treats EOF as shutdown, so
+        writing the batch and closing (what subprocess.run does) cancels any handler
+        that is still awaiting — the server exits 0 having answered only `initialize`.
+        Tools that return without I/O beat the race; every tool that calls a provider
+        loses it, which is why the whole suite failed a few hundred ms in.
+        """
+        proc = subprocess.Popen(
+            server_cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+
+        # readline() blocks with no timeout of its own; killing the process is what
+        # unblocks it, so the watchdog owns the deadline.
+        timed_out = threading.Event()
+
+        def _kill_on_timeout():
+            timed_out.set()
+            proc.kill()
+
+        watchdog = threading.Timer(timeout, _kill_on_timeout)
+        watchdog.start()
+
+        lines: list[str] = []
+        try:
+            proc.stdin.write(input_data)
+            proc.stdin.flush()
+
+            while True:
+                line = proc.stdout.readline()
+                if not line:
+                    break  # server exited or was killed
+                lines.append(line)
+                try:
+                    message = json.loads(line)
+                except json.JSONDecodeError:
+                    continue  # non-JSON chatter on stdout is not fatal
+                if message.get("id") == expected_id:
+                    break
+        finally:
+            watchdog.cancel()
+            try:
+                if proc.stdin and not proc.stdin.closed:
+                    proc.stdin.close()
+            except OSError:
+                pass
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+            stderr = proc.stderr.read() if proc.stderr else ""
+            proc.stderr.close() if proc.stderr else None
+            proc.stdout.close() if proc.stdout else None
+
+        if timed_out.is_set():
+            self.logger.error(f"MCP tool call timed out after {timeout}s")
+            return None
+
+        if proc.returncode not in (0, None):
+            self.logger.error(f"Standalone server failed with return code {proc.returncode}")
+            if stderr:
+                self.logger.error(f"Stderr: {stderr.strip()[-2000:]}")
+
+        return "".join(lines)
 
     def _parse_mcp_response(self, stdout: str, expected_id: int = 2) -> str | None:
         """Parse MCP JSON-RPC response from stdout"""

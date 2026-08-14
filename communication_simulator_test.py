@@ -246,6 +246,25 @@ class CommunicationSimulator:
                 self.logger.error(f"Python environment check failed: {e}")
                 return False
 
+            # The server refuses to start without a provider, and it does so after
+            # this check passes - which surfaced as an unexplained "no response to
+            # the tool call" rather than a configuration error.
+            provider_env_vars = (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "AZURE_OPENAI_API_KEY",
+                "XAI_API_KEY",
+                "DIAL_API_KEY",
+                "CUSTOM_API_URL",
+                "OPENCODE_API_KEY",
+                "OPENROUTER_API_KEY",
+            )
+            if not any(os.environ.get(var) for var in provider_env_vars):
+                self.logger.error("No provider is configured - the MCP server will exit on startup.")
+                self.logger.error(f"Set one of: {', '.join(provider_env_vars)}")
+                self.logger.error("For free local runs: start Ollama and export CUSTOM_API_URL=http://localhost:11434")
+                return False
+
             self.logger.info("Standalone server environment is ready")
             return True
 
