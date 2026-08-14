@@ -82,11 +82,8 @@ Choose your AI coding assistant and add the corresponding configuration:
 {
   "mcpServers": {
     "pal": {
-      "command": "sh",
-      "args": [
-        "-c", 
-        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"
-      ],
+      "command": "uvx",
+      "args": ["pal-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -103,11 +100,8 @@ Create `.mcp.json` in your project root:
 {
   "mcpServers": {
     "pal": {
-      "command": "sh", 
-      "args": [
-        "-c",
-        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"
-      ],
+      "command": "uvx",
+      "args": ["pal-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -124,11 +118,8 @@ Edit `~/.gemini/settings.json`:
 {
   "mcpServers": {
     "pal": {
-      "command": "sh",
-      "args": [
-        "-c",
-        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"  
-      ],
+      "command": "uvx",
+      "args": ["pal-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -144,7 +135,7 @@ Edit `~/.codex/config.toml`:
 ```toml
 [mcp_servers.pal]
 command = "bash"
-args = ["-c", "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \\\"$p\\\" ] && exec \\\"$p\\\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"]
+args = ["pal-mcp-server"]
 tool_timeout_sec = 1200  # 20 minutes; added automatically by the setup script so upstream providers can respond
 
 [mcp_servers.pal.env]
@@ -169,11 +160,8 @@ Create or edit `~/.qwen/settings.json`:
 {
   "mcpServers": {
     "pal": {
-      "command": "bash",
-      "args": [
-        "-c",
-        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"
-      ],
+      "command": "uvx",
+      "args": ["pal-mcp-server"],
       "cwd": "/path/to/pal-mcp-server",
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
@@ -196,8 +184,8 @@ Edit `~/.config/opencode/opencode.json`:
     "pal": {
       "type": "local",
       "command": [
-        "/path/to/pal-mcp-server/.pal_venv/bin/python",
-        "/path/to/pal-mcp-server/server.py"
+        "uv",
+        "run", "--project", "/path/to/pal-mcp-server", "python", "server.py"
       ],
       "cwd": "/path/to/pal-mcp-server",
       "enabled": true,
@@ -220,7 +208,7 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 1. Open Cursor → `Settings` (`Cmd+,`/`Ctrl+,`) → **Integrations › Model Context Protocol (MCP)**.
 2. Click **Add MCP Server** and supply the following values:
    - Command: `sh`
-   - Args: `-c` and `for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x "$p" ] && exec "$p" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1`
+   - Args: `pal-mcp-server`
    - Environment (example):
      - `PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin`
      - `GEMINI_API_KEY=your_api_key_here`
@@ -232,11 +220,11 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 2. Open the Command Palette (`Cmd+Shift+P`/`Ctrl+Shift+P`) → **Claude: Configure MCP Servers** → **Add server**.
 3. When prompted, use the same values as above:
    - Command: `sh`
-   - Args: `-c` and the `uvx` bootstrap loop
+   - Args: `pal-mcp-server`
    - Environment: add the API keys you need (e.g. `GEMINI_API_KEY`, `OPENAI_API_KEY`)
 4. Save the JSON snippet the extension generates. VS Code will reload the server automatically the next time you interact with Claude.
 
-👉 Pro tip: If you prefer a one-line command, replace the long loop with `uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server`—just make sure `uvx` is on your PATH for every client.
+👉 Pro tip: if your client does not inherit your shell `PATH`, give `command` the absolute path to `uvx` (usually `~/.local/bin/uvx`, or `/opt/homebrew/bin/uvx` on Apple silicon).
 
 **Benefits of uvx method:**
 - ✅ Zero manual setup required
@@ -248,7 +236,7 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 
 ```bash
 # Clone the repository
-git clone https://github.com/BeehiveInnovations/pal-mcp-server.git
+git clone https://github.com/laurigates/pal-mcp-server.git
 cd pal-mcp-server
 
 # One-command setup (handles everything)
@@ -257,19 +245,18 @@ cd pal-mcp-server
 # Or for Windows PowerShell:
 ./run-server.ps1
 
-# View configuration for Claude Desktop
-./run-server.sh -c
-
 # See all options
 ./run-server.sh --help
 ```
 
 **What the setup script does:**
-- ✅ Creates Python virtual environment
-- ✅ Installs all dependencies  
-- ✅ Creates .env file for API keys
-- ✅ Configures Claude integrations
-- ✅ Provides copy-paste configuration
+- ✅ Syncs the locked dependencies into `.venv` with uv
+- ✅ Creates `.env` from `.env.example` for API keys
+- ✅ Prints the client config to copy
+
+It does not register the server with any MCP client — point your client at
+`uvx pal-mcp-server` (Method A) or at this checkout via
+`uv run --project <path> python server.py`.
 
 **After updates:** Always run `./run-server.sh` again after `git pull`.
 
@@ -449,7 +436,7 @@ Versions 0.2.1 and newer currently ignore values above ~60 seconds for some tran
 
 **For clone installations:**
 - Run `./run-server.sh` again to verify setup
-- Check virtual environment: `which python` should show `.pal_venv/bin/python`
+- Check virtual environment: `uv run python -c "import sys; print(sys.prefix)"` should show the project `.venv`
 
 ### API Key Issues
 

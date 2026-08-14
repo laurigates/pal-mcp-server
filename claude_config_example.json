@@ -1,11 +1,15 @@
 {
-  "comment": "Example Claude Desktop configuration for PAL MCP Server",
-  "comment2": "Run './run-server.sh -c' to get the exact configuration for your system",
-  "comment3": "For platform-specific examples, see the examples/ directory",
+  "comment": "Example MCP client configuration for PAL MCP Server (published on PyPI).",
+  "comment2": "uvx fetches and runs the package; no clone, no virtualenv to maintain.",
+  "comment3": "Set the API keys in your own environment - ${VAR} is expanded by the client.",
+  "comment4": "For platform-specific examples, see the examples/ directory.",
   "mcpServers": {
     "pal": {
-      "command": "/path/to/pal-mcp-server/.pal_venv/bin/python",
-      "args": ["/path/to/pal-mcp-server/server.py"]
+      "command": "uvx",
+      "args": ["pal-mcp-server"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      }
     }
   }
 }

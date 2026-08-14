@@ -1,11 +1,15 @@
 {
-  "comment": "macOS configuration using standalone server",
-  "comment2": "Run './run-server.sh' to set up the environment and get exact paths",
-  "comment3": "Use './run-server.sh -c' to display the correct configuration",
+  "comment": "macOS configuration using the published package.",
+  "comment2": "Requires uv on PATH (brew install uv). uvx resolves pal-mcp-server itself.",
+  "comment3": "If your client does not inherit your shell PATH, use the absolute uvx path:",
+  "comment4": "  /opt/homebrew/bin/uvx (Apple silicon) or /usr/local/bin/uvx (Intel).",
   "mcpServers": {
     "pal": {
-      "command": "/path/to/pal-mcp-server/.pal_venv/bin/python",
-      "args": ["/path/to/pal-mcp-server/server.py"]
+      "command": "uvx",
+      "args": ["pal-mcp-server"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      }
     }
   }
 }
