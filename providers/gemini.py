@@ -153,15 +153,9 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
 
         contents = [{"parts": parts}]
 
+        # The medium->high thinking-mode override that used to live here worked around a
+        # launch limitation of gemini-3-pro-preview, which Google has since shut down.
         effective_thinking_mode = thinking_mode
-        if resolved_model_name == "gemini-3-pro-preview" and thinking_mode == "medium":
-            logger.debug(
-                "Overriding thinking mode SQmediumSQ with SQhighSQ for %s due to launch limitation".replace(
-                    "SQ", chr(39)
-                ),
-                resolved_model_name,
-            )
-            effective_thinking_mode = "high"
 
         generation_config = types.GenerateContentConfig(
             temperature=temperature,

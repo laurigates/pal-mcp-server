@@ -73,7 +73,7 @@ class TestModelRestrictionService:
                 # Check Google models
                 assert service.is_allowed(ProviderType.GOOGLE, "flash")
                 assert service.is_allowed(ProviderType.GOOGLE, "pro")
-                assert service.is_allowed(ProviderType.GOOGLE, "gemini-3-pro-preview")
+                assert service.is_allowed(ProviderType.GOOGLE, "gemini-3.1-pro-preview")
 
     def test_case_insensitive_and_whitespace_handling(self):
         """Test that model names are case-insensitive and whitespace is trimmed."""
@@ -143,7 +143,7 @@ class TestModelRestrictionService:
 
             # Google should allow both models via shorthands
             assert service.is_allowed(ProviderType.GOOGLE, "gemini-3.5-flash", "flash")
-            assert service.is_allowed(ProviderType.GOOGLE, "gemini-3-pro-preview", "pro")
+            assert service.is_allowed(ProviderType.GOOGLE, "gemini-3.1-pro-preview", "pro")
 
             # Also test that full names work when specified in restrictions
             assert service.is_allowed(ProviderType.OPENAI, "o3-mini", "o3mini")  # Even with shorthand

@@ -1,11 +1,11 @@
 #!/bin/bash
-# Wrapper script for Gemini CLI compatibility
+# Wrapper for clients that need a single executable to launch the server.
+#
+# Prefer `uvx pal-mcp-server` (the published package) where the client lets you
+# set the command directly; this wrapper exists for clients that do not.
 
 # Get the directory of this script
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Change to the pal-mcp-server directory
-cd "$DIR"
-
-# Execute the Python server with all arguments passed through
-exec .pal_venv/bin/python server.py "$@"
+# Run from this checkout, letting uv resolve .python-version and the synced .venv.
+exec uv run --project "$DIR" python "$DIR/server.py" "$@"

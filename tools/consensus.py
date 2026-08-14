@@ -387,20 +387,56 @@ of the evidence, even when it strongly points in one direction.""",
         }
         return step_data
 
-    async def handle_work_completion(self, response_data: dict, request, arguments: dict) -> dict:  # noqa: ARG002
-        """Handle consensus workflow completion - no expert analysis, just final synthesis."""
-        response_data["consensus_complete"] = True
-        response_data["status"] = "consensus_workflow_complete"
+    def _build_complete_consensus(self) -> dict:
+        """Summarise the finished roster, making any lost models impossible to miss.
 
-        # Prepare final synthesis data
-        response_data["complete_consensus"] = {
+        A model that fails at call time (retired model id, provider outage, bad key)
+        is recorded with status "error" and the workflow carries on. Counting those
+        as responses reported a full-strength consensus that never happened, so the
+        summary separates what answered from what did not.
+        """
+        succeeded = [m for m in self.accumulated_responses if m.get("status") == "success"]
+        failed = [m for m in self.accumulated_responses if m.get("status") != "success"]
+
+        summary = {
             "initial_prompt": self.original_proposal if self.original_proposal else self.initial_prompt,
-            "models_consulted": [m["model"] + ":" + m.get("stance", "neutral") for m in self.accumulated_responses],
-            "total_responses": len(self.accumulated_responses),
-            "consensus_confidence": "high",  # Consensus complete
+            "models_consulted": [f"{m['model']}:{m.get('stance', 'neutral')}" for m in succeeded],
+            "total_responses": len(succeeded),
+            "models_requested": len(self.accumulated_responses),
+            "consensus_confidence": "high" if not failed else "degraded",
         }
 
-        response_data["next_steps"] = (
+        if failed:
+            summary["models_failed"] = [
+                {
+                    "model": m["model"],
+                    "stance": m.get("stance", "neutral"),
+                    "error": m.get("error", "unknown error"),
+                }
+                for m in failed
+            ]
+            # Provider coverage matters independently of the count: losing the only
+            # model from a given provider removes a whole perspective, not just a vote.
+            answered_providers = {m.get("metadata", {}).get("provider") for m in succeeded}
+            answered_providers.discard(None)
+            summary["providers_represented"] = sorted(answered_providers)
+
+        return summary
+
+    def _synthesis_next_steps(self, consensus: dict) -> str:
+        """Build the synthesis instruction, leading with a warning when degraded."""
+        preamble = ""
+        if consensus.get("consensus_confidence") == "degraded":
+            failed = consensus.get("models_failed", [])
+            names = ", ".join(f"{f['model']}" for f in failed)
+            preamble = (
+                f"⚠️ CONSENSUS DEGRADED: {consensus['total_responses']} of "
+                f"{consensus['models_requested']} models answered. Failed: {names}. "
+                "You MUST state this limitation in your synthesis — the result is weaker "
+                "than the consensus that was requested, and provider coverage may be lost.\n\n"
+            )
+
+        return preamble + (
             "CONSENSUS GATHERING IS COMPLETE. You MUST now synthesize all perspectives and present:\n"
             "1. Key points of AGREEMENT across models\n"
             "2. Key points of DISAGREEMENT and why they differ\n"
@@ -408,6 +444,16 @@ of the evidence, even when it strongly points in one direction.""",
             "4. Specific, actionable next steps for implementation\n"
             "5. Critical risks or concerns that must be addressed"
         )
+
+    async def handle_work_completion(self, response_data: dict, request, arguments: dict) -> dict:  # noqa: ARG002
+        """Handle consensus workflow completion - no expert analysis, just final synthesis."""
+        response_data["consensus_complete"] = True
+        response_data["status"] = "consensus_workflow_complete"
+
+        # Prepare final synthesis data
+        consensus = self._build_complete_consensus()
+        response_data["complete_consensus"] = consensus
+        response_data["next_steps"] = self._synthesis_next_steps(consensus)
 
         return response_data
 
@@ -504,22 +550,9 @@ of the evidence, even when it strongly points in one direction.""",
                 if request.step_number == request.total_steps:
                     response_data["status"] = "consensus_workflow_complete"
                     response_data["consensus_complete"] = True
-                    response_data["complete_consensus"] = {
-                        "initial_prompt": self.original_proposal if self.original_proposal else self.initial_prompt,
-                        "models_consulted": [
-                            f"{m['model']}:{m.get('stance', 'neutral')}" for m in self.accumulated_responses
-                        ],
-                        "total_responses": len(self.accumulated_responses),
-                        "consensus_confidence": "high",
-                    }
-                    response_data["next_steps"] = (
-                        "CONSENSUS GATHERING IS COMPLETE. Synthesize all perspectives and present:\n"
-                        "1. Key points of AGREEMENT across models\n"
-                        "2. Key points of DISAGREEMENT and why they differ\n"
-                        "3. Your final consolidated recommendation\n"
-                        "4. Specific, actionable next steps for implementation\n"
-                        "5. Critical risks or concerns that must be addressed"
-                    )
+                    consensus = self._build_complete_consensus()
+                    response_data["complete_consensus"] = consensus
+                    response_data["next_steps"] = self._synthesis_next_steps(consensus)
                 else:
                     response_data["next_steps"] = (
                         f"Model {model_response['model']} has provided its {model_response.get('stance', 'neutral')} "

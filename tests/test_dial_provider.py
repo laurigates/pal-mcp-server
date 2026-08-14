@@ -4,6 +4,7 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from openai import AsyncOpenAI
 
 from providers.dial import DIALModelProvider
 from providers.shared import ProviderType
@@ -251,9 +252,11 @@ class TestDIALProvider:
 
         provider = DIALModelProvider("test-key")
 
-        # Mock the superclass's _client attribute directly (AsyncOpenAI exposes aclose)
-        mock_superclass_client = MagicMock()
-        mock_superclass_client.aclose = AsyncMock()
+        # Mock the superclass's _client attribute directly. Spec it to AsyncOpenAI so
+        # the mock only offers the methods the real client has: it exposes close(),
+        # not aclose(), and an unspecced MagicMock would hide a wrong call here.
+        mock_superclass_client = MagicMock(spec=AsyncOpenAI)
+        mock_superclass_client.close = AsyncMock()
         provider._client = mock_superclass_client
 
         # Simulate getting clients for two different deployments to populate _deployment_clients
@@ -266,8 +269,10 @@ class TestDIALProvider:
         # Assert that the shared httpx async client's aclose was called
         mock_shared_http_client.aclose.assert_called_once()
 
-        # Assert that the superclass async client's aclose was called
-        mock_superclass_client.aclose.assert_called_once()
+        # Assert that the superclass async client's close was awaited
+        mock_superclass_client.close.assert_awaited_once()
 
         # Assert that the deployment clients cache is cleared
         assert not provider._deployment_clients
+        # The superclass client reference is dropped so a later close is a no-op
+        assert provider._client is None

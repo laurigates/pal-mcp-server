@@ -1,18 +1,14 @@
 # ===========================================
 # STAGE 1: Build dependencies with uv
 # ===========================================
-# Pinned to the uv this unversioned tag already resolves to. Astral stopped
-# publishing bookworm-slim variants after 0.9 — `0.10-`/`0.11-python3.12-bookworm-slim`
-# do not exist — so `:python3.12-bookworm-slim` is frozen at 0.9.30 (built
-# 2026-02-04) rather than tracking latest. Stating that explicitly keeps
-# `[tool.uv] required-version` in pyproject.toml honest: the container's uv is
-# a third place that bound applies to, via `uv sync --frozen` below.
+# Astral stopped publishing bookworm-slim variants after 0.9, which left this
+# pin frozen on a discontinued image and gave Renovate nothing to bump. The
+# trixie-slim line is the maintained one, so the pin now tracks it.
 #
-# This variant is no longer maintained. Migrating to the trixie-slim line
-# (`0.11-python3.12-trixie-slim`) is the real fix and would align the container
-# with CI's uv, but container.yml only builds on the release PR and tag push, so
-# it cannot be verified here. Tracked separately.
-FROM ghcr.io/astral-sh/uv:0.9.30-python3.12-bookworm-slim AS builder
+# Keep this on the same Debian release as the runtime stage below, and keep the
+# version inside `[tool.uv] required-version` in pyproject.toml — the container
+# is a third place that bound applies to, via `uv sync --frozen`.
+FROM ghcr.io/astral-sh/uv:0.11.33-python3.12-trixie-slim AS builder
 
 # Configure uv for reproducible, container-friendly installs:
 # - link mode "copy" works on every filesystem (cache mounts are scoped)
@@ -38,7 +34,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ===========================================
 # STAGE 2: Runtime image
 # ===========================================
-FROM python:3.12-slim AS runtime
+# Named explicitly rather than via the floating `3.12-slim`, which resolves to
+# the same digest today: the venv copied from the builder should land on the
+# Debian release it was resolved on, and that only holds if both are stated.
+FROM python:3.12-slim-trixie AS runtime
 
 LABEL maintainer="PAL MCP Server Team"
 LABEL org.opencontainers.image.title="pal-mcp-server"

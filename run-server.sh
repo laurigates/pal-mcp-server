@@ -4,8 +4,13 @@ set -euo pipefail
 # ============================================================================
 # PAL MCP Server Setup Script
 #
-# uv-based bootstrap: syncs dependencies into .venv via uv, prepares .env,
-# registers the server with Claude Code, and optionally tails the log file.
+# uv-based dev bootstrap: syncs dependencies into .venv via uv, prepares .env,
+# and optionally tails the log file.
+#
+# This does NOT register the server with an MCP client. The published package
+# is the registration path — point your client at `uvx pal-mcp-server` and let
+# it own the environment (see README). Self-registration used to hand-maintain
+# a list of env keys to forward, which drifted from the provider registry.
 #
 # For development (linting, formatting, tests):
 #     uv sync --group dev
@@ -23,7 +28,6 @@ readonly NC='\033[0m'
 
 readonly LOG_DIR="logs"
 readonly LOG_FILE="mcp_server.log"
-readonly LEGACY_MCP_NAMES=("zen" "zen-mcp" "zen-mcp-server" "zen_mcp" "zen_mcp_server")
 
 readonly PLACEHOLDER_KEYS=(
     "GEMINI_API_KEY:your_gemini_api_key_here"
@@ -31,24 +35,6 @@ readonly PLACEHOLDER_KEYS=(
     "XAI_API_KEY:your_xai_api_key_here"
     "DIAL_API_KEY:your_dial_api_key_here"
     "OPENROUTER_API_KEY:your_openrouter_api_key_here"
-)
-
-# Environment variables forwarded to `claude mcp add -e` if present and non-placeholder.
-readonly FORWARDED_ENV_KEYS=(
-    "GEMINI_API_KEY"
-    "OPENAI_API_KEY"
-    "XAI_API_KEY"
-    "DIAL_API_KEY"
-    "OPENROUTER_API_KEY"
-    "CUSTOM_API_URL"
-    "CUSTOM_API_KEY"
-    "CUSTOM_MODEL_NAME"
-    "DISABLED_TOOLS"
-    "DEFAULT_MODEL"
-    "LOG_LEVEL"
-    "DEFAULT_THINKING_MODE_THINKDEEP"
-    "CONVERSATION_TIMEOUT_HOURS"
-    "MAX_CONVERSATION_TURNS"
 )
 
 # ----------------------------------------------------------------------------
@@ -89,7 +75,7 @@ Options:
   -f, --follow    Set up, then follow server logs (tail -f $LOG_DIR/$LOG_FILE)
 
 Examples:
-  $0              Set up the MCP server (sync deps, prepare .env, register with Claude)
+  $0              Set up the dev environment (sync deps, prepare .env)
   $0 -f           Set up and follow logs in real-time
 
 Development setup (linting, formatting, tests):
@@ -200,97 +186,6 @@ ensure_log_dir() {
 }
 
 # ----------------------------------------------------------------------------
-# Claude Code MCP registration
-# ----------------------------------------------------------------------------
-
-# Build "-e KEY=value" arguments for `claude mcp add` from a sourced .env.
-collect_env_args() {
-    local args=()
-    local key value
-    for key in "${FORWARDED_ENV_KEYS[@]}"; do
-        value="${!key:-}"
-        if [[ -z "$value" ]]; then
-            continue
-        fi
-        # Skip placeholders like `your_gemini_api_key_here`.
-        if [[ "$value" =~ ^your_.*_here$ ]]; then
-            continue
-        fi
-        args+=(-e "${key}=${value}")
-    done
-    printf '%s\n' "${args[@]+"${args[@]}"}"
-}
-
-# Locate the `claude` binary, including common non-PATH locations.
-locate_claude() {
-    if command -v claude >/dev/null 2>&1; then
-        return 0
-    fi
-    local candidate dir
-    for candidate in "$HOME/.local/bin/claude" "/opt/homebrew/bin/claude" "/usr/local/bin/claude"; do
-        if [[ -x "$candidate" ]]; then
-            dir="$(dirname "$candidate")"
-            export PATH="$dir:$PATH"
-            print_info "Found Claude CLI at $candidate"
-            return 0
-        fi
-    done
-    return 1
-}
-
-register_with_claude() {
-    if ! locate_claude; then
-        print_warning "Claude CLI (\`claude\`) not found on PATH"
-        echo "  Install Claude Code from https://docs.anthropic.com/en/docs/claude-code/cli-usage" >&2
-        echo "  Then re-run ./run-server.sh to register the MCP server." >&2
-        # Print the command they could run manually once installed.
-        print_manual_registration
-        return 0
-    fi
-
-    # Clean up legacy zen-named registrations from before the rename.
-    local legacy
-    for legacy in "${LEGACY_MCP_NAMES[@]}"; do
-        claude mcp remove "$legacy" -s user >/dev/null 2>&1 || true
-    done
-
-    # Always re-register so the command/env stays current with the source tree.
-    claude mcp remove pal -s user >/dev/null 2>&1 || true
-
-    local server_path project_dir
-    project_dir="$(pwd)"
-    server_path="${project_dir}/server.py"
-
-    # Read env args into an array.
-    local env_args=()
-    while IFS= read -r line; do
-        [[ -n "$line" ]] && env_args+=("$line")
-    done < <(collect_env_args)
-
-    # Use `uv run` so the registration is venv-independent and survives Python
-    # bumps — uv picks up .python-version and the synced .venv automatically.
-    if claude mcp add pal -s user "${env_args[@]+"${env_args[@]}"}" -- uv run --project "$project_dir" python "$server_path"; then
-        print_success "Registered PAL with Claude Code (user scope)"
-    else
-        print_warning "Could not register PAL automatically. To add manually, run:"
-        print_manual_registration
-    fi
-}
-
-print_manual_registration() {
-    local server_path project_dir
-    project_dir="$(pwd)"
-    server_path="${project_dir}/server.py"
-    local env_args=()
-    while IFS= read -r line; do
-        [[ -n "$line" ]] && env_args+=("$line")
-    done < <(collect_env_args)
-    echo "" >&2
-    echo "  claude mcp add pal -s user ${env_args[*]+${env_args[*]}} -- uv run --project $project_dir python $server_path" >&2
-    echo "" >&2
-}
-
-# ----------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------
 
@@ -327,13 +222,20 @@ main() {
     check_api_keys
     sync_dependencies
     ensure_log_dir
-    register_with_claude
 
     echo ""
     print_success "Setup complete"
     echo "  Logs:      $(pwd)/$LOG_DIR/$LOG_FILE"
     echo "  Follow:    ./run-server.sh -f"
     echo "  Dev deps:  uv sync --group dev"
+    echo ""
+    echo "To use PAL from an MCP client, add this to its config:"
+    echo ""
+    echo '  "pal": { "command": "uvx", "args": ["pal-mcp-server"],'
+    echo '           "env": { "GEMINI_API_KEY": "${GEMINI_API_KEY}" } }'
+    echo ""
+    echo "  To run this checkout instead of the published package:"
+    echo "    uv run --project $(pwd) python server.py"
     echo ""
 
     if [[ $follow -eq 1 ]]; then

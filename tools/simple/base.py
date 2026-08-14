@@ -314,19 +314,24 @@ class SimpleTool(BaseTool):
 
                 model_name = DEFAULT_MODEL
 
-            # Store the current model name for later use
-            self._current_model_name = model_name
-
             # Handle model context from arguments (for in-process testing)
             if "_model_context" in arguments:
-                self._model_context = arguments["_model_context"]
+                model_context = arguments["_model_context"]
                 logger.debug(f"{self.get_name()}: Using model context from arguments")
             else:
                 # Create model context if not provided
                 from utils.model_context import ModelContext
 
-                self._model_context = ModelContext(model_name)
+                model_context = ModelContext(model_name)
                 logger.debug(f"{self.get_name()}: Created model context for {model_name}")
+
+            # server.py builds TOOLS once and reuses each instance across requests, so
+            # these attributes are shared by every in-flight call. They are still set
+            # for external readers, but everything below uses the locals: reading them
+            # back mid-request returns whichever concurrent call wrote last, which is
+            # how a slow OpenAI request came to report a Gemini model in model_used.
+            self._current_model_name = model_name
+            self._model_context = model_context
 
             # Get images if present
             images = self.get_request_images(request)
@@ -364,7 +369,7 @@ class SimpleTool(BaseTool):
 
                         # Build conversation history with updated thread context
                         conversation_history, conversation_tokens = build_conversation_history(
-                            thread_context, self._model_context
+                            thread_context, model_context
                         )
 
                         # Get the base prompt from the tool
@@ -393,7 +398,7 @@ class SimpleTool(BaseTool):
                 )  # Validate images if any were provided
             if images:
                 image_validation_error = self._validate_image_limits(
-                    images, model_context=self._model_context, continuation_id=continuation_id
+                    images, model_context=model_context, continuation_id=continuation_id
                 )
                 if image_validation_error:
                     error_output = ToolOutput(
@@ -407,7 +412,7 @@ class SimpleTool(BaseTool):
                     raise ToolExecutionError(payload)
 
             # Get and validate temperature against model constraints
-            temperature, temp_warnings = self.get_validated_temperature(request, self._model_context)
+            temperature, temp_warnings = self.get_validated_temperature(request, model_context)
 
             # Log any temperature corrections
             for warning in temp_warnings:
@@ -418,8 +423,8 @@ class SimpleTool(BaseTool):
                 thinking_mode = self.get_default_thinking_mode()
 
             # Get the provider from model context (clean OOP - no re-fetching)
-            provider = self._model_context.provider
-            capabilities = self._model_context.capabilities
+            provider = model_context.provider
+            capabilities = model_context.capabilities
 
             # Get system prompt for this tool
             base_system_prompt = self.get_system_prompt()
@@ -431,9 +436,7 @@ class SimpleTool(BaseTool):
 
             # Generate AI response using the provider
             logger.info(f"Sending request to {provider.get_provider_type().value} API for {self.get_name()}")
-            logger.info(
-                f"Using model: {self._model_context.model_name} via {provider.get_provider_type().value} provider"
-            )
+            logger.info(f"Using model: {model_context.model_name} via {provider.get_provider_type().value} provider")
 
             # Estimate tokens for logging
             from utils.token_utils import estimate_tokens
@@ -449,12 +452,12 @@ class SimpleTool(BaseTool):
             # a client with no signal cannot tell a thinking model from a hung one.
             progress = get_progress_reporter()
             await progress.update(
-                f"{self.get_name()} · {self._current_model_name} · sending ~{format_tokens(estimated_tokens)} tokens"
+                f"{self.get_name()} · {model_name} · sending ~{format_tokens(estimated_tokens)} tokens"
             )
-            async with progress.heartbeat(f"{self.get_name()} · {self._current_model_name} · thinking"):
+            async with progress.heartbeat(f"{self.get_name()} · {model_name} · thinking"):
                 model_response = await provider.generate_content(
                     prompt=prompt,
-                    model_name=self._current_model_name,
+                    model_name=model_name,
                     system_prompt=system_prompt,
                     temperature=temperature,
                     thinking_mode=thinking_mode if supports_thinking else None,
@@ -462,9 +465,7 @@ class SimpleTool(BaseTool):
                 )
 
             logger.info(f"Received response from {provider.get_provider_type().value} API for {self.get_name()}")
-            await progress.update(
-                f"{self.get_name()} · {self._current_model_name} · {summarize_usage(model_response.usage)}"
-            )
+            await progress.update(f"{self.get_name()} · {model_name} · {summarize_usage(model_response.usage)}")
 
             # Process the model's response
             if model_response.content:
@@ -473,7 +474,7 @@ class SimpleTool(BaseTool):
                 # Create model info for conversation tracking
                 model_info = {
                     "provider": provider,
-                    "model_name": self._current_model_name,
+                    "model_name": model_name,
                     "model_response": model_response,
                 }
 
@@ -517,10 +518,10 @@ class SimpleTool(BaseTool):
                             # by definition slow, and a bare await here would emit no
                             # keepalive — exactly the idle-timeout abort this reporting
                             # exists to prevent.
-                            async with progress.heartbeat(f"{self.get_name()} · {self._current_model_name} · retrying"):
+                            async with progress.heartbeat(f"{self.get_name()} · {model_name} · retrying"):
                                 retry_response = await provider.generate_content(
                                     prompt=retry_prompt,
-                                    model_name=self._current_model_name,
+                                    model_name=model_name,
                                     system_prompt=system_prompt,
                                     temperature=temperature,
                                     thinking_mode=thinking_mode if supports_thinking else None,
@@ -535,7 +536,7 @@ class SimpleTool(BaseTool):
                                 # Update model info for the successful retry
                                 model_info = {
                                     "provider": provider,
-                                    "model_name": self._current_model_name,
+                                    "model_name": model_name,
                                     "model_response": retry_response,
                                 }
 

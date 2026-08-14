@@ -32,46 +32,61 @@ You stay in control. Your CLI orchestrates the AI team, but you decide the workf
 - [OpenCode Go](https://opencode.ai/docs/go/) - Flat-rate subscription for open-source coding models
 - [Ollama](https://ollama.ai/) - Local models (free)
 
-**2. Install** (choose one):
+**2. Install**
 
-**Option A: Clone and Automatic Setup** (recommended)
-```bash
-git clone https://github.com/BeehiveInnovations/pal-mcp-server.git
-cd pal-mcp-server
+Add PAL to your MCP client config (`~/.claude/settings.json`, `.mcp.json`, or your
+client's equivalent). `uvx` fetches [the published package](https://pypi.org/project/pal-mcp-server/)
+on first run — there is nothing to clone and no virtualenv to maintain.
 
-# Handles everything: setup, config, API keys from system environment.
-# Auto-configures Claude Desktop, Claude Code, Gemini CLI, Codex CLI, Qwen CLI
-# Enable / disable additional settings in .env
-./run-server.sh
-```
-
-**Option B: Instant Setup with [uvx](https://docs.astral.sh/uv/getting-started/installation/)**
-
-Only set the keys for providers you want to use; at least one is required.
 ```json
-// Add to ~/.claude/settings.json or .mcp.json
 {
   "mcpServers": {
     "pal": {
-      "command": "bash",
-      "args": ["-c", "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"],
+      "command": "uvx",
+      "args": ["pal-mcp-server"],
       "env": {
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
-        "GEMINI_API_KEY": "your-gemini-key",
-        "OPENAI_API_KEY": "your-openai-key",
-        "AZURE_OPENAI_API_KEY": "your-azure-key",
-        "AZURE_OPENAI_ENDPOINT": "https://your-resource.openai.azure.com/",
-        "XAI_API_KEY": "your-xai-key",
-        "DIAL_API_KEY": "your-dial-key",
-        "OPENCODE_API_KEY": "your-opencode-key",
-        "OPENROUTER_API_KEY": "your-openrouter-key",
-        "CUSTOM_API_URL": "http://localhost:11434/v1",
-        "DISABLED_TOOLS": "analyze,refactor,testgen,secaudit,docgen,tracer",
-        "DEFAULT_MODEL": "auto"
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
       }
     }
   }
 }
+```
+
+Set only the providers you want; at least one is required. Keep the secrets in
+your own environment and reference them with `${VAR}` so they stay out of the
+repo. The full set of recognised keys:
+
+```json
+"env": {
+  "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+  "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+  "AZURE_OPENAI_API_KEY": "${AZURE_OPENAI_API_KEY}",
+  "AZURE_OPENAI_ENDPOINT": "https://your-resource.openai.azure.com/",
+  "XAI_API_KEY": "${XAI_API_KEY}",
+  "DIAL_API_KEY": "${DIAL_API_KEY}",
+  "OPENCODE_API_KEY": "${OPENCODE_API_KEY}",
+  "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
+  "CUSTOM_API_URL": "http://localhost:11434/v1",
+  "DISABLED_TOOLS": "analyze,refactor,testgen,secaudit,docgen,tracer",
+  "DEFAULT_MODEL": "auto"
+}
+```
+
+If your client does not inherit your shell `PATH`, give `command` the absolute
+path to `uvx` (typically `~/.local/bin/uvx`, or `/opt/homebrew/bin/uvx` on
+Apple silicon).
+
+**Working on PAL itself?** Clone the repo and point the client at your checkout
+instead:
+
+```bash
+git clone https://github.com/laurigates/pal-mcp-server.git
+cd pal-mcp-server
+./run-server.sh          # syncs .venv via uv and scaffolds .env
+```
+
+```json
+{ "command": "uv", "args": ["run", "--project", "/path/to/pal-mcp-server", "python", "server.py"] }
 ```
 
 **3. Start Using!**

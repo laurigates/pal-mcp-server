@@ -1,14 +1,15 @@
 {
-  "comment": "Windows configuration using WSL with standalone server",
-  "comment2": "Run './run-server.sh' in WSL to set up the environment and get exact paths",
-  "comment3": "Use './run-server.sh -c' to display the correct configuration",
+  "comment": "Windows configuration running the published package inside WSL.",
+  "comment2": "Requires uv installed in the WSL distro, not on Windows.",
+  "comment3": "'wsl.exe -- uvx' runs a login-less shell, so use the absolute uvx path",
+  "comment4": "if uvx is not found - typically /home/<user>/.local/bin/uvx.",
   "mcpServers": {
     "pal": {
       "command": "wsl.exe",
-      "args": [
-        "/path/to/pal-mcp-server/.pal_venv/bin/python",
-        "/path/to/pal-mcp-server/server.py"
-      ]
+      "args": ["--", "uvx", "pal-mcp-server"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      }
     }
   }
 }
