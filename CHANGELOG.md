@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [10.4.4](https://github.com/laurigates/pal-mcp-server/compare/v10.4.3...v10.4.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* clear the open-issue backlog and trim CLAUDE.md to essentials ([#84](https://github.com/laurigates/pal-mcp-server/issues/84)) ([fc6df20](https://github.com/laurigates/pal-mcp-server/commit/fc6df20ec8a5cb2ee31706ff4ba4e986e3f74862))
+
 ## [10.4.3](https://github.com/laurigates/pal-mcp-server/compare/v10.4.2...v10.4.3) (2026-08-12)
 
 
