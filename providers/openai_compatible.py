@@ -228,6 +228,25 @@ class OpenAICompatibleProvider(ModelProvider):
                         raise
         return self._client
 
+    def close(self) -> None:
+        """Shut down the lazily-created AsyncOpenAI client and its connection pool.
+
+        Without this the httpx pool underneath the client is only reclaimed by the
+        garbage collector, which fires after the event loop has closed and logs
+        ``RuntimeError: Event loop is closed``. Note the client exposes ``close()``,
+        not ``aclose()``.
+        """
+        client = self._client
+        if client is None:
+            return
+        # Drop the reference first so a later call rebuilds instead of double-closing.
+        self._client = None
+
+        async def _aclose() -> None:
+            await client.close()
+
+        self._run_async_cleanup(_aclose, description=f"closing {self.FRIENDLY_NAME} client")
+
     def _sanitize_for_logging(self, params: dict) -> dict:
         """Sanitize sensitive data from parameters before logging."""
         sanitized = copy.deepcopy(params)

@@ -288,6 +288,33 @@ class ModelProvider(ABC):
         logger.debug("Estimating %s tokens for model %s via character heuristic", estimated, resolved_model)
         return estimated
 
+    @staticmethod
+    def _run_async_cleanup(coro_factory: Callable[[], Awaitable[None]], *, description: str) -> None:
+        """Drive an async cleanup coroutine from synchronous ``close()``.
+
+        ``close()`` is called from an ``atexit`` handler, so it may run either with no
+        event loop at all or from inside one. Probing with ``get_running_loop()`` keeps
+        the two cases explicit instead of relying on ``asyncio.run()`` raising.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is None:
+            try:
+                asyncio.run(coro_factory())
+            except Exception as exc:
+                logger.warning("Error during %s: %s", description, exc)
+            return
+
+        # A loop is already running, so it owns the thread: the close can only be
+        # scheduled as fire-and-forget and may not complete before shutdown.
+        try:
+            loop.create_task(coro_factory())
+        except Exception as exc:
+            logger.warning("Could not schedule %s: %s", description, exc)
+
     def close(self) -> None:
         """Clean up any resources held by the provider."""
         return

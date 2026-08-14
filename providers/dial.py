@@ -1,6 +1,5 @@
 """DIAL (Data & AI Layer) model provider implementation."""
 
-import asyncio
 import logging
 import threading
 from typing import Any, ClassVar
@@ -199,27 +198,24 @@ class DIALModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
         logger.info("Closing DIAL provider HTTP clients...")
         self._deployment_clients.clear()
 
+        http_client = getattr(self, "_http_client", None)
+        # Take the AsyncOpenAI client from the superclass and clear it here, so the
+        # base close() below does not schedule a second close for the same object.
+        openai_client = self._client
+        self._client = None
+
         async def _aclose_all() -> None:
-            if hasattr(self, "_http_client"):
+            if http_client is not None:
                 try:
-                    await self._http_client.aclose()
+                    await http_client.aclose()
                     logger.debug("Closed shared HTTP client")
                 except Exception as e:
                     logger.warning(f"Error closing shared HTTP client: {e}")
-            if hasattr(self, "_client") and self._client and hasattr(self._client, "aclose"):
+            if openai_client is not None:
                 try:
-                    await self._client.aclose()
+                    await openai_client.close()
                     logger.debug("Closed superclass AsyncOpenAI client")
                 except Exception as e:
                     logger.warning(f"Error closing superclass AsyncOpenAI client: {e}")
 
-        try:
-            asyncio.run(_aclose_all())
-        except RuntimeError:
-            # Event loop is already running (e.g. called from within async context);
-            # schedule the cleanup as a best-effort fire-and-forget.
-            try:
-                loop = asyncio.get_event_loop()
-                loop.create_task(_aclose_all())
-            except Exception as e:
-                logger.warning(f"Could not schedule async cleanup: {e}")
+        self._run_async_cleanup(_aclose_all, description="closing DIAL HTTP clients")
