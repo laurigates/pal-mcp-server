@@ -59,7 +59,10 @@ py-modules = ["server", "config"]
 #   3. the uv base image in Dockerfile
 #
 # The floor is 0.8.17 because that is the version verified to read this
-# lockfile's `revision = 3`, not the first one that does.
+# lockfile's `revision = 3`, not the first one that does. Now that the
+# Dockerfile is on the maintained trixie line at 0.11.x — same series as
+# setup-uv in the workflows — only contributors still sitting on 0.8-0.10 keep
+# the floor this low; raising it to >=0.11 is a call about who that breaks.
 required-version = ">=0.8.17,<0.12"
 
 [tool.ruff]
