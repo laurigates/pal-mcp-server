@@ -49,8 +49,17 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # Create non-root user for security
 RUN groupadd -r paluser && useradd -r -g paluser paluser
 
-# Install minimal runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Install minimal runtime dependencies.
+#
+# `upgrade` is not cosmetic: the release job scans this image at CRITICAL,HIGH
+# with unfixed findings ignored, and the base always lags trixie-security by
+# whatever has been published since the base was last cut. How far it lags
+# varies — measured 2026-08-28, a build off the then-current base still carried
+# 3 HIGH in openssl/libssl3t64 (fixed in 3.5.7-1~deb13u2) that only this line
+# clears, while the published 10.4.4 image, built off an older base, carried
+# those plus 36 more across the util-linux family. No dependency change of ours
+# reaches any of them.
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     ca-certificates \
     procps \
     && rm -rf /var/lib/apt/lists/* \
