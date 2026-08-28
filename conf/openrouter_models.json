@@ -25,11 +25,47 @@
   },
   "models": [
     {
-      "model_name": "anthropic/claude-opus-4.7",
+      "model_name": "anthropic/claude-opus-5",
       "aliases": [
         "opus",
-        "opus4.7",
-        "claude-opus"
+        "claude-opus",
+        "opus5"
+      ],
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 5.0,
+      "allow_code_generation": true,
+      "description": "Claude Opus 5 - Anthropic's flagship for demanding reasoning, coding and long-horizon agentic work",
+      "intelligence_score": 20
+    },
+    {
+      "model_name": "anthropic/claude-sonnet-5",
+      "aliases": [
+        "sonnet",
+        "sonnet5",
+        "sonnet4.1"
+      ],
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 5.0,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "allow_code_generation": true,
+      "description": "Claude Sonnet 5 - Frontier Sonnet-class model with adaptive thinking and selectable reasoning effort",
+      "intelligence_score": 18
+    },
+    {
+      "model_name": "anthropic/claude-opus-4.7",
+      "aliases": [
+        "opus4.7"
       ],
       "context_window": 1000000,
       "max_output_tokens": 128000,
@@ -61,11 +97,10 @@
     {
       "model_name": "anthropic/claude-sonnet-4.6",
       "aliases": [
-        "sonnet",
         "sonnet4.6"
       ],
       "context_window": 1000000,
-      "max_output_tokens": 64000,
+      "max_output_tokens": 128000,
       "supports_extended_thinking": false,
       "supports_json_mode": false,
       "supports_function_calling": false,
@@ -79,7 +114,8 @@
       "model_name": "anthropic/claude-haiku-4.5",
       "aliases": [
         "haiku",
-        "haiku4.5"
+        "haiku4.5",
+        "haiku3.5"
       ],
       "context_window": 200000,
       "max_output_tokens": 64000,
@@ -111,7 +147,7 @@
       "aliases": [
         "sonnet4.5"
       ],
-      "context_window": 200000,
+      "context_window": 1000000,
       "max_output_tokens": 64000,
       "supports_extended_thinking": false,
       "supports_json_mode": false,
@@ -127,7 +163,7 @@
         "opus4.1"
       ],
       "context_window": 200000,
-      "max_output_tokens": 64000,
+      "max_output_tokens": 32000,
       "supports_extended_thinking": false,
       "supports_json_mode": false,
       "supports_function_calling": false,
@@ -137,41 +173,27 @@
       "intelligence_score": 14
     },
     {
-      "model_name": "anthropic/claude-sonnet-4.1",
+      "model_name": "google/gemini-3.7-flash",
       "aliases": [
-        "sonnet4.1"
+        "flash",
+        "gemini-flash",
+        "flash3.7"
       ],
-      "context_window": 200000,
-      "max_output_tokens": 64000,
-      "supports_extended_thinking": false,
-      "supports_json_mode": false,
-      "supports_function_calling": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
       "supports_images": true,
-      "max_image_size_mb": 5.0,
-      "description": "Claude Sonnet 4.1 - Last generation high-performance model with exceptional reasoning and efficiency",
-      "intelligence_score": 10
-    },
-    {
-      "model_name": "anthropic/claude-3.5-haiku",
-      "aliases": [
-        "haiku3.5"
-      ],
-      "context_window": 200000,
-      "max_output_tokens": 64000,
-      "supports_extended_thinking": false,
-      "supports_json_mode": false,
-      "supports_function_calling": false,
-      "supports_images": true,
-      "max_image_size_mb": 5.0,
-      "description": "Claude 3 Haiku - Fast and efficient with vision",
-      "intelligence_score": 8
+      "max_image_size_mb": 20.0,
+      "allow_code_generation": true,
+      "description": "Google's Gemini 3.7 Flash via OpenRouter - fast multimodal agentic workflows, coding and multi-step reasoning",
+      "intelligence_score": 15
     },
     {
       "model_name": "google/gemini-3.5-flash",
       "aliases": [
-        "flash",
-        "flash3.5",
-        "gemini-flash"
+        "flash3.5"
       ],
       "context_window": 1048576,
       "max_output_tokens": 65536,
@@ -259,7 +281,7 @@
         "flash2.5-openrouter"
       ],
       "context_window": 1048576,
-      "max_output_tokens": 65536,
+      "max_output_tokens": 65535,
       "supports_extended_thinking": true,
       "supports_json_mode": true,
       "supports_function_calling": true,
@@ -269,23 +291,41 @@
       "intelligence_score": 10
     },
     {
-      "model_name": "mistralai/mistral-large-2411",
+      "model_name": "moonshotai/kimi-k3",
+      "aliases": [
+        "kimi",
+        "kimi-k3",
+        "k3"
+      ],
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "allow_code_generation": true,
+      "description": "Kimi K3 - Moonshot AI's 2.8T open-weight multimodal reasoning model for coding and long-horizon agentic work",
+      "intelligence_score": 17
+    },
+    {
+      "model_name": "mistralai/mistral-large-2512",
       "aliases": [
         "mistral-large",
         "mistral"
       ],
-      "context_window": 128000,
-      "max_output_tokens": 32000,
+      "context_window": 262144,
+      "max_output_tokens": 209715,
       "supports_extended_thinking": false,
       "supports_json_mode": true,
       "supports_function_calling": true,
-      "supports_images": false,
-      "max_image_size_mb": 0.0,
-      "description": "Mistral's largest model (text-only)",
-      "intelligence_score": 11
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "description": "Mistral Large 3 (2512) - Mistral's most capable model, sparse MoE with vision",
+      "intelligence_score": 13
     },
     {
-      "model_name": "meta-llama/llama-3-70b",
+      "model_name": "meta-llama/llama-3.3-70b-instruct",
       "aliases": [
         "llama",
         "llama3",
@@ -293,15 +333,15 @@
         "llama-70b",
         "llama3-openrouter"
       ],
-      "context_window": 8192,
-      "max_output_tokens": 8192,
+      "context_window": 131072,
+      "max_output_tokens": 115200,
       "supports_extended_thinking": false,
-      "supports_json_mode": false,
-      "supports_function_calling": false,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
       "supports_images": false,
       "max_image_size_mb": 0.0,
-      "description": "Meta's Llama 3 70B model (text-only)",
-      "intelligence_score": 9
+      "description": "Meta's Llama 3.3 70B Instruct (text-only)",
+      "intelligence_score": 10
     },
     {
       "model_name": "deepseek/deepseek-r1-0528",
@@ -311,7 +351,7 @@
         "r1",
         "deepseek-thinking"
       ],
-      "context_window": 65536,
+      "context_window": 163840,
       "max_output_tokens": 32768,
       "supports_extended_thinking": true,
       "supports_json_mode": true,
@@ -322,21 +362,66 @@
       "intelligence_score": 15
     },
     {
-      "model_name": "perplexity/llama-3-sonar-large-32k-online",
+      "model_name": "perplexity/sonar-pro",
       "aliases": [
         "perplexity",
         "sonar",
         "perplexity-online"
       ],
-      "context_window": 32768,
-      "max_output_tokens": 32768,
+      "context_window": 200000,
+      "max_output_tokens": 8000,
       "supports_extended_thinking": false,
       "supports_json_mode": false,
       "supports_function_calling": false,
-      "supports_images": false,
-      "max_image_size_mb": 0.0,
-      "description": "Perplexity's online model with web search (text-only)",
-      "intelligence_score": 9
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "description": "Perplexity Sonar Pro - web-grounded search model with citations",
+      "intelligence_score": 10
+    },
+    {
+      "model_name": "openai/gpt-5.6-sol",
+      "aliases": [
+        "gpt5.6-sol",
+        "gpt-5.6-sol",
+        "sol",
+        "5.6"
+      ],
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "use_openai_response_api": true,
+      "default_reasoning_effort": "high",
+      "allow_code_generation": true,
+      "description": "GPT-5.6 Sol (1.05M context, 128K output) - flagship of OpenAI's GPT-5.6 series for complex reasoning, coding and agentic workflows",
+      "intelligence_score": 20
+    },
+    {
+      "model_name": "openai/gpt-5.6-terra",
+      "aliases": [
+        "gpt5.6-terra",
+        "gpt-5.6-terra",
+        "terra"
+      ],
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "use_openai_response_api": true,
+      "default_reasoning_effort": "medium",
+      "allow_code_generation": true,
+      "description": "GPT-5.6 Terra (1.05M context, 128K output) - balanced tier of the GPT-5.6 series for everyday coding and reasoning",
+      "intelligence_score": 17
     },
     {
       "model_name": "openai/o3",
@@ -433,7 +518,7 @@
         "gpt-5.5",
         "5.5"
       ],
-      "context_window": 1000000,
+      "context_window": 1050000,
       "max_output_tokens": 128000,
       "supports_extended_thinking": true,
       "supports_json_mode": true,
@@ -445,15 +530,17 @@
       "use_openai_response_api": true,
       "default_reasoning_effort": "high",
       "allow_code_generation": true,
-      "description": "GPT-5.5 (1M context, 128K output) - OpenAI's frontier model (released Apr 2026) via OpenRouter",
+      "description": "GPT-5.5 (1.05M context, 128K output) - OpenAI's frontier model (released Apr 2026) via OpenRouter",
       "intelligence_score": 19
     },
     {
       "model_name": "openai/gpt-5.3-codex",
       "aliases": [
+        "codex",
         "gpt5.3-codex",
         "gpt-5.3-codex",
-        "codex-5.3"
+        "codex-5.3",
+        "gpt5codex"
       ],
       "context_window": 400000,
       "max_output_tokens": 128000,
@@ -495,7 +582,7 @@
         "gpt5pro"
       ],
       "context_window": 400000,
-      "max_output_tokens": 272000,
+      "max_output_tokens": 128000,
       "supports_extended_thinking": true,
       "supports_json_mode": true,
       "supports_function_calling": true,
@@ -508,22 +595,6 @@
       "allow_code_generation": true,
       "description": "GPT-5.2 Pro - Advanced reasoning model with highest quality responses (text+image input, text output only)",
       "intelligence_score": 18
-    },
-    {
-      "model_name": "openai/gpt-5-codex",
-      "aliases": [
-        "codex",
-        "gpt5codex"
-      ],
-      "context_window": 400000,
-      "max_output_tokens": 128000,
-      "supports_extended_thinking": false,
-      "supports_json_mode": true,
-      "supports_function_calling": false,
-      "supports_images": false,
-      "max_image_size_mb": 0.0,
-      "description": "GPT-5-Codex is a specialized version of GPT-5 optimized for software engineering and coding workflows",
-      "intelligence_score": 17
     },
     {
       "model_name": "openai/gpt-5-mini",
@@ -629,32 +700,18 @@
       "intelligence_score": 16
     },
     {
-      "model_name": "x-ai/grok-4",
+      "model_name": "x-ai/grok-4.6",
       "aliases": [
+        "grok",
+        "grok-4.6",
+        "grok4.6",
         "grok-4",
         "grok4",
-        "grok"
-      ],
-      "context_window": 256000,
-      "max_output_tokens": 256000,
-      "supports_extended_thinking": true,
-      "supports_json_mode": true,
-      "supports_function_calling": true,
-      "supports_images": true,
-      "max_image_size_mb": 20.0,
-      "supports_temperature": true,
-      "temperature_constraint": "range",
-      "description": "xAI's Grok 4 via OpenRouter with vision and advanced reasoning",
-      "intelligence_score": 15
-    },
-    {
-      "model_name": "x-ai/grok-4.1-fast",
-      "aliases": [
         "grok-4.1-fast-openrouter",
         "grok-4.1-openrouter"
       ],
-      "context_window": 2000000,
-      "max_output_tokens": 2000000,
+      "context_window": 500000,
+      "max_output_tokens": 450000,
       "supports_extended_thinking": true,
       "supports_json_mode": true,
       "supports_function_calling": true,
@@ -662,8 +719,9 @@
       "max_image_size_mb": 20.0,
       "supports_temperature": true,
       "temperature_constraint": "range",
-      "description": "xAI's Grok 4.1 Fast Reasoning via OpenRouter (2M context) with vision and advanced reasoning",
-      "intelligence_score": 15
+      "allow_code_generation": true,
+      "description": "xAI's Grok 4.6 via OpenRouter - frontier coding, knowledge work and STEM with vision",
+      "intelligence_score": 18
     }
   ]
 }

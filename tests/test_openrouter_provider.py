@@ -79,15 +79,15 @@ class TestOpenRouterProvider:
         provider = OpenRouterProvider(api_key="test-key")
 
         # Test alias resolution
-        assert provider._resolve_model_name("opus") == "anthropic/claude-opus-4.7"
+        assert provider._resolve_model_name("opus") == "anthropic/claude-opus-5"
         assert provider._resolve_model_name("opus4.7") == "anthropic/claude-opus-4.7"
         assert provider._resolve_model_name("opus4.6") == "anthropic/claude-opus-4.6"
         assert provider._resolve_model_name("opus4.5") == "anthropic/claude-opus-4.5"
         assert provider._resolve_model_name("opus4.1") == "anthropic/claude-opus-4.1"
-        assert provider._resolve_model_name("sonnet") == "anthropic/claude-sonnet-4.6"
+        assert provider._resolve_model_name("sonnet") == "anthropic/claude-sonnet-5"
         assert provider._resolve_model_name("sonnet4.6") == "anthropic/claude-sonnet-4.6"
         assert provider._resolve_model_name("sonnet4.5") == "anthropic/claude-sonnet-4.5"
-        assert provider._resolve_model_name("sonnet4.1") == "anthropic/claude-sonnet-4.1"
+        assert provider._resolve_model_name("sonnet4.1") == "anthropic/claude-sonnet-5"
         assert provider._resolve_model_name("o3") == "openai/o3"
         assert provider._resolve_model_name("o3-mini") == "openai/o3-mini"
         assert provider._resolve_model_name("o3mini") == "openai/o3-mini"
@@ -95,19 +95,19 @@ class TestOpenRouterProvider:
         assert provider._resolve_model_name("o4-mini") == "openai/o4-mini"
         assert provider._resolve_model_name("haiku") == "anthropic/claude-haiku-4.5"
         assert provider._resolve_model_name("haiku4.5") == "anthropic/claude-haiku-4.5"
-        assert provider._resolve_model_name("haiku3.5") == "anthropic/claude-3.5-haiku"
-        assert provider._resolve_model_name("mistral") == "mistralai/mistral-large-2411"
-        assert provider._resolve_model_name("grok-4") == "x-ai/grok-4"
-        assert provider._resolve_model_name("grok4") == "x-ai/grok-4"
-        assert provider._resolve_model_name("grok") == "x-ai/grok-4"
+        assert provider._resolve_model_name("haiku3.5") == "anthropic/claude-haiku-4.5"
+        assert provider._resolve_model_name("mistral") == "mistralai/mistral-large-2512"
+        assert provider._resolve_model_name("grok-4") == "x-ai/grok-4.6"
+        assert provider._resolve_model_name("grok4") == "x-ai/grok-4.6"
+        assert provider._resolve_model_name("grok") == "x-ai/grok-4.6"
         assert provider._resolve_model_name("deepseek") == "deepseek/deepseek-r1-0528"
         assert provider._resolve_model_name("r1") == "deepseek/deepseek-r1-0528"
 
         # Test case-insensitive
-        assert provider._resolve_model_name("OPUS") == "anthropic/claude-opus-4.7"
-        assert provider._resolve_model_name("SONNET") == "anthropic/claude-sonnet-4.6"
+        assert provider._resolve_model_name("OPUS") == "anthropic/claude-opus-5"
+        assert provider._resolve_model_name("SONNET") == "anthropic/claude-sonnet-5"
         assert provider._resolve_model_name("O3") == "openai/o3"
-        assert provider._resolve_model_name("Mistral") == "mistralai/mistral-large-2411"
+        assert provider._resolve_model_name("Mistral") == "mistralai/mistral-large-2512"
 
         # Test direct model names (should pass through unchanged)
         assert provider._resolve_model_name("anthropic/claude-opus-4.1") == "anthropic/claude-opus-4.1"
@@ -176,7 +176,7 @@ class TestOpenRouterAutoMode:
             "openai/o3",
             "openai/o3-mini",
             "anthropic/claude-opus-4.1",
-            "anthropic/claude-sonnet-4.1",
+            "anthropic/claude-sonnet-5",
         ]
         mock_registry.list_models.return_value = model_names
 
@@ -226,7 +226,7 @@ class TestOpenRouterAutoMode:
             "google/gemini-2.5-flash",
             "google/gemini-2.5-pro",
             "anthropic/claude-opus-4.1",
-            "anthropic/claude-sonnet-4.1",
+            "anthropic/claude-sonnet-5",
         ]
         mock_registry.list_models.return_value = mock_models
 
@@ -313,11 +313,11 @@ class TestOpenRouterRegistry:
 
         registry = OpenRouterModelRegistry()
 
-        # Test known model (opus alias now points to 4.7)
+        # Test known model (opus alias now points to Opus 5)
         caps = registry.get_capabilities("opus")
         assert caps is not None
-        assert caps.model_name == "anthropic/claude-opus-4.7"
-        assert caps.context_window == 1000000  # Claude Opus 4.7's 1M context window
+        assert caps.model_name == "anthropic/claude-opus-5"
+        assert caps.context_window == 1000000  # Claude Opus 5's 1M context window
 
         # Test using full model name for 4.5
         caps = registry.get_capabilities("anthropic/claude-opus-4.5")
@@ -349,21 +349,25 @@ class TestOpenRouterRegistry:
 
         registry = OpenRouterModelRegistry()
 
-        # "sonnet" now resolves to Claude Sonnet 4.6 (current Sonnet); 4.5 still has its versioned alias
-        sonnet_46_aliases = ["sonnet", "sonnet4.6"]
-        for alias in sonnet_46_aliases:
+        # "sonnet" now resolves to Claude Sonnet 5 (current Sonnet); older versions keep their pinned aliases
+        sonnet_5_aliases = ["sonnet", "sonnet5"]
+        for alias in sonnet_5_aliases:
             config = registry.resolve(alias)
             assert config is not None
-            assert config.model_name == "anthropic/claude-sonnet-4.6"
+            assert config.model_name == "anthropic/claude-sonnet-5"
+
+        config = registry.resolve("sonnet4.6")
+        assert config is not None
+        assert config.model_name == "anthropic/claude-sonnet-4.6"
 
         config = registry.resolve("sonnet4.5")
         assert config is not None
         assert config.model_name == "anthropic/claude-sonnet-4.5"
 
-        # Test Sonnet 4.1 alias
+        # The retired Sonnet 4.1 alias now rehomes onto Sonnet 5
         config = registry.resolve("sonnet4.1")
         assert config is not None
-        assert config.model_name == "anthropic/claude-sonnet-4.1"
+        assert config.model_name == "anthropic/claude-sonnet-5"
 
 
 class TestOpenRouterFunctionality:

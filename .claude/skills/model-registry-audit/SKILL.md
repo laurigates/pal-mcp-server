@@ -35,15 +35,30 @@ The report ends in a parseable rollup:
 DEPRECATED=19
 STALE=21
 ALIAS_COLLISION=0
+ORPHAN_REF=3
 SCHEMA=0
 MISSING=47
-ACTIONABLE=40
+ACTIONABLE=43
 STATUS=DRIFT
 ```
 
 `ACTIONABLE` excludes `MISSING` on purpose — candidate additions are ranked by
 release date, not by whether they are worth exposing, so a nonzero `MISSING`
 is the normal state and must never gate CI.
+
+`ORPHAN_REF` is the one finding that is not about the config at all. Providers
+pin canonical ids *outside* the registry — `PRIMARY_MODEL`, `FALLBACK_MODEL`,
+and the per-category preference lists in `get_preferred_model` — as plain
+strings. Remove a model from the config and those keep pointing at it, so
+category routing resolves to nothing while every test still passes: the suite
+exercises the resolver, not the constants.
+
+> Found 2026-08-28: `providers/xai.py` named `grok-4-1-fast-reasoning` and
+> `grok-4` as PRIMARY/FALLBACK after xAI retired both, and `providers/openai.py`
+> listed the shut-down `gpt-5-codex` in three preference lists.
+
+So when you remove a model, grep the provider module in the same edit — or just
+re-run the audit, which now does it for you.
 
 ## The one trap that matters: absence is not withdrawal
 
@@ -61,6 +76,54 @@ alone.** Confirm against the provider's own documentation first —
 key if one is available. Deleting a working model because a community catalog
 had not indexed it yet is the failure mode this skill exists to prevent, and it
 looks exactly like diligent housekeeping in the diff.
+
+### A vendor's own deprecation page outranks both catalogs
+
+Neither catalog carries Google's or OpenAI's shutdown dates, and both lag the
+vendors in opposite directions. Before removing anything, read the vendor page:
+
+| Provider | Authoritative source |
+|---|---|
+| Gemini | Google's deprecations page — reachable via the `gemini-api-docs` MCP (`gemini_search_docs` for "deprecations"). It carries shutdown dates neither catalog has. |
+| OpenAI | `https://developers.openai.com/api/docs/deprecations` — a table of shutdown dates and named replacements. |
+| xAI | `https://docs.x.ai/docs/models` — a plain list of what is served. |
+
+Two directions of disagreement, both observed on 2026-08-28:
+
+- **The catalog says live, the vendor says dead.** OpenRouter listed
+  `openai/gpt-5.1-codex` with no `expiration_date` a month after OpenAI shut it
+  down (announced 2026-04-22, shutdown 2026-07-23). An aggregator's listing is
+  evidence about the aggregator, not about the origin API — which is why the
+  audit compares each config against *its own* provider's catalog rather than
+  pooling them.
+- **The catalog says nothing, the vendor says deprecated.** `gemini-3.1-flash-lite`
+  is present and unremarkable in both catalogs; Google's page gives it a
+  shutdown of 2027-05-07 and names `gemini-3.5-flash-lite` as its replacement.
+
+An announced-but-future shutdown is not a removal. Keep the entry, put the date
+and replacement in its `description`, and let the alias migrate first.
+
+### Check the provider-id mapping before believing a mass deprecation
+
+Each config maps to one catalog slice in `TARGETS`. A **wrong mapping reads
+exactly like a provider withdrawing half its lineup**, because every configured
+model is genuinely absent from the slice being searched — the negative is real,
+it just answers a different question.
+
+> Observed 2026-08-28: `opencode_go_models.json` was mapped to models.dev's
+> `opencode` provider (93 models). The correct slice is `opencode-go` (32
+> models) — models.dev carries both, and they are different gateways. The wrong
+> mapping reported six live models as withdrawn and called five genuinely-live
+> releases fabrications.
+
+The tell is the shape of the result: a scattering of deprecations across a file
+is ordinary churn, but a whole model *family* vanishing at once is a mapping
+bug until proven otherwise. Confirm the slice contains models you know are
+live before acting on any of it:
+
+```
+python3 -c "import json;d=json.load(open('.cache/model-catalogs/modelsdev.json'));print([k for k in d if 'opencode' in k])"
+```
 
 Three configs cannot be machine-verified at all, and the script says so rather
 than reporting them clean:
@@ -93,6 +156,11 @@ than reporting them clean:
    Ignore two paths: `CHANGELOG.md` (immutable record, release-please owns it)
    and `tests/*cassettes*/` (recorded HTTP fixtures — a cassette naming a
    retired model is a historical recording, not a live reference).
+
+   Docs need a distinction the grep will not draw for you: `gpt-5.1-codex` (the
+   direct OpenAI id, shut down) and `openai/gpt-5.1-codex` (the OpenRouter slug,
+   still served) are different facts about different providers. Rewrite the
+   first, leave the second.
 4. **Run the tests that assert on model names**:
 
    ```

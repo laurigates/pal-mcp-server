@@ -118,7 +118,7 @@ class TestGeminiProvider:
         assert provider.validate_model_name("pro")
 
         capabilities = provider.get_capabilities("flash")
-        assert capabilities.model_name == "gemini-3.5-flash"
+        assert capabilities.model_name == "gemini-3.7-flash"
 
     @patch("google.genai.Client")
     async def test_generate_content(self, mock_client_class):
@@ -210,8 +210,8 @@ class TestOpenAIProvider:
         assert provider.validate_model_name("o4mini")
         assert provider.validate_model_name("o4-mini")
         assert provider.validate_model_name("gpt-5.2")
-        assert provider.validate_model_name("gpt-5.1-codex")
-        assert provider.validate_model_name("gpt-5.1-codex-mini")
+        assert provider.validate_model_name("gpt-5.3-codex")
+        assert provider.validate_model_name("gpt-5.3-codex-spark")
         assert not provider.validate_model_name("gpt-4o")
         assert not provider.validate_model_name("invalid-model")
 
@@ -231,11 +231,11 @@ class TestOpenAIProvider:
         assert base.supports_streaming
         assert base.allow_code_generation
 
-        codex = provider.get_capabilities("gpt-5.1-codex")
+        codex = provider.get_capabilities("gpt-5.3-codex")
         assert not codex.supports_streaming
         assert codex.use_openai_response_api
         assert codex.allow_code_generation
 
-        codex_mini = provider.get_capabilities("gpt-5.1-codex-mini")
-        assert codex_mini.supports_streaming
-        assert codex_mini.allow_code_generation
+        codex_spark = provider.get_capabilities("gpt-5.3-codex-spark")
+        assert codex_spark.use_openai_response_api
+        assert codex_spark.allow_code_generation

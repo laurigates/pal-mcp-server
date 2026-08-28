@@ -42,8 +42,8 @@ class XAIModelsTest(BaseSimulatorTest):
             # Setup test files for later use
             self.setup_test_files()
 
-            # Test 1: 'grok' alias (should map to grok-4)
-            self.logger.info("  1: Testing 'grok' alias (should map to grok-4)")
+            # Test 1: 'grok' alias (should map to grok-4.6)
+            self.logger.info("  1: Testing 'grok' alias (should map to grok-4.6)")
 
             response1, continuation_id = self.call_mcp_tool(
                 "chat",

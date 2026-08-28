@@ -352,7 +352,7 @@ class TestOpenRouterAliasRestrictions:
                 "openai/o3-mini",  # canonical
                 "anthropic/claude-opus-4.1",  # full name
                 "flash",  # alias
-                "google/gemini-3.5-flash",  # canonical
+                "google/gemini-3.7-flash",  # canonical
             }
 
             available_model_names = set(available_models.keys())

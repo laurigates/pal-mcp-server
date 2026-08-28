@@ -25,17 +25,18 @@
   },
   "models": [
     {
-      "model_name": "grok-4",
-      "friendly_name": "X.AI (Grok 4)",
+      "model_name": "grok-4.6",
+      "friendly_name": "X.AI (Grok 4.6)",
       "aliases": [
         "grok",
         "grok4",
-        "grok-4"
+        "grok-4.6",
+        "grok-4-6"
       ],
-      "intelligence_score": 16,
-      "description": "GROK-4 (256K context) - Frontier multimodal reasoning model with advanced capabilities",
-      "context_window": 256000,
-      "max_output_tokens": 256000,
+      "intelligence_score": 17,
+      "description": "GROK-4.6 (500K context) - Frontier model for long-running agents, coding, knowledge work, and visual projects",
+      "context_window": 500000,
+      "max_output_tokens": 500000,
       "supports_extended_thinking": true,
       "supports_system_prompts": true,
       "supports_streaming": true,
@@ -46,19 +47,62 @@
       "max_image_size_mb": 20.0
     },
     {
-      "model_name": "grok-4-1-fast-reasoning",
-      "friendly_name": "X.AI (Grok 4.1 Fast Reasoning)",
+      "model_name": "grok-4.5",
+      "friendly_name": "X.AI (Grok 4.5)",
       "aliases": [
+        "grok-4.5",
+        "grok-4-5"
+      ],
+      "intelligence_score": 16,
+      "description": "GROK-4.5 (500K context) - Grok model for chat, coding, agentic tools, and lower hallucination risk",
+      "context_window": 500000,
+      "max_output_tokens": 500000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "max_image_size_mb": 20.0
+    },
+    {
+      "model_name": "grok-4.3",
+      "friendly_name": "X.AI (Grok 4.3)",
+      "aliases": [
+        "grok-4.3",
+        "grok-4-3",
         "grok-4.1",
         "grok-4-1",
+        "grok-4.1-fast",
         "grok-4.1-fast-reasoning",
-        "grok-4.1-fast-reasoning-latest",
-        "grok-4.1-fast"
+        "grok-4.1-fast-reasoning-latest"
       ],
       "intelligence_score": 15,
-      "description": "GROK-4.1 Fast Reasoning (2M context) - High-performance multimodal reasoning model with function calling",
-      "context_window": 2000000,
-      "max_output_tokens": 2000000,
+      "description": "GROK-4.3 (1M context) - Grok for chat, coding, agentic tools, and lower hallucination risk; successor to the retired Grok 4.1 Fast SKUs",
+      "context_window": 1000000,
+      "max_output_tokens": 30000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "max_image_size_mb": 20.0
+    },
+    {
+      "model_name": "grok-build-0.1",
+      "friendly_name": "X.AI (Grok Build 0.1)",
+      "aliases": [
+        "grok-build",
+        "grok-build-0.1",
+        "grok-code"
+      ],
+      "intelligence_score": 14,
+      "description": "GROK Build 0.1 (256K context) - Fast Grok coding model tuned for agentic engineering and iterative edits",
+      "context_window": 256000,
+      "max_output_tokens": 256000,
       "supports_extended_thinking": true,
       "supports_system_prompts": true,
       "supports_streaming": true,

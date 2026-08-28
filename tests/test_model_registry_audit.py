@@ -281,6 +281,80 @@ class TestUnverifiableTargets:
         assert _kinds(findings, "missing") == []
 
 
+class TestProviderReferenceCheck:
+    """The orphan-reference check, pinned in both directions.
+
+    A provider module hardcodes canonical ids (PRIMARY_MODEL, FALLBACK_MODEL,
+    per-category preference lists) outside the registry. When a model leaves the
+    config those strings keep pointing at it and category routing resolves to
+    nothing -- silently, because the tests exercise the resolver rather than the
+    constants. These tests exist so the check that catches it cannot rot into a
+    no-op.
+    """
+
+    def _module(self, tmp_path, monkeypatch, source: str) -> str:
+        providers = tmp_path / "providers"
+        providers.mkdir(exist_ok=True)
+        (providers / "fake.py").write_text(source)
+        monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
+        return "fake.py"
+
+    def test_hardcoded_id_absent_from_config_is_flagged(self, tmp_path, monkeypatch):
+        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "grok-4"\nFALLBACK_MODEL = "grok-4.6"\n')
+        findings = audit.check_provider_references("xai_models.json", mod, [{"model_name": "grok-4.6"}])
+        assert [f.model_name for f in findings] == ["grok-4"]
+        assert findings[0].kind == "orphan_ref"
+
+    def test_configured_id_is_not_flagged(self, tmp_path, monkeypatch):
+        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "grok-4.6"\n')
+        assert audit.check_provider_references("xai_models.json", mod, [{"model_name": "grok-4.6"}]) == []
+
+    def test_an_alias_counts_as_configured(self, tmp_path, monkeypatch):
+        """Providers legitimately pin an alias rather than a canonical name."""
+        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "grok4"\n')
+        models = [{"model_name": "grok-4.6", "aliases": ["grok4"]}]
+        assert audit.check_provider_references("xai_models.json", mod, models) == []
+
+    @pytest.mark.parametrize(
+        "literal",
+        [
+            "https://api.x.ai/v1",
+            "application/json",
+            "XAI_MODELS_CONFIG_PATH",
+            "text",
+            "provider",
+            # These pass MODEL_ID_SHAPE outright -- lowercase, separated, with a
+            # digit -- and are excluded only by NON_MODEL_LITERALS.
+            "utf-8",
+            "iso-8859-1",
+            "sha-256",
+            "http/1.1",
+        ],
+    )
+    def test_non_model_literals_are_not_flagged(self, tmp_path, monkeypatch, literal):
+        """The shape filter runs over every string in the module, so it must not
+        mistake URLs, MIME types, encodings or env-var names for model ids."""
+        mod = self._module(tmp_path, monkeypatch, f"VALUE = {literal!r}\n")
+        assert audit.check_provider_references("x.json", mod, [{"model_name": "m-1"}]) == []
+
+    def test_missing_or_unparseable_module_is_not_an_error(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
+        assert audit.check_provider_references("x.json", "nonexistent.py", []) == []
+        (tmp_path / "providers").mkdir()
+        (tmp_path / "providers" / "broken.py").write_text("def (:\n")
+        assert audit.check_provider_references("x.json", "broken.py", []) == []
+
+    def test_shipped_providers_have_no_orphan_references(self):
+        """The live gate: every id hardcoded in providers/ resolves in its config."""
+        for target in audit.TARGETS:
+            if not target.module:
+                continue
+            models, err = audit.read_config(audit.CONF_DIR / target.filename)
+            assert err is None, err
+            orphans = audit.check_provider_references(target.filename, target.module, models)
+            assert orphans == [], f"{target.module}: {[f.model_name for f in orphans]}"
+
+
 class TestRealConfigs:
     """Guards against the audit silently auditing nothing."""
 
