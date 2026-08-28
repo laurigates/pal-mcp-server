@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [10.5.0](https://github.com/laurigates/pal-mcp-server/compare/v10.4.4...v10.5.0) (2026-08-28)
+
+
+### Features
+
+* **models:** add model registry drift audit ([fba2cf7](https://github.com/laurigates/pal-mcp-server/commit/fba2cf7d1c13da4840199e5a9bbfb02a5fd7b35d))
+
+
+### Bug Fixes
+
+* **models:** retire withdrawn models and expose the current frontier ([66d3551](https://github.com/laurigates/pal-mcp-server/commit/66d3551591a9c654b330757b2ab78b0462b8d3ad))
+* **security:** clear every actionable CVE from the release image ([#86](https://github.com/laurigates/pal-mcp-server/issues/86)) ([67e2c17](https://github.com/laurigates/pal-mcp-server/commit/67e2c17ad0aa28463f54d74670cde75de3f01a66)), closes [#80](https://github.com/laurigates/pal-mcp-server/issues/80)
+
 ## [10.4.4](https://github.com/laurigates/pal-mcp-server/compare/v10.4.3...v10.4.4) (2026-08-14)
 
 
