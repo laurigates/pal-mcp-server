@@ -8,6 +8,24 @@
   },
   "models": [
     {
+      "model_name": "kimi-k3",
+      "friendly_name": "OpenCode Go (Kimi K3)",
+      "aliases": [],
+      "intelligence_score": 13,
+      "description": "Kimi K3 via OpenCode Go (1048K context) - flat-rate coding gateway",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "max_image_size_mb": 20.0
+    },
+    {
       "model_name": "deepseek-v4-pro",
       "friendly_name": "OpenCode Go (DeepSeek V4 Pro)",
       "aliases": [
@@ -292,23 +310,6 @@
       "intelligence_score": 10,
       "description": "Qwen3.6 Plus via OpenCode Go (1000K context) - flat-rate coding gateway",
       "context_window": 1000000,
-      "max_output_tokens": 65536,
-      "supports_extended_thinking": false,
-      "supports_system_prompts": true,
-      "supports_streaming": true,
-      "supports_function_calling": true,
-      "supports_json_mode": true,
-      "supports_images": true,
-      "supports_temperature": true,
-      "max_image_size_mb": 20.0
-    },
-    {
-      "model_name": "kimi-k2.5",
-      "friendly_name": "OpenCode Go (Kimi K2.5)",
-      "aliases": [],
-      "intelligence_score": 9,
-      "description": "Kimi K2.5 via OpenCode Go (262K context) - flat-rate coding gateway",
-      "context_window": 262144,
       "max_output_tokens": 65536,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,

@@ -26,7 +26,9 @@ Exit codes: 0 no drift, 1 drift found (with --fail-on-drift), 2 audit could not 
 from __future__ import annotations
 
 import argparse
+import ast
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -80,19 +82,31 @@ class Target:
     provider_id: str = ""  # models.dev provider key
     label: str = ""
     reason: str = ""  # why unverifiable, when applicable
+    module: str = ""  # providers/<module>, checked for stale hardcoded ids
 
 
 TARGETS: tuple[Target, ...] = (
-    Target("openrouter_models.json", "openrouter", label="OpenRouter"),
-    Target("gemini_models.json", "modelsdev", "google", "Gemini"),
-    Target("openai_models.json", "modelsdev", "openai", "OpenAI"),
-    Target("xai_models.json", "modelsdev", "xai", "xAI"),
-    Target("opencode_go_models.json", "modelsdev", "opencode", "OpenCode Zen"),
+    Target("openrouter_models.json", "openrouter", label="OpenRouter", module="openrouter.py"),
+    Target("gemini_models.json", "modelsdev", "google", "Gemini", module="gemini.py"),
+    Target("openai_models.json", "modelsdev", "openai", "OpenAI", module="openai.py"),
+    Target("xai_models.json", "modelsdev", "xai", "xAI", module="xai.py"),
+    # "opencode-go", not "opencode": models.dev carries both, and they are
+    # different gateways. The bare "opencode" slice (93 models) lacks the whole
+    # mimo/qwen3.7 family this config serves, so pointing at it reported six
+    # live models as withdrawn.
+    Target(
+        "opencode_go_models.json",
+        "modelsdev",
+        "opencode-go",
+        "OpenCode Zen (go)",
+        module="opencode_go.py",
+    ),
     Target(
         "dial_models.json",
         "unverifiable",
         label="DIAL",
         reason="enterprise aggregator, no public keyless catalog",
+        module="dial.py",
     ),
     Target(
         "custom_models.json",
@@ -134,9 +148,42 @@ NON_CHAT_MARKERS = (
 )
 
 
+# A model id as it appears in source: lowercase, at least one separator, and
+# (checked separately) at least one digit. Deliberately narrow -- it runs over
+# every string literal in a provider module, so a loose pattern would flag URLs
+# and header names.
+MODEL_ID_SHAPE = re.compile(r"^[a-z][a-z0-9]*(?:[./-][a-z0-9.]+)+$")
+
+# Literals that pass MODEL_ID_SHAPE but are plainly not model ids. Encodings and
+# protocol versions are the whole population: "utf-8" is lowercase, separated,
+# and carries a digit, so the shape filter alone reports it. Extend this rather
+# than loosening the pattern -- a shape wide enough to exclude "utf-8" also
+# excludes "gpt-5".
+NON_MODEL_LITERALS = frozenset(
+    {
+        "utf-8",
+        "utf-16",
+        "utf-32",
+        "latin-1",
+        "iso-8859-1",
+        "sha-1",
+        "sha-256",
+        "sha-512",
+        "http/1.1",
+        "http/2",
+        "base-64",
+    }
+)
+
+# Findings that represent something broken now. Candidate additions are excluded
+# on purpose: a nonzero MISSING is the normal state of a curated registry, so
+# gating CI on it would make the gate meaningless.
+ACTIONABLE_KINDS = ("deprecated", "stale", "alias_collision", "orphan_ref", "schema")
+
+
 @dataclass
 class Finding:
-    kind: str  # deprecated | missing | stale | alias_collision | schema
+    kind: str  # deprecated | missing | stale | alias_collision | schema | orphan_ref
     config_file: str
     model_name: str
     detail: str
@@ -305,6 +352,53 @@ def check_schema(filename: str, models: list[dict[str, Any]]) -> list[Finding]:
     return out
 
 
+def check_provider_references(filename: str, module: str, models: list[dict[str, Any]]) -> list[Finding]:
+    """Flag model ids hardcoded in a provider module that the config no longer has.
+
+    Providers pin canonical ids outside the registry -- ``PRIMARY_MODEL`` /
+    ``FALLBACK_MODEL`` and the per-category preference lists. Those are plain
+    strings, so when a model leaves the config they keep pointing at it and
+    category routing silently resolves to nothing. Nothing else in the suite
+    notices: the tests exercise the resolver, not the constants.
+
+    Observed 2026-08-28: ``providers/xai.py`` named ``grok-4-1-fast-reasoning``
+    and ``grok-4`` as PRIMARY/FALLBACK after xAI retired both, and
+    ``providers/openai.py`` listed the shut-down ``gpt-5-codex`` in three
+    preference lists.
+
+    String literals are read from the AST and filtered to model-id shape
+    (lowercase, a separator, at least one digit), which across all six provider
+    modules yields no false positives.
+    """
+    path = REPO_ROOT / "providers" / module
+    try:
+        tree = ast.parse(path.read_text())
+    except (FileNotFoundError, SyntaxError):
+        return []
+
+    known = {m["model_name"] for m in models if m.get("model_name")}
+    known |= {a.lower() for m in models for a in (m.get("aliases") or [])}
+
+    literals = {node.value for node in ast.walk(tree) if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+    out: list[Finding] = []
+    for literal in sorted(literals):
+        if literal in NON_MODEL_LITERALS:
+            continue
+        if not MODEL_ID_SHAPE.match(literal) or not any(c.isdigit() for c in literal):
+            continue
+        if literal in known or literal.lower() in known:
+            continue
+        out.append(
+            Finding(
+                "orphan_ref",
+                filename,
+                literal,
+                f"providers/{module} hardcodes it, but it is not in this config",
+            )
+        )
+    return out
+
+
 def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[list[Finding], dict[str, Any]]:
     path = CONF_DIR / target.filename
     models, err = read_config(path)
@@ -322,6 +416,8 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
 
     findings.extend(check_aliases(target.filename, models))
     findings.extend(check_schema(target.filename, models))
+    if target.module:
+        findings.extend(check_provider_references(target.filename, target.module, models))
 
     if target.source == "unverifiable":
         meta["catalog"] = 0
@@ -429,6 +525,7 @@ def emit_text(results: list[tuple[Target, list[Finding], dict[str, Any]]]) -> No
         ("deprecated", "DEPRECATED"),
         ("stale", "STALE METADATA"),
         ("alias_collision", "ALIAS COLLISIONS"),
+        ("orphan_ref", "STALE PROVIDER REFERENCES"),
         ("schema", "SCHEMA"),
         ("missing", "CANDIDATE ADDITIONS"),
     ):
@@ -438,14 +535,16 @@ def emit_text(results: list[tuple[Target, list[Finding], dict[str, Any]]]) -> No
             mark = "" if f.confidence == "confirmed" else " [review]"
             print(f"{f.config_file}: {f.model_name} -- {f.detail}{mark}")
 
-    counts: dict[str, int] = dict.fromkeys(("deprecated", "stale", "alias_collision", "schema", "missing"), 0)
+    counts: dict[str, int] = dict.fromkeys(
+        ("deprecated", "stale", "alias_collision", "orphan_ref", "schema", "missing"), 0
+    )
     for _, fs, _ in results:
         for f in fs:
             counts[f.kind] = counts.get(f.kind, 0) + 1
     print("\n=== SUMMARY ===")
     for k, v in counts.items():
         print(f"{k.upper()}={v}")
-    actionable = counts["deprecated"] + counts["stale"] + counts["alias_collision"] + counts["schema"]
+    actionable = sum(counts[k] for k in ACTIONABLE_KINDS)
     print(f"ACTIONABLE={actionable}")
     print(f"STATUS={'DRIFT' if actionable else 'CLEAN'}")
 
@@ -504,9 +603,7 @@ def main() -> int:
 
     if any(meta.get("error") for _, _, meta in results):
         return 2
-    actionable = sum(
-        1 for _, fs, _ in results for f in fs if f.kind in ("deprecated", "stale", "alias_collision", "schema")
-    )
+    actionable = sum(1 for _, fs, _ in results for f in fs if f.kind in ACTIONABLE_KINDS)
     return 1 if (args.fail_on_drift and actionable) else 0
 
 

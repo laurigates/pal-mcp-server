@@ -67,7 +67,7 @@ CUSTOM_MODEL_NAME=llama3.2                          # Default model
 
 **Default Model Selection:**
 ```env
-# Options: 'auto', 'pro', 'flash', 'gpt5.2', 'gpt5.1-codex', 'gpt5.1-codex-mini', 'o3', 'o3-mini', 'o4-mini', etc.
+# Options: 'auto', 'pro', 'flash', 'sol', 'gpt5.6', 'gpt5.2', 'codex', 'codex-spark', 'o3', 'o3-mini', 'o4-mini', etc.
 DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
 ```
 
@@ -86,14 +86,14 @@ DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
 
   | Provider | Canonical Models | Notable Aliases |
   |----------|-----------------|-----------------|
-  | OpenAI | `gpt-5.2`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`, `gpt-5`, `gpt-5.2-pro`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5-codex`, `gpt-4.1`, `o3`, `o3-mini`, `o3-pro`, `o4-mini` | `gpt5.2`, `gpt-5.2`, `5.2`, `gpt5.1-codex`, `codex-5.1`, `codex-mini`, `gpt5`, `gpt5pro`, `mini`, `nano`, `codex`, `o3mini`, `o3pro`, `o4mini` |
-  | Gemini | `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-2.0-flash-lite` | `pro`, `gemini-pro`, `flash`, `flash-2.0`, `flashlite` |
-  | X.AI | `grok-4`, `grok-4.1-fast` | `grok`, `grok4`, `grok-4.1-fast-reasoning` |
+  | OpenAI | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5-pro`, `gpt-5.5`, `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`, `gpt-5.2-pro`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `o3`, `o3-mini`, `o3-pro`, `o4-mini` | `sol`, `terra`, `luna`, `gpt5.6`, `5.6`, `codex`, `codex-5.3`, `codex-spark`, `gpt5.2`, `5.2`, `gpt5pro`, `mini`, `nano`, `o3mini`, `o3pro`, `o4mini` |
+  | Gemini | `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-2.5-pro`, `gemini-2.5-flash` | `flash`, `flash3.7`, `flash-lite`, `pro`, `gemini-pro`, `flash2.5` |
+  | X.AI | `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-build-0.1` | `grok`, `grok4`, `grok-4.1-fast`, `grok-4.1-fast-reasoning`, `grok-build` |
   | OpenCode Go | `glm-5.2`, `deepseek-v4-pro`, `deepseek-v4-flash`, `kimi-k2.7-code`, `qwen3.7-max`, `minimax-m3`, `mimo-v2.5-pro`, … (19 models) | `glm`, `deepseek`, `deepseek-flash`, `kimi`, `qwen`, `minimax`, `mimo` |
   | OpenRouter | See `conf/openrouter_models.json` for the continually evolving catalogue | e.g., `opus`, `sonnet`, `flash`, `pro`, `mistral` |
   | Custom | User-managed entries such as `llama3.2` | Define your own aliases per entry |
 
-  Latest OpenAI entries (`gpt-5.2`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`, `gpt-5.2-pro`) expose 400K-token contexts with large outputs, reasoning-token support, and multimodal inputs. `gpt-5.1-codex` and `gpt-5.2-pro` are Responses-only with streaming disabled, while the base `gpt-5.2` and Codex mini support streaming along with full code-generation flags. Update your manifests if you run custom deployments so these capability bits stay accurate.
+  The GPT-5.6 tier (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`) exposes 1.05M-token contexts with reasoning-token support and multimodal inputs; the Pro tiers (`gpt-5.5-pro`, `gpt-5.2-pro`) and the Codex models are Responses-only with streaming disabled. Update your manifests if you run custom deployments so these capability bits stay accurate — `just models-audit` reports where they have drifted from what the provider actually serves.
 
   > **Tip:** Copy the JSON file you need, customise it, and point the corresponding `*_MODELS_CONFIG_PATH` environment variable to your version. This lets you enable or disable capabilities (JSON mode, function calling, temperature support, code generation) without editing Python.
 
@@ -113,7 +113,7 @@ The `allow_code_generation` capability enables models to generate complete, prod
 
 **When to Enable:**
 
-- **Enable for**: Models MORE capable than your primary CLI's model (e.g., GPT-5.1 Codex, GPT-5.2 Pro, GPT-5.2 when using Claude Code with Sonnet 4.5)
+- **Enable for**: Models MORE capable than your primary CLI's model (e.g., GPT-5.6 Sol, GPT-5.5 Pro, GPT-5.3 Codex when using Claude Code with Sonnet 5)
 - **Purpose**: Get complete implementations from a more powerful reasoning model that your primary CLI can then review and apply
 - **Use case**: Large-scale implementations, major refactoring, complete module creation
 
@@ -179,13 +179,13 @@ Control which models can be used from each provider for cost control, compliance
 # Empty or unset = all models allowed (default)
 
 # OpenAI model restrictions
-OPENAI_ALLOWED_MODELS=gpt-5.1-codex-mini,gpt-5-mini,o3-mini,o4-mini,mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,o3-mini,o4-mini,mini
 
 # Gemini model restrictions  
 GOOGLE_ALLOWED_MODELS=flash,pro
 
 # X.AI GROK model restrictions
-XAI_ALLOWED_MODELS=grok-4,grok-4.1-fast-reasoning
+XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
 
 # OpenCode Go model restrictions
 OPENCODE_GO_ALLOWED_MODELS=glm-5.2,deepseek-v4-pro,deepseek-v4-flash
@@ -207,7 +207,7 @@ OPENAI_ALLOWED_MODELS=o4-mini
 GOOGLE_ALLOWED_MODELS=flash
 
 # High-performance setup
-OPENAI_ALLOWED_MODELS=gpt-5.1-codex,gpt-5.2
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex,gpt-5.2
 GOOGLE_ALLOWED_MODELS=pro
 
 # Single model standardization
@@ -216,8 +216,8 @@ GOOGLE_ALLOWED_MODELS=pro
 
 # Balanced selection
 GOOGLE_ALLOWED_MODELS=flash,pro
-OPENAI_ALLOWED_MODELS=gpt-5.1-codex-mini,gpt-5-mini,o4-mini
-XAI_ALLOWED_MODELS=grok,grok-4.1-fast-reasoning
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,o4-mini
+XAI_ALLOWED_MODELS=grok,grok-4.3
 ```
 
 ### Advanced Configuration
@@ -277,7 +277,7 @@ DEFAULT_MODEL=auto
 GEMINI_API_KEY=your-gemini-key
 OPENAI_API_KEY=your-openai-key
 GOOGLE_ALLOWED_MODELS=flash,pro
-OPENAI_ALLOWED_MODELS=gpt-5.1-codex-mini,gpt-5-mini,o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,o4-mini
 XAI_API_KEY=your-xai-key
 LOG_LEVEL=DEBUG
 CONVERSATION_TIMEOUT_HOURS=1
@@ -290,7 +290,7 @@ DEFAULT_MODEL=auto
 GEMINI_API_KEY=your-gemini-key
 OPENAI_API_KEY=your-openai-key
 GOOGLE_ALLOWED_MODELS=flash
-OPENAI_ALLOWED_MODELS=gpt-5.1-codex-mini,o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,o4-mini
 LOG_LEVEL=INFO
 CONVERSATION_TIMEOUT_HOURS=3
 ```

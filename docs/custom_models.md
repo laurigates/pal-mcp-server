@@ -52,17 +52,21 @@ The curated defaults in `conf/openrouter_models.json` include popular entries su
 
 | Alias | Canonical Model | Highlights |
 |-------|-----------------|------------|
-| `opus`, `claude-opus` | `anthropic/claude-opus-4.1` | Flagship Claude reasoning model with vision |
-| `sonnet`, `sonnet4.5` | `anthropic/claude-sonnet-4.5` | Balanced Claude with high context window |
-| `haiku` | `anthropic/claude-3.5-haiku` | Fast Claude option with vision |
-| `pro`, `gemini` | `google/gemini-2.5-pro` | Frontier Gemini with extended thinking |
-| `flash` | `google/gemini-2.5-flash` | Ultra-fast Gemini with vision |
-| `mistral` | `mistralai/mistral-large-2411` | Frontier Mistral (text only) |
-| `llama3` | `meta-llama/llama-3-70b` | Large open-weight text model |
+| `opus`, `claude-opus` | `anthropic/claude-opus-5` | Flagship Claude reasoning model with vision |
+| `sonnet`, `sonnet5` | `anthropic/claude-sonnet-5` | Balanced Claude with 1M context and adaptive thinking |
+| `haiku` | `anthropic/claude-haiku-4.5` | Fast Claude option with vision |
+| `pro`, `gemini` | `google/gemini-3.1-pro-preview` | Frontier Gemini with extended thinking |
+| `flash`, `gemini-flash` | `google/gemini-3.7-flash` | Ultra-fast multimodal Gemini |
+| `mistral`, `mistral-large` | `mistralai/mistral-large-2512` | Frontier Mistral (Large 3) with vision |
+| `llama`, `llama3` | `meta-llama/llama-3.3-70b-instruct` | Large open-weight text model |
 | `deepseek-r1` | `deepseek/deepseek-r1-0528` | DeepSeek reasoning model |
-| `perplexity` | `perplexity/llama-3-sonar-large-32k-online` | Search-augmented model |
+| `kimi` | `moonshotai/kimi-k3` | Open-weight multimodal reasoning model |
+| `perplexity`, `sonar` | `perplexity/sonar-pro` | Search-augmented model with citations |
+| `grok` | `x-ai/grok-4.6` | Frontier xAI model with vision |
 | `gpt5.2`, `gpt-5.2`, `5.2` | `openai/gpt-5.2` | Flagship GPT-5.2 with reasoning and vision |
-| `gpt5.1-codex`, `codex-5.1` | `openai/gpt-5.1-codex` | Agentic coding specialization (Responses API) |
+| `sol`, `gpt-5.6-sol` | `openai/gpt-5.6-sol` | Flagship GPT-5.6 tier (Responses API) |
+| `codex`, `codex-5.3` | `openai/gpt-5.3-codex` | Agentic coding specialization (Responses API) |
+| `gpt5.1-codex`, `codex-5.1` | `openai/gpt-5.1-codex` | Previous-generation Codex (Responses API) |
 | `codex-mini`, `gpt5.1-codex-mini` | `openai/gpt-5.1-codex-mini` | Cost-efficient Codex variant with streaming |
 
 Consult the JSON file for the full list, aliases, and capability flags. Add new entries as OpenRouter releases additional models.
@@ -83,15 +87,19 @@ Native catalogues (`conf/openai_models.json`, `conf/gemini_models.json`, `conf/x
 
 ### Latest OpenAI releases
 
-OpenAI's November 13, 2025 drop introduced `gpt-5.1-codex` and `gpt-5.1-codex-mini`, while the flagship base model is now `gpt-5.2`. All of these ship in `conf/openai_models.json`:
+The GPT-5.6 family is the current flagship tier in `conf/openai_models.json`:
 
 | Model | Highlights | Notes |
 |-------|------------|-------|
-| `gpt-5.2` | 400K context, 128K output, multimodal IO, configurable reasoning effort | Streaming enabled; use for balanced agent/coding flows |
-| `gpt-5.1-codex` | Responses-only agentic coding version of GPT-5.1 | Streaming disabled; `use_openai_response_api=true`; `allow_code_generation=true` |
-| `gpt-5.1-codex-mini` | Cost-efficient Codex variant | Streaming enabled, retains 400K context and code-generation flag |
+| `gpt-5.6-sol` | Frontier reasoning tier, 1.05M context | Responses API; `allow_code_generation=true` |
+| `gpt-5.6-terra` | Balanced 5.6 tier | Aliased `terra` |
+| `gpt-5.6-luna` | Cost-efficient 5.6 tier | Aliased `luna` |
+| `gpt-5.3-codex` | Agentic coding specialization | Responses API; aliased `codex` |
+| `gpt-5.3-codex-spark` | Cost-efficient Codex variant | Aliased `codex-spark`, `codex-mini` |
 
-These entries include pricing-friendly aliases (`gpt5.2`, `codex-5.1`, `codex-mini`) plus updated capability flags (`supports_extended_thinking`, `allow_code_generation`). Copy the manifest if you operate custom deployment names so downstream providers inherit the same metadata.
+The GPT-5.1 Codex generation (`gpt-5-codex`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`) was shut down by OpenAI on 2026-07-23 and has been removed. Their aliases still resolve — `codex-5.1` and `gpt5.1-codex` now point at `gpt-5.3-codex`, and `codex-mini` at `gpt-5.3-codex-spark` — so existing configuration keeps working.
+
+Copy the manifest if you operate custom deployment names so downstream providers inherit the same metadata.
 
 Because providers load the manifests on import, you can tweak capabilities without touching Python. Restart the server after editing the JSON files so changes are picked up.
 

@@ -19,7 +19,7 @@ Environment Variables:
 Example:
     OPENAI_ALLOWED_MODELS=o3-mini,o4-mini
     GOOGLE_ALLOWED_MODELS=flash
-    XAI_ALLOWED_MODELS=grok-4,grok-4.1-fast-reasoning
+    XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
     OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
 """
 

@@ -226,5 +226,5 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
     available_models = _extract_available_models(payload["content"])
     assert "gemini-2.5-pro" in available_models
     assert any(model in available_models for model in {"gpt-5.2", "gpt-5"})
-    assert "grok-4" in available_models
+    assert "grok-4.6" in available_models
     assert len(available_models) >= 5
