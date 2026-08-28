@@ -1,0 +1,141 @@
+name: Model Registry Audit
+
+# Provider catalogs move on their own schedule; conf/*_models.json does not.
+# This job closes that gap: it diffs the configs against two public, keyless
+# catalogs weekly and opens a PR describing the drift.
+#
+# What it does NOT do is edit conf/*_models.json itself. Deciding that
+# gpt-5.6 deserves the `gpt5` alias, or scoring a new model against its
+# configured siblings, is judgment, and a bot that guesses at capability
+# metadata ships wrong context windows silently. The PR carries the machine
+# findings; a human (or Claude, via the model-registry-audit skill) makes the
+# edits on the branch.
+
+on:
+  schedule:
+    # Mondays 06:00 UTC. Weekly is the right cadence: catalog churn is on the
+    # order of a few models a week, and a daily run would mostly reopen the
+    # same PR.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      fail-on-drift:
+        description: "Fail the job when drift is found (instead of opening a PR)"
+        type: boolean
+        default: false
+
+# A second run while the first is still opening its PR would race on the
+# branch; the newer catalog read is the one worth keeping.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The audit script is stdlib-only by design, so this job needs neither uv
+      # nor a project sync — which also keeps it off the three-place uv pin
+      # (pyproject required-version / setup-uv / Dockerfile) that the other
+      # workflows have to move in step.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Run audit
+        id: audit
+        # The script is stdlib-only, so it needs no project sync. `set +e`
+        # because a nonzero exit here is a finding, not a job failure — the
+        # gating decision is made in the steps below.
+        run: |
+          set +e
+          python scripts/audit_model_registry.py --cache-dir .cache/model-catalogs --top-n 12 > audit-report.txt
+          status=$?
+          python scripts/audit_model_registry.py --cache-dir .cache/model-catalogs --offline --json > audit-report.json
+          set -e
+          if [ "$status" -eq 2 ]; then
+            echo "::error::audit could not run (catalog fetch or config parse failed)"
+            cat audit-report.txt
+            exit 1
+          fi
+          cat audit-report.txt
+          {
+            echo "actionable=$(grep -oP '(?<=^ACTIONABLE=)\d+' audit-report.txt)"
+            echo "deprecated=$(grep -oP '(?<=^DEPRECATED=)\d+' audit-report.txt)"
+            echo "stale=$(grep -oP '(?<=^STALE=)\d+' audit-report.txt)"
+            echo "missing=$(grep -oP '(?<=^MISSING=)\d+' audit-report.txt)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish report to the job summary
+        run: |
+          {
+            echo '## Model registry audit'
+            echo
+            echo '```'
+            cat audit-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail on drift
+        if: inputs.fail-on-drift && steps.audit.outputs.actionable != '0'
+        run: |
+          echo "::error::${{ steps.audit.outputs.actionable }} actionable drift finding(s)"
+          exit 1
+
+      - name: Stage the report on a branch
+        if: ${{ !inputs.fail-on-drift && steps.audit.outputs.actionable != '0' }}
+        run: |
+          mkdir -p docs/model-audit
+          cp audit-report.txt docs/model-audit/latest-audit.txt
+          cp audit-report.json docs/model-audit/latest-audit.json
+
+      - name: Open or update the drift PR
+        if: ${{ !inputs.fail-on-drift && steps.audit.outputs.actionable != '0' }}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          # A fixed branch name means a rerun updates the open PR instead of
+          # stacking a new one every Monday.
+          branch: chore/model-registry-drift
+          base: main
+          # Conventional commit: release-please parses these, and a bare
+          # subject would land in the changelog as an unclassified entry.
+          commit-message: "chore(models): refresh model registry drift report"
+          title: "chore(models): model registry drift — ${{ steps.audit.outputs.deprecated }} deprecated, ${{ steps.audit.outputs.stale }} stale"
+          labels: chore
+          delete-branch: true
+          body: |
+            Automated weekly audit of `conf/*_models.json` against
+            [OpenRouter's live catalog](https://openrouter.ai/api/v1/models) and
+            [models.dev](https://models.dev/api.json).
+
+            | Finding | Count |
+            |---|---|
+            | Deprecated | ${{ steps.audit.outputs.deprecated }} |
+            | Stale metadata | ${{ steps.audit.outputs.stale }} |
+            | Candidate additions | ${{ steps.audit.outputs.missing }} |
+
+            **This PR changes no model config.** It carries the report so the
+            drift is reviewable; the edits are a separate, deliberate step.
+
+            To act on it: check out this branch and run the
+            `model-registry-audit` skill, or work from
+            `docs/model-audit/latest-audit.txt` by hand.
+
+            Two things to keep in mind while reviewing:
+
+            - A `[review]` marker means the finding rests on models.dev, which
+              is community-maintained. Absence there is not proof a model was
+              withdrawn — confirm against the provider's own docs before
+              deleting a working entry.
+            - Candidate additions are ranked by release date, not by whether
+              they are worth exposing. Most of the list is noise; the point is
+              that the frontier releases are somewhere in it.
+
+            <sub>Generated by `.github/workflows/model-registry-audit.yml`</sub>
