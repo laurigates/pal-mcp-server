@@ -239,6 +239,20 @@ These JSON files define model aliases and capabilities. You can:
 2. **Customize the configuration** - Add your own models and aliases
 3. **Override the config path** - Set `CUSTOM_MODELS_CONFIG_PATH` environment variable to an absolute path on disk
 
+### Keeping the registry current
+
+Provider catalogs change weekly; these files change when someone edits them. `scripts/audit_model_registry.py` diffs them against two public, keyless catalogs — [OpenRouter's live model list](https://openrouter.ai/api/v1/models) and [models.dev](https://models.dev/api.json) — and reports models that were withdrawn, metadata that has gone stale, and releases the configs do not expose:
+
+```bash
+just models-audit                                  # all providers
+just models-audit-one openrouter_models.json       # one provider
+just models-audit-strict                           # exit 1 on drift (CI gate)
+```
+
+The audit reports; it never edits a config. Deciding whether a model is genuinely withdrawn, which alias a successor inherits, and how a new entry scores against its siblings is judgment — `.claude/skills/model-registry-audit/SKILL.md` carries it, and `.github/workflows/model-registry-audit.yml` runs the audit weekly and opens a PR with the report attached.
+
+One caveat worth knowing before deleting anything: findings marked `[review]` come from models.dev, which is community-maintained and omits live models. Absence there is a prompt to check the provider's own documentation, not proof the model is gone.
+
 ### Adding Custom Models
 
 Edit `conf/openrouter_models.json` to tweak OpenRouter behaviour or `conf/custom_models.json` to add local models. Each entry maps directly onto [`ModelCapabilities`](../providers/shared/model_capabilities.py).

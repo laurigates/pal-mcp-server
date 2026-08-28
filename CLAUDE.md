@@ -45,6 +45,10 @@ Integration tests use the free `local-llama` model (`ollama serve && ollama pull
 
 Simulator options: `--list-tests`, `--individual <name>`, `--verbose`. After code changes, restart your Claude session for the running MCP server to pick them up.
 
+## Model registry
+
+`conf/*_models.json` drifts from provider catalogs silently. `just models-audit` diffs it against OpenRouter's live list and models.dev; the `model-registry-audit` skill covers acting on the findings.
+
 ## Server
 
 ```bash
