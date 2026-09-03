@@ -73,6 +73,7 @@ from tools.shared.exceptions import ToolExecutionError  # noqa: E402
 from utils.env import env_override_enabled, get_env  # noqa: E402
 from utils.model_resolution import resolve_model_for_context  # noqa: E402
 from utils.progress import reporter_from_request_context, set_progress_reporter  # noqa: E402
+from utils.session_context import set_session_id  # noqa: E402
 
 # Configure logging for server operations
 # Can be controlled via LOG_LEVEL environment variable (DEBUG, INFO, WARNING, ERROR)
@@ -657,6 +658,11 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
     # reporter. This isolation is load-bearing (it is the "Calling pal 2 times" case);
     # if a future SDK ever batched requests into one task, reporters would cross here.
     set_progress_reporter(progress)
+    # Same ContextVar isolation as the reporter above: publish the conversation
+    # this call belongs to so providers can tag their upstream requests with it
+    # (OpenCode Go rejects requests without a session header). A first turn has
+    # no continuation_id yet and falls back to the process-wide ID.
+    set_session_id(arguments.get("continuation_id"))
     await progress.update(f"{name} · starting")
 
     # Log to activity file for monitoring

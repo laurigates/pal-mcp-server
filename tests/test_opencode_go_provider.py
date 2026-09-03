@@ -11,6 +11,22 @@ from providers.shared import ProviderType
 pytestmark = pytest.mark.no_mock_provider
 
 
+def _chat_response():
+    """Minimal OpenAI chat completion double."""
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = "ok"
+    response.choices[0].finish_reason = "stop"
+    response.model = "glm-5.2"
+    response.id = "id"
+    response.created = 1
+    response.usage = MagicMock()
+    response.usage.prompt_tokens = 10
+    response.usage.completion_tokens = 5
+    response.usage.total_tokens = 15
+    return response
+
+
 class TestOpenCodeGoProvider:
     """OpenCode Go is an OpenAI-compatible coding-model gateway (SST)."""
 
@@ -142,18 +158,7 @@ class TestOpenCodeGoProvider:
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "ok"
-        mock_response.choices[0].finish_reason = "stop"
-        mock_response.model = "glm-5.2"
-        mock_response.id = "id"
-        mock_response.created = 1
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 10
-        mock_response.usage.completion_tokens = 5
-        mock_response.usage.total_tokens = 15
-        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        mock_client.chat.completions.create = AsyncMock(return_value=_chat_response())
 
         provider = OpenCodeGoProvider("test-key")
         result = await provider.generate_content(prompt="hi", model_name="glm", temperature=0.5)
@@ -161,6 +166,59 @@ class TestOpenCodeGoProvider:
         call_kwargs = mock_client.chat.completions.create.call_args[1]
         assert call_kwargs["model"] == "glm-5.2"  # alias resolved before SDK call
         assert result.model_name == "glm-5.2"
+
+    # ------------------------------------------------------------------
+    # Session header (required by the gateway from 2026-09-06)
+    # ------------------------------------------------------------------
+    def test_request_carries_session_header(self):
+        from utils.session_context import get_session_id, set_session_id
+
+        set_session_id(None)
+        provider = OpenCodeGoProvider("test-key")
+        request = provider._build_request(
+            prompt="hi",
+            model_name="glm",
+            system_prompt=None,
+            temperature=0.5,
+            max_output_tokens=None,
+        )
+        assert request["params"]["extra_headers"]["x-opencode-session"] == get_session_id()
+
+    def test_session_header_tracks_the_conversation(self):
+        from utils.session_context import set_session_id
+
+        provider = OpenCodeGoProvider("test-key")
+        try:
+            set_session_id("8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77")
+            request = provider._build_request(
+                prompt="hi",
+                model_name="glm",
+                system_prompt=None,
+                temperature=0.5,
+                max_output_tokens=None,
+            )
+        finally:
+            set_session_id(None)
+        headers = request["params"]["extra_headers"]
+        assert headers["x-opencode-session"] == "8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77"
+
+    @patch("providers.openai_compatible.AsyncOpenAI")
+    async def test_generate_content_sends_session_header(self, mock_openai_class):
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create = AsyncMock(return_value=_chat_response())
+
+        from utils.session_context import set_session_id
+
+        provider = OpenCodeGoProvider("test-key")
+        try:
+            set_session_id("thread-42")
+            await provider.generate_content(prompt="hi", model_name="glm", temperature=0.5)
+        finally:
+            set_session_id(None)
+
+        call_kwargs = mock_client.chat.completions.create.call_args[1]
+        assert call_kwargs["extra_headers"]["x-opencode-session"] == "thread-42"
 
 
 class TestOpenCodeGoRegistration:
