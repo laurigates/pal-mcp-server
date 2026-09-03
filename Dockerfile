@@ -8,7 +8,7 @@
 # Keep this on the same Debian release as the runtime stage below, and keep the
 # version inside `[tool.uv] required-version` in pyproject.toml — the container
 # is a third place that bound applies to, via `uv sync --frozen`.
-FROM ghcr.io/astral-sh/uv:0.11.33-python3.12-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.12.9-python3.12-trixie-slim AS builder
 
 # Configure uv for reproducible, container-friendly installs:
 # - link mode "copy" works on every filesystem (cache mounts are scoped)
