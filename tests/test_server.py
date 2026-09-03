@@ -87,6 +87,27 @@ class TestServerTools:
             ModelProviderRegistry._instance = None
 
     @pytest.mark.asyncio
+    async def test_handle_call_tool_publishes_continuation_id_as_session_id(self):
+        """Providers read the conversation ID off a ContextVar the handler sets."""
+        import contextlib
+
+        from utils.session_context import get_session_id, set_session_id
+
+        set_session_id(None)
+        process_id = get_session_id()
+        try:
+            # Thread lookup fails for an unknown ID, but the session ID is
+            # published before reconstruction - that is what is under test.
+            with contextlib.suppress(Exception):
+                await handle_call_tool("version", {"continuation_id": "8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77"})
+            assert get_session_id() == "8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77"
+
+            await handle_call_tool("version", {})
+            assert get_session_id() == process_id
+        finally:
+            set_session_id(None)
+
+    @pytest.mark.asyncio
     async def test_handle_version(self):
         """Test getting version info"""
         result = await handle_call_tool("version", {})

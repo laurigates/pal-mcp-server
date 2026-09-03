@@ -9,14 +9,20 @@ shared :class:`OpenAICompatibleProvider` pipeline handles it end to end.
 
 Model metadata is sourced from models.dev (the same database OpenCode itself
 uses) and pinned in ``conf/opencode_go_models.json``.
+
+The gateway also requires every request to carry an ``x-opencode-session``
+header identifying the conversation; see :mod:`utils.session_context` for where
+that value comes from.
 """
 
 import logging
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
+
+from utils.session_context import get_session_id
 
 from .openai_compatible import OpenAICompatibleProvider
 from .registries.opencode_go import OpenCodeGoModelRegistry
@@ -47,6 +53,12 @@ class OpenCodeGoProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
     # Fixed gateway endpoint (models.dev: provider 'opencode-go').
     DEFAULT_BASE_URL = "https://opencode.ai/zen/go/v1"
 
+    # The gateway groups a conversation by this header and errors on requests
+    # that omit it. It is per-conversation, not per-client, so it cannot live in
+    # DEFAULT_HEADERS: the AsyncOpenAI client is built once and reused across
+    # every conversation the server handles.
+    SESSION_HEADER = "x-opencode-session"
+
     # Canonical identifiers used for category routing.
     PRIMARY_MODEL = "deepseek-v4-pro"
     FALLBACK_MODEL = "glm-5.2"
@@ -58,6 +70,15 @@ class OpenCodeGoProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
         self._ensure_registry()
         super().__init__(api_key, **kwargs)
         self._invalidate_capability_cache()
+
+    def _build_request(self, **kwargs: Any) -> dict[str, Any]:
+        """Tag the request with the conversation it belongs to."""
+        request = super()._build_request(**kwargs)
+        params = request["params"]
+        headers = dict(params.get("extra_headers") or {})
+        headers.setdefault(self.SESSION_HEADER, get_session_id())
+        params["extra_headers"] = headers
+        return request
 
     def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> str | None:
         """Get OpenCode Go's preferred model for a given tool category.
