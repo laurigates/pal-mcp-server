@@ -486,9 +486,14 @@ class CodeReviewTool(WorkflowTool):
         """Code review tools use 'findings' field."""
         return request.findings
 
-    def get_confidence_level(self, request) -> str:
-        """Code review tools use 'certain' for high confidence."""
-        return "certain"
+    def get_confidence_level(self, request) -> None:
+        """Code review carries no caller-stated confidence, so the completion omits confidence_level.
+
+        CodeReviewRequest.confidence is deprecated and ignored (prepare_step_data hardcodes
+        "high"); stamping a constant "certain" on an internal review misreported an echo of
+        the caller's findings as a certain analysis (issue #96).
+        """
+        return None
 
     def get_completion_message(self) -> str:
         """Code review-specific completion message."""

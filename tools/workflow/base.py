@@ -320,18 +320,26 @@ class WorkflowTool(BaseTool, BaseWorkflowMixin):
         # Prepare work summary using inheritance hook
         work_summary = self.prepare_work_summary()
 
+        completion = {
+            "initial_request": initial_description or request.step,
+            "steps_taken": len(consolidated_findings.findings),
+            "files_examined": list(consolidated_findings.files_checked),
+            "relevant_files": list(consolidated_findings.relevant_files),
+            "relevant_context": list(consolidated_findings.relevant_context),
+            "work_summary": work_summary,
+            # Text the caller sent in, echoed back. No model produced it, so it is
+            # not labelled as an analysis (issue #96).
+            "caller_findings": self.get_final_analysis_from_request(request),
+        }
+        # Only emit a confidence the caller actually stated; tools whose request has
+        # no usable confidence return None here.
+        confidence_level = self.get_confidence_level(request)
+        if confidence_level is not None:
+            completion["confidence_level"] = confidence_level
+
         return {
             "status": self.get_completion_status(),
-            self.get_completion_data_key(): {
-                "initial_request": initial_description or request.step,
-                "steps_taken": len(consolidated_findings.findings),
-                "files_examined": list(consolidated_findings.files_checked),
-                "relevant_files": list(consolidated_findings.relevant_files),
-                "relevant_context": list(consolidated_findings.relevant_context),
-                "work_summary": work_summary,
-                "final_analysis": self.get_final_analysis_from_request(request),
-                "confidence_level": self.get_confidence_level(request),
-            },
+            self.get_completion_data_key(): completion,
             "next_steps": self.get_completion_message(),
             "skip_expert_analysis": True,
             "expert_analysis": {
@@ -370,8 +378,12 @@ class WorkflowTool(BaseTool, BaseWorkflowMixin):
         except AttributeError:
             return None
 
-    def get_confidence_level(self, request) -> str:
-        """Get confidence level from request. Override for tool-specific logic."""
+    def get_confidence_level(self, request) -> str | None:
+        """Get confidence level from request. Override for tool-specific logic.
+
+        Return None when the request carries no confidence the caller stated; the
+        completion response then omits ``confidence_level`` instead of inventing one.
+        """
         try:
             return request.confidence or "high"
         except AttributeError:

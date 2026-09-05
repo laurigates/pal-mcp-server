@@ -431,9 +431,13 @@ class AnalyzeTool(WorkflowTool):
         """Analyze tools use 'findings' field."""
         return request.findings
 
-    def get_confidence_level(self, request) -> str:
-        """Analyze tools use fixed confidence for consistency."""
-        return "medium"
+    def get_confidence_level(self, request) -> None:
+        """Analyze exposes no confidence field (excluded from its schema), so the completion omits it.
+
+        Unreachable today (should_skip_expert_analysis is always False) but kept consistent
+        with the other tools whose request has no caller-stated confidence (issue #96).
+        """
+        return None
 
     def get_completion_message(self) -> str:
         """Analyze-specific completion message."""
