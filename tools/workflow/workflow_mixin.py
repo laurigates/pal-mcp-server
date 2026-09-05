@@ -69,9 +69,24 @@ class BaseWorkflowMixin(ABC):
 
     def __init__(self) -> None:
         super().__init__()
+        self._reset_workflow_state()
+
+    def _reset_workflow_state(self) -> None:
+        """
+        Clear the per-call workflow state.
+
+        Tool instances are module-level singletons (server.py builds TOOLS once
+        and dispatches every call to the same object), so anything left on
+        ``self`` by one call is visible to the next. execute_workflow calls this
+        first on every call; a continuation then rebuilds the state from the
+        stored thread, and a fresh call starts empty (issue #97). Tool-specific
+        step-1 config (review_config and its siblings) is not cleared here; #100
+        tracks persisting and clearing it.
+        """
         self.work_history: list[dict[str, Any]] = []
         self.consolidated_findings: ConsolidatedFindings = ConsolidatedFindings()
         self.initial_request: str | None = None
+        self.initial_issue: str | None = None
 
     # ================================================================================
     # Abstract Methods - Required Implementation by BaseTool or Subclasses
@@ -618,6 +633,10 @@ class BaseWorkflowMixin(ABC):
             # Store arguments for access by helper methods
             self._current_arguments = arguments
 
+            # Never inherit state from the previous call on this singleton instance.
+            # Continuations restore their state from the thread below.
+            self._reset_workflow_state()
+
             # Validate request using tool-specific model
             request = self.get_workflow_request_model()(**arguments)
 
@@ -685,10 +704,33 @@ class BaseWorkflowMixin(ABC):
                                 self.initial_request = state.get("initial_request")
                                 # Rebuild consolidated findings from restored history
                                 self._reprocess_consolidated_findings()
+                                # Refill the tool-specific initial-issue slot (debug reads
+                                # initial_issue, planner/tracer their own names) from the
+                                # thread, the same way a fresh step 1 fills it.
+                                if self.initial_request is not None:
+                                    self.store_initial_issue(self.initial_request)
                                 logger.debug(
                                     f"[{self.get_name()}] Restored workflow state with {len(self.work_history)} history items"
                                 )
                                 break  # State restored, exit loop
+
+            # Every step 1 records its own request as the initial one. That covers a
+            # fresh workflow, a cross-tool continuation (chat/analyze into debug)
+            # whose thread carries no state from this tool, and a new investigation
+            # started on a thread that already holds this tool's state, where the
+            # value restored above would otherwise win. The old create_thread-only
+            # write skipped the last two, so debug's initial_issue was never
+            # persisted and later steps fell back to a placeholder.
+            if request.step_number == 1:
+                self.initial_request = request.step
+                # Allow tools to store initial description for expert analysis
+                self.store_initial_issue(request.step)
+
+            if not continuation_id and request.step_number > 1:
+                logger.warning(
+                    f"[{self.get_name()}] step {request.step_number} arrived without a continuation_id; "
+                    "the call starts from empty workflow state and no thread is created"
+                )
 
             # Adjust total steps if needed
             if request.step_number > request.total_steps:
@@ -698,9 +740,6 @@ class BaseWorkflowMixin(ABC):
             if not continuation_id and request.step_number == 1:
                 clean_args = {k: v for k, v in arguments.items() if k not in ["_model_context", "_resolved_model_name"]}
                 continuation_id = create_thread(self.get_name(), clean_args)
-                self.initial_request = request.step
-                # Allow tools to store initial description for expert analysis
-                self.store_initial_issue(request.step)
 
             # Process work step - allow tools to customize field mapping
             step_data = self.prepare_step_data(request)

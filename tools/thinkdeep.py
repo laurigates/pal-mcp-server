@@ -172,11 +172,17 @@ class ThinkDeepTool(WorkflowTool):
 
         return DEFAULT_THINKING_MODE_THINKDEEP
 
-    def customize_workflow_response(self, response_data: dict, request, **kwargs) -> dict:
+    def prepare_step_data(self, request) -> dict:
         """
-        Customize the workflow response for thinkdeep-specific needs
+        Record the request's expert-analysis parameters before completion runs.
+
+        get_request_temperature / get_request_thinking_mode read stored_request_params
+        during the expert call, which execute_workflow makes before
+        customize_workflow_response; writing them there meant the expert call used
+        the previous call's temperature and thinking_mode (issue #97).
         """
-        # Store request parameters for later use in expert analysis
+        step_data = super().prepare_step_data(request)
+
         self.stored_request_params = {}
         try:
             self.stored_request_params["temperature"] = request.temperature
@@ -188,6 +194,12 @@ class ThinkDeepTool(WorkflowTool):
         except AttributeError:
             self.stored_request_params["thinking_mode"] = None
 
+        return step_data
+
+    def customize_workflow_response(self, response_data: dict, request, **kwargs) -> dict:
+        """
+        Customize the workflow response for thinkdeep-specific needs
+        """
         # Add thinking-specific context to response
         response_data.update(
             {

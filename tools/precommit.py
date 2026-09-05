@@ -472,6 +472,19 @@ class PrecommitTool(WorkflowTool):
             "images": request.images or [],
             "confidence": "high",  # Dummy value for workflow_mixin compatibility
         }
+
+        # Store the git configuration for expert analysis on the first step here rather than in
+        # customize_workflow_response: that hook runs after handle_work_completion,
+        # so the expert prompt would read the previous call's config (issue #97).
+        if request.step_number == 1 and request.path:
+            self.git_config = {
+                "path": request.path,
+                "compare_to": request.compare_to,
+                "include_staged": request.include_staged,
+                "include_unstaged": request.include_unstaged,
+                "severity_filter": request.severity_filter,
+            }
+
         return step_data
 
     def should_skip_expert_analysis(self, request, consolidated_findings) -> bool:
@@ -725,15 +738,6 @@ class PrecommitTool(WorkflowTool):
         # Store initial request on first step
         if request.step_number == 1:
             self.initial_request = request.step
-            # Store git configuration for expert analysis
-            if request.path:
-                self.git_config = {
-                    "path": request.path,
-                    "compare_to": request.compare_to,
-                    "include_staged": request.include_staged,
-                    "include_unstaged": request.include_unstaged,
-                    "severity_filter": request.severity_filter,
-                }
 
         # Convert generic status names to precommit-specific ones
         tool_name = self.get_name()
