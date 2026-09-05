@@ -435,6 +435,18 @@ class RefactorTool(WorkflowTool):
             "hypothesis": request.findings,  # Map findings to hypothesis for compatibility
             "images": request.images or [],
         }
+
+        # Store the refactor configuration for expert analysis on the first step here rather than in
+        # customize_workflow_response: that hook runs after handle_work_completion,
+        # so the expert prompt would read the previous call's config (issue #97).
+        if request.step_number == 1 and request.relevant_files:
+            self.refactor_config = {
+                "relevant_files": request.relevant_files,
+                "refactor_type": request.refactor_type,
+                "focus_areas": request.focus_areas,
+                "style_guide_examples": request.style_guide_examples,
+            }
+
         return step_data
 
     def should_skip_expert_analysis(self, request, consolidated_findings) -> bool:
@@ -591,14 +603,6 @@ class RefactorTool(WorkflowTool):
         # Store initial request on first step
         if request.step_number == 1:
             self.initial_request = request.step
-            # Store refactor configuration for expert analysis
-            if request.relevant_files:
-                self.refactor_config = {
-                    "relevant_files": request.relevant_files,
-                    "refactor_type": request.refactor_type,
-                    "focus_areas": request.focus_areas,
-                    "style_guide_examples": request.style_guide_examples,
-                }
 
         # Convert generic status names to refactor-specific ones
         tool_name = self.get_name()

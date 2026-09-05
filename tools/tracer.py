@@ -322,6 +322,17 @@ class TracerTool(WorkflowTool):
             "trace_mode": request.trace_mode,
             "target_description": request.target_description,
         }
+
+        # Store the trace configuration on the first step here rather than in
+        # customize_workflow_response: build_base_response and the step guidance
+        # read trace_config before that hook runs, so they would report the
+        # previous call's mode (issue #97).
+        if request.step_number == 1:
+            self.trace_config = {
+                "trace_mode": request.trace_mode,
+                "target_description": request.target_description,
+            }
+
         return step_data
 
     def build_base_response(self, request, continuation_id: str = None) -> dict:
@@ -431,13 +442,9 @@ class TracerTool(WorkflowTool):
         """
         Customize response to match tracer tool format with output instructions.
         """
-        # Store trace configuration on first step
+        # Store initial request on first step
         if request.step_number == 1:
             self.initial_request = request.step
-            self.trace_config = {
-                "trace_mode": request.trace_mode,
-                "target_description": request.target_description,
-            }
 
             # Update metadata with trace configuration
             if "metadata" in response_data:

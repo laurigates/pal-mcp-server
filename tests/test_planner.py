@@ -353,27 +353,29 @@ class TestPlannerTool:
 
     @pytest.mark.asyncio
     async def test_execute_step_history_tracking(self):
-        """Test that execute method properly tracks step history."""
-        tool = PlannerTool()
+        """Step 2 rebuilds step 1's history from the stored thread.
 
-        # Execute multiple steps
+        Step 2 runs on a fresh instance so the history can only come from the
+        thread that step 1 created, not from state left on the instance
+        (issue #97).
+        """
+        import json
+
         step1_args = {"step": "First step", "step_number": 1, "total_steps": 3, "next_step_required": True}
+        step1_response = json.loads((await PlannerTool().execute(step1_args))[0].text)
+        continuation_id = step1_response["continuation_id"]
 
+        tool = PlannerTool()
         step2_args = {
             "step": "Second step",
             "step_number": 2,
             "total_steps": 3,
             "next_step_required": True,
-            "continuation_id": "test-uuid-history",
+            "continuation_id": continuation_id,
         }
+        await tool.execute(step2_args)
 
-        # Mock conversation memory functions
-        with patch("utils.conversation_memory.create_thread", return_value="test-uuid-history"):
-            with patch("utils.conversation_memory.add_turn"):
-                await tool.execute(step1_args)
-                await tool.execute(step2_args)
-
-        # Should have tracked both steps
+        # Both steps present, in order, sourced from the thread
         assert len(tool.work_history) == 2
         assert tool.work_history[0]["step"] == "First step"
         assert tool.work_history[1]["step"] == "Second step"

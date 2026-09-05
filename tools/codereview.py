@@ -431,6 +431,19 @@ class CodeReviewTool(WorkflowTool):
             "images": request.images or [],
             "confidence": "high",  # Dummy value for workflow_mixin compatibility
         }
+
+        # Store the review configuration for expert analysis on the first step here rather than in
+        # customize_workflow_response: that hook runs after handle_work_completion,
+        # so the expert prompt would read the previous call's config (issue #97).
+        if request.step_number == 1 and request.relevant_files:
+            self.review_config = {
+                "relevant_files": request.relevant_files,
+                "review_type": request.review_type,
+                "focus_on": request.focus_on,
+                "standards": request.standards,
+                "severity_filter": request.severity_filter,
+            }
+
         return step_data
 
     def should_skip_expert_analysis(self, request, consolidated_findings) -> bool:
@@ -670,15 +683,6 @@ class CodeReviewTool(WorkflowTool):
         # Store initial request on first step
         if request.step_number == 1:
             self.initial_request = request.step
-            # Store review configuration for expert analysis
-            if request.relevant_files:
-                self.review_config = {
-                    "relevant_files": request.relevant_files,
-                    "review_type": request.review_type,
-                    "focus_on": request.focus_on,
-                    "standards": request.standards,
-                    "severity_filter": request.severity_filter,
-                }
 
         # Convert generic status names to code review-specific ones
         tool_name = self.get_name()
