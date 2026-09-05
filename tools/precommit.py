@@ -518,6 +518,15 @@ class PrecommitTool(WorkflowTool):
         """Precommit tools use 'findings' field."""
         return request.findings
 
+    def get_confidence_level(self, request) -> None:
+        """Precommit carries no caller-stated confidence, so the completion omits confidence_level.
+
+        PrecommitRequest only inherits WorkflowRequest.confidence; prepare_step_data overwrites
+        it with a dummy "high" and the skip gate keys on precommit_type, so the value is never
+        used and an internal validation must not report one (issue #96).
+        """
+        return None
+
     def get_precommit_type(self, request) -> str:
         """Get precommit type from request. Hook method for clean inheritance."""
         try:

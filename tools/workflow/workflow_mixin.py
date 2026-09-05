@@ -636,6 +636,11 @@ class BaseWorkflowMixin(ABC):
             # Never inherit state from the previous call on this singleton instance.
             # Continuations restore their state from the thread below.
             self._reset_workflow_state()
+            # The expert-call record is per request. server.py builds a fresh
+            # arguments dict per call; clear it anyway so a caller that reuses one
+            # dict cannot carry a previous call's model into a no-model response.
+            arguments.pop("_expert_model_called", None)
+            arguments.pop("_expert_provider_called", None)
 
             # Validate request using tool-specific model
             request = self.get_workflow_request_model()(**arguments)
@@ -738,7 +743,12 @@ class BaseWorkflowMixin(ABC):
 
             # Create thread for first step
             if not continuation_id and request.step_number == 1:
-                clean_args = {k: v for k, v in arguments.items() if k not in ["_model_context", "_resolved_model_name"]}
+                clean_args = {
+                    k: v
+                    for k, v in arguments.items()
+                    if k
+                    not in ["_model_context", "_resolved_model_name", "_expert_model_called", "_expert_provider_called"]
+                }
                 continuation_id = create_thread(self.get_name(), clean_args)
 
             # Process work step - allow tools to customize field mapping
@@ -884,18 +894,26 @@ class BaseWorkflowMixin(ABC):
         work_summary = self.prepare_work_summary()
         continuation_id = self.get_request_continuation_id(request)
 
+        completion = {
+            "initial_request": self.get_initial_request(request.step),
+            "steps_taken": len(consolidated_findings.findings),
+            "files_examined": list(consolidated_findings.files_checked),
+            "relevant_files": list(consolidated_findings.relevant_files),
+            "relevant_context": list(consolidated_findings.relevant_context),
+            "work_summary": work_summary,
+            # Text the caller sent in, echoed back. No model produced it, so it is
+            # not labelled as an analysis (issue #96).
+            "caller_findings": self.get_final_analysis_from_request(request),
+        }
+        # Only emit a confidence the caller actually stated; tools whose request has
+        # no usable confidence return None here.
+        confidence_level = self.get_confidence_level(request)
+        if confidence_level is not None:
+            completion["confidence_level"] = confidence_level
+
         response_data = {
             "status": self.get_completion_status(),
-            f"complete_{self.get_name()}": {
-                "initial_request": self.get_initial_request(request.step),
-                "steps_taken": len(consolidated_findings.findings),
-                "files_examined": list(consolidated_findings.files_checked),
-                "relevant_files": list(consolidated_findings.relevant_files),
-                "relevant_context": list(consolidated_findings.relevant_context),
-                "work_summary": work_summary,
-                "final_analysis": self.get_final_analysis_from_request(request),
-                "confidence_level": self.get_confidence_level(request),
-            },
+            f"complete_{self.get_name()}": completion,
             "next_steps": self.get_completion_message(),
             "skip_expert_analysis": True,
             "expert_analysis": {
@@ -1060,8 +1078,12 @@ class BaseWorkflowMixin(ABC):
         """Extract final analysis from request. Override for tool-specific fields."""
         return self.get_request_hypothesis(request)
 
-    def get_confidence_level(self, request) -> str:
-        """Get confidence level. Override for tool-specific confidence handling."""
+    def get_confidence_level(self, request) -> str | None:
+        """Get confidence level. Override for tool-specific confidence handling.
+
+        Return None when the request carries no confidence the caller stated; the
+        completion response then omits ``confidence_level`` instead of inventing one.
+        """
         return self.get_request_confidence(request) or "high"
 
     def get_completion_message(self) -> str:
@@ -1199,69 +1221,44 @@ class BaseWorkflowMixin(ABC):
 
     def _add_workflow_metadata(self, response_data: dict, arguments: dict[str, Any]) -> None:
         """
-        Add metadata (provider_used and model_used) to workflow response.
+        Add metadata (tool_name, model_used, provider_used) to a workflow response.
 
-        This ensures workflow tools have the same metadata as regular tools,
-        making it consistent across all tool types for tracking which provider
-        and model were used for the response.
+        ``model_used``/``provider_used`` are the audit fields that say which model
+        produced an answer, so they name one only when this request actually
+        called one: ``_call_expert_analysis`` records the model and provider into
+        ``arguments`` immediately before ``generate_content``, and the fields are
+        read back from there. Every other response — the skip branch,
+        ``local_work_complete``/``<tool>_complete``, intermediate ``pause_for_*``
+        steps, errors raised before a provider resolved, and an expert branch
+        whose provider could not be resolved — carries them as ``None`` (issue
+        #96). An error raised by the model call itself still names the model the
+        request went to.
+
+        The record lives on the per-request ``arguments`` dict rather than on
+        ``self``: tool instances are singletons shared by every in-flight call,
+        so instance state written by one request is read by another (the
+        cross-labelling tests/test_simple_tool_concurrent_metadata.py pins
+        against for simple tools).
 
         Args:
             response_data: The response data dictionary to modify
-            arguments: The original arguments containing model context
+            arguments: The original arguments for this request, carrying the
+                record written by ``_call_expert_analysis`` if a model was called
         """
-        try:
-            # Get model information from arguments (set by server.py)
-            resolved_model_name = arguments.get("_resolved_model_name")
-            model_context = arguments.get("_model_context")
+        metadata: dict[str, Any] = {
+            "tool_name": self.get_name(),
+            "model_used": arguments.get("_expert_model_called"),
+            "provider_used": arguments.get("_expert_provider_called"),
+        }
 
-            if resolved_model_name and model_context:
-                # Extract provider information from model context
-                provider = model_context.provider
-                provider_name = provider.get_provider_type().value if provider else "unknown"
+        if "metadata" not in response_data:
+            response_data["metadata"] = {}
+        response_data["metadata"].update(metadata)
 
-                # Create metadata dictionary
-                metadata = {
-                    "tool_name": self.get_name(),
-                    "model_used": resolved_model_name,
-                    "provider_used": provider_name,
-                }
-
-                # Preserve existing metadata and add workflow metadata
-                if "metadata" not in response_data:
-                    response_data["metadata"] = {}
-                response_data["metadata"].update(metadata)
-
-                logger.debug(
-                    f"[WORKFLOW_METADATA] {self.get_name()}: Added metadata - "
-                    f"model: {resolved_model_name}, provider: {provider_name}"
-                )
-            else:
-                # Fallback - try to get model info from request
-                request = self.get_workflow_request_model()(**arguments)
-                model_name = self.get_request_model_name(request)
-
-                # Basic metadata without provider info
-                metadata = {
-                    "tool_name": self.get_name(),
-                    "model_used": model_name,
-                    "provider_used": "unknown",
-                }
-
-                # Preserve existing metadata and add workflow metadata
-                if "metadata" not in response_data:
-                    response_data["metadata"] = {}
-                response_data["metadata"].update(metadata)
-
-                logger.debug(
-                    f"[WORKFLOW_METADATA] {self.get_name()}: Added fallback metadata - "
-                    f"model: {model_name}, provider: unknown"
-                )
-
-        except Exception as e:
-            # Don't fail the workflow if metadata addition fails
-            logger.warning(f"[WORKFLOW_METADATA] {self.get_name()}: Failed to add metadata: {e}")
-            # Still add basic metadata with tool name
-            response_data["metadata"] = {"tool_name": self.get_name()}
+        logger.debug(
+            f"[WORKFLOW_METADATA] {self.get_name()}: model: {metadata['model_used']}, "
+            f"provider: {metadata['provider_used']}"
+        )
 
     def _extract_clean_workflow_content_for_history(self, response_data: dict) -> str:
         """
@@ -1344,7 +1341,9 @@ class BaseWorkflowMixin(ABC):
             # Standard expert analysis path
             response_data["status"] = "calling_expert_analysis"
 
-            # Call expert analysis
+            # Call expert analysis. This is the only branch that calls a model;
+            # _call_expert_analysis records the model and provider it uses into
+            # ``arguments`` for _add_workflow_metadata (issue #96).
             expert_analysis = await self._call_expert_analysis(arguments, request)
             response_data["expert_analysis"] = expert_analysis
 
@@ -1560,6 +1559,17 @@ class BaseWorkflowMixin(ABC):
             progress = get_progress_reporter()
             step_position = f"step {self.get_request_step_number(request)}/{self.get_request_total_steps(request)}"
             async with progress.heartbeat(f"{self.get_name()} · {model_name} · expert analysis · {step_position}"):
+                # Record which model and provider this request is calling, on the
+                # per-request arguments (not on the shared tool instance), so
+                # _add_workflow_metadata names exactly this call. Written only once
+                # a provider resolved: a request that never reaches a model leaves
+                # both unset and its metadata carries None (issue #96).
+                try:
+                    provider_type_name = provider.get_provider_type().value
+                except Exception:
+                    provider_type_name = "unknown"
+                arguments["_expert_model_called"] = model_name
+                arguments["_expert_provider_called"] = provider_type_name
                 model_response = await provider.generate_content(
                     prompt=prompt,
                     model_name=model_name,

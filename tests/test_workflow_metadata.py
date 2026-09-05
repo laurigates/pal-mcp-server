@@ -112,10 +112,14 @@ class TestWorkflowMetadata:
             assert "model_used" in metadata, "Metadata should include model_used"
             assert "provider_used" in metadata, "Metadata should include provider_used"
 
-            # Verify metadata values
+            # Verify metadata values. One step with no relevant files does not meet
+            # debug's should_call_expert_analysis threshold, so the workflow ends in
+            # local_work_complete without calling a model, and the audit fields say so
+            # (issue #96) rather than naming the model that was merely requested.
+            assert response_data["status"] == "local_work_complete"
             assert metadata["tool_name"] == "debug", "tool_name should be 'debug'"
-            assert metadata["model_used"] == model_name, f"model_used should be '{model_name}'"
-            assert metadata["provider_used"] == "openrouter", "provider_used should be 'openrouter'"
+            assert metadata["model_used"] is None, "no model was called, so model_used must be None"
+            assert metadata["provider_used"] is None, "no model was called, so provider_used must be None"
 
         finally:
             # Restore original environment
@@ -181,6 +185,10 @@ class TestWorkflowMetadata:
             metadata = response_data["metadata"]
             assert "tool_name" in metadata, "Error metadata should include tool_name"
             assert metadata["tool_name"] == "debug", "tool_name should be 'debug'"
+            # The request failed validation before any model could be called, so the
+            # error payload must not attribute itself to one either (issue #96).
+            assert metadata["model_used"] is None
+            assert metadata["provider_used"] is None
 
         finally:
             # Restore original environment
@@ -238,9 +246,13 @@ class TestWorkflowMetadata:
             assert "model_used" in metadata, "Fallback metadata should include model_used"
             assert "provider_used" in metadata, "Fallback metadata should include provider_used"
 
+            # Same shape as the injected case: this step ends in local_work_complete
+            # without calling a model, so the missing model context changes nothing —
+            # the audit fields are None either way (issue #96).
+            assert response_data["status"] == "local_work_complete"
             assert metadata["tool_name"] == "debug", "tool_name should be 'debug'"
-            assert metadata["model_used"] == "flash", "model_used should be from request"
-            assert metadata["provider_used"] == "unknown", "provider_used should be 'unknown' in fallback"
+            assert metadata["model_used"] is None, "no model was called, so model_used must be None"
+            assert metadata["provider_used"] is None, "no model was called, so provider_used must be None"
 
         finally:
             # Restore original environment
@@ -317,12 +329,14 @@ class TestWorkflowMetadata:
             assert "total_steps" in response_data, "Standard workflow total_steps should be preserved"
             assert "next_step_required" in response_data, "Standard workflow next_step_required should be preserved"
 
-            # Verify metadata was added without breaking existing fields
+            # Verify metadata was added without breaking existing fields. An
+            # intermediate step pauses for the caller and calls no model, so the audit
+            # fields are present but None (issue #96).
             assert "metadata" in response_data, "Metadata should be added"
             metadata = response_data["metadata"]
             assert metadata["tool_name"] == "debug"
-            assert metadata["model_used"] == model_name
-            assert metadata["provider_used"] == "openrouter"
+            assert metadata["model_used"] is None
+            assert metadata["provider_used"] is None
 
             # Verify specific intermediate step fields
             assert response_data["next_step_required"] is True, "next_step_required should be preserved"

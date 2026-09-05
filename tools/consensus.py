@@ -494,7 +494,12 @@ of the evidence, even when it strongly points in one direction.""",
 
         if request.step_number == 1:
             if not continuation_id:
-                clean_args = {k: v for k, v in arguments.items() if k not in ["_model_context", "_resolved_model_name"]}
+                clean_args = {
+                    k: v
+                    for k, v in arguments.items()
+                    if k
+                    not in ["_model_context", "_resolved_model_name", "_expert_model_called", "_expert_provider_called"]
+                }
                 continuation_id = create_thread(self.get_name(), clean_args)
                 request.continuation_id = continuation_id
                 arguments["continuation_id"] = continuation_id
