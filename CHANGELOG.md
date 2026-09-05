@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## [10.6.0](https://github.com/laurigates/pal-mcp-server/compare/v10.5.0...v10.6.0) (2026-09-05)
+
+
+### Features
+
+* **opencode:** send x-opencode-session header on gateway requests ([#93](https://github.com/laurigates/pal-mcp-server/issues/93)) ([58c887f](https://github.com/laurigates/pal-mcp-server/commit/58c887fa7d91b3db649ed60891d0f0a2522c352a))
+
+
+### Bug Fixes
+
+* **workflow:** name a model in metadata only when the request called one ([#105](https://github.com/laurigates/pal-mcp-server/issues/105)) ([9c88f83](https://github.com/laurigates/pal-mcp-server/commit/9c88f83e424a0f3d288fe318941afd63e7c4958a)), closes [#96](https://github.com/laurigates/pal-mcp-server/issues/96)
+* **workflow:** reset per-call state so a fresh call cannot inherit a previous call's findings ([#104](https://github.com/laurigates/pal-mcp-server/issues/104)) ([32c1ad5](https://github.com/laurigates/pal-mcp-server/commit/32c1ad5f128515ce0c700aa4f64853328b4f92d0)), closes [#97](https://github.com/laurigates/pal-mcp-server/issues/97)
+
+
+### Performance
+
+* **tools:** compress tool and parameter descriptions, keeping every tool name ([#106](https://github.com/laurigates/pal-mcp-server/issues/106)) ([c1e52e9](https://github.com/laurigates/pal-mcp-server/commit/c1e52e9bacd7060d4ceec95be00f24f01223b52b)), closes [#90](https://github.com/laurigates/pal-mcp-server/issues/90)
+
 ## [10.5.0](https://github.com/laurigates/pal-mcp-server/compare/v10.4.4...v10.5.0) (2026-08-28)
 
 
