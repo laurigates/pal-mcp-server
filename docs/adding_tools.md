@@ -19,6 +19,8 @@ PAL supports two architectures, implemented in `tools/simple/base.py` and `tools
 
 If you are unsure, compare `tools/chat.py` (SimpleTool) and `tools/consensus.py` (WorkflowTool) to see the patterns.
 
+A new capability gets its own tool name rather than an enum value on an existing tool; `CLAUDE.md` § Tool surface records why.
+
 ## 2. Common Responsibilities
 
 Regardless of architecture, subclasses of `BaseTool` must provide:

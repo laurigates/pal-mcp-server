@@ -49,6 +49,15 @@ Simulator options: `--list-tests`, `--individual <name>`, `--verbose`. After cod
 
 `conf/*_models.json` drifts from provider catalogs silently. `just models-audit` diffs it against OpenRouter's live list and models.dev; the `model-registry-audit` skill covers acting on the findings.
 
+## Tool surface
+
+Each capability keeps its own MCP tool name. Clients that defer schema loading (Claude Code among them) show tool names first and fetch a tool's `inputSchema` only when the agent decides to call it, so on those clients the name is the whole routing signal. A blind routing benchmark ([#91](https://github.com/laurigates/pal-mcp-server/issues/91)) put 15 fixed requests through six candidate surfaces with names only: the 19-name surface routed 15/15, every surface that folded names behind an enum on a generic tool lost 4 to 6.5 points, and 38 of those 40 misses were the agent concluding the capability was absent and falling back to its own tools.
+
+- A new capability gets a new tool, not an enum value on an existing one. An enum mode is reachable only by a client that has already loaded that tool's schema.
+- Prevent over-triggering with an anti-trigger sentence in the description ("Not for edits you can make yourself"), not by hiding the tool. The benchmark's negative control held on every surface that carried one.
+- Consolidation is still right when a capability is genuinely a mode of another tool rather than a distinct instrument a user would ask for by name.
+- Descriptions are the eager channel a deferring client pays on every session; schemas are fetched per call. Keep descriptions short and every sentence in them behaviour-bearing.
+
 ## Server
 
 ```bash
