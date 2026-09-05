@@ -73,11 +73,12 @@ TRACER_WORKFLOW_FIELD_DESCRIPTIONS = {
         "Your confidence in the tracing analysis. Use: 'exploring', 'low', 'medium', 'high', 'very_high', 'almost_certain', 'certain'. "
         "CRITICAL: 'certain' implies the analysis is 100% complete locally and PREVENTS external model validation."
     ),
-    "trace_mode": "Type of tracing: 'ask' (default - prompts user to choose mode), 'precision' (execution flow) or 'dependencies' (structural relationships)",
-    "target_description": (
-        "Description of what to trace and WHY. Include context about what you're trying to understand or analyze."
+    "trace_mode": (
+        "'precision' (execution flow), 'dependencies' (structural relationships), or 'ask' to have the user choose in "
+        "step 1."
     ),
-    "images": ("Optional paths to architecture diagrams or flow charts that help understand the tracing context."),
+    "target_description": "What to trace and why; include what you are trying to understand.",
+    "images": "Optional paths to architecture diagrams or flow charts.",
 }
 
 
@@ -153,9 +154,9 @@ class TracerTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Performs systematic code tracing with modes for execution flow or dependency mapping. "
-            "Use for method execution analysis, call chain tracing, dependency mapping, and architectural understanding. "
-            "Supports precision mode (execution flow) and dependencies mode (structural relationships)."
+            "Guided, systematic code tracing: precision mode (execution flow, call chains) or dependencies mode "
+            "(structural relationships). Use to map how a method, class or module connects to the codebase. Not for a "
+            "one-grep lookup."
         )
 
     def get_system_prompt(self) -> str:
@@ -203,6 +204,11 @@ class TracerTool(WorkflowTool):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": TRACER_WORKFLOW_FIELD_DESCRIPTIONS["images"],
+            },
+            "use_assistant_model": {
+                "type": "boolean",
+                "default": True,
+                "description": "Ignored: tracer runs no expert analysis.",
             },
         }
 

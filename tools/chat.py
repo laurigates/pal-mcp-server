@@ -37,15 +37,12 @@ PAL_ARTIFACT_FILENAME = "pal_generated.code"
 # Field descriptions matching the original Chat tool exactly
 CHAT_FIELD_DESCRIPTIONS = {
     "prompt": (
-        "Your question or idea for collaborative thinking to be sent to the external model. Provide detailed context, "
-        "including your goal, what you've tried, and any specific challenges. "
-        "WARNING: Large inline code must NOT be shared in prompt. Provide full-path to files on disk as separate parameter."
+        "Question or idea for the external model, with context: goal, what you tried, blockers. No large inline code; "
+        "pass file paths in absolute_file_paths."
     ),
-    "absolute_file_paths": ("Full, absolute file paths to relevant code in order to share with external model"),
-    "images": "Image paths (absolute) or base64 strings for optional visual context.",
-    "working_directory_absolute_path": (
-        "Absolute path to an existing directory where generated code artifacts can be saved."
-    ),
+    "absolute_file_paths": "Absolute paths of code files to share.",
+    "images": "Absolute image paths or base64, for visual context.",
+    "working_directory_absolute_path": "Existing directory (absolute path) for generated code artifacts.",
 }
 
 
@@ -84,8 +81,8 @@ class ChatTool(SimpleTool):
 
     def get_description(self) -> str:
         return (
-            "General chat and collaborative thinking partner for brainstorming, development discussion, "
-            "getting second opinions, and exploring ideas. Use for ideas, validations, questions, and thoughtful explanations."
+            "Use as a collaborative thinking partner: brainstorm, second opinions, idea validation with another model. "
+            "Not for tasks that need no outside perspective."
         )
 
     def get_annotations(self) -> dict[str, Any] | None:

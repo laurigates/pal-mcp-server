@@ -36,23 +36,32 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions for security audit workflow
 SECAUDIT_WORKFLOW_FIELD_DESCRIPTIONS = {
     "step": (
-        "Step 1: outline the audit strategy (OWASP Top 10, auth, validation, etc.). Later steps: report findings. MANDATORY: use `relevant_files` for code references and avoid large snippets."
+        "Step 1: outline the audit strategy (OWASP Top 10, auth, validation). Later steps: report findings. "
+        "Reference code via relevant_files; do not paste large snippets."
     ),
-    "step_number": "Current security-audit step number (starts at 1).",
-    "total_steps": "Expected number of audit steps; adjust as new risks surface.",
-    "next_step_required": "True while additional threat analysis remains; set False once you are ready to hand off for validation.",
-    "findings": "Summarize vulnerabilities, auth issues, validation gaps, compliance notes, and positives; update prior findings as needed.",
-    "files_checked": "Absolute paths for every file inspected, including rejected candidates.",
-    "relevant_files": "Absolute paths for security-relevant files (auth modules, configs, sensitive code).",
+    "step_number": "Current step, starting at 1.",
+    "total_steps": "Estimated audit steps; adjust as risks surface.",
+    "next_step_required": "True while analysis continues; False when ready to hand off for expert validation.",
+    "findings": (
+        "Vulnerabilities, auth issues, validation gaps, compliance notes, and positives; revise earlier findings as "
+        "needed."
+    ),
+    "files_checked": "All files examined (absolute paths), including ones ruled out.",
+    "relevant_files": "Security-relevant files (absolute paths): auth, configs, sensitive code.",
     "relevant_context": "Security-critical classes/methods (e.g. 'AuthService.login', 'encryption_helper').",
-    "issues_found": "Security issues with severity (critical/high/medium/low) and descriptions (vulns, auth flaws, injection, crypto, config).",
-    "confidence": "exploring/low/medium/high/very_high/almost_certain/certain. 'certain' blocks external validation—use only when fully complete.",
-    "images": "Optional absolute paths to diagrams or threat models that inform the audit.",
-    "security_scope": "Security context (web, mobile, API, cloud, etc.) including stack, user types, data sensitivity, and threat landscape.",
-    "threat_level": "Assess the threat level: low (internal/low-risk), medium (customer-facing/business data), high (regulated or sensitive), critical (financial/healthcare/PII).",
-    "compliance_requirements": "Applicable compliance frameworks or standards (SOC2, PCI DSS, HIPAA, GDPR, ISO 27001, NIST, etc.).",
-    "audit_focus": "Primary focus area: owasp, compliance, infrastructure, dependencies, or comprehensive.",
-    "severity_filter": "Minimum severity to include when reporting security issues.",
+    "issues_found": "Security issues as objects with 'severity' (critical/high/medium/low) and 'description'.",
+    "confidence": "'certain' skips external validation; use it only when the audit is fully complete.",
+    "images": "Optional absolute paths to diagrams or threat models.",
+    "security_scope": (
+        "Security context: app type (web, mobile, API, cloud), stack, user types, data sensitivity, threat landscape."
+    ),
+    "threat_level": (
+        "Assessed threat level: low (internal), medium (customer-facing/business data), high (regulated or sensitive), "
+        "critical (financial/healthcare/PII)."
+    ),
+    "compliance_requirements": "Applicable compliance frameworks, e.g. SOC2, PCI DSS, HIPAA, GDPR, ISO 27001, NIST.",
+    "audit_focus": "Primary focus area.",
+    "severity_filter": "Minimum severity to report.",
 }
 
 
@@ -138,9 +147,9 @@ class SecauditTool(WorkflowTool):
     def get_description(self) -> str:
         """Return a description of the tool."""
         return (
-            "Performs comprehensive security audit with systematic vulnerability assessment. "
-            "Use for OWASP Top 10 analysis, compliance evaluation, threat modeling, and security architecture review. "
-            "Guides through structured security investigation with expert validation."
+            "Step-by-step security audit with expert validation. Use for OWASP Top 10 review, compliance checks, "
+            "threat modeling, or security architecture review. Not for a single known vulnerability you can fix "
+            "directly."
         )
 
     def get_system_prompt(self) -> str:

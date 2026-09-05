@@ -39,18 +39,18 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions matching original planner tool
 PLANNER_FIELD_DESCRIPTIONS = {
     "step": (
-        "Planning content for this step. Step 1: describe the task, problem and scope. Later steps: capture updates, "
-        "revisions, branches, or open questions that shape the plan."
+        "Step 1: the task, problem and scope. Later steps: updates, revisions, branches, or open questions that shape "
+        "the plan."
     ),
     "step_number": "Current planning step number (starts at 1).",
     "total_steps": "Estimated number of planning steps; adjust as the plan evolves.",
     "next_step_required": "Set true when another planning step will follow after this one.",
-    "is_step_revision": "Set true when you are replacing a previously recorded step.",
-    "revises_step_number": "Step number being replaced when revising.",
-    "is_branch_point": "True when this step creates a new branch to explore an alternative path.",
-    "branch_from_step": "If branching, the step number that this branch starts from.",
-    "branch_id": "Name for this branch (e.g. 'approach-A', 'migration-path').",
-    "more_steps_needed": "True when you now expect to add additional steps beyond the prior estimate.",
+    "is_step_revision": "True when replacing an earlier step.",
+    "revises_step_number": "Step number being replaced.",
+    "is_branch_point": "True when this step starts an alternative branch.",
+    "branch_from_step": "Step number the branch starts from.",
+    "branch_id": "Branch name (e.g. 'approach-A').",
+    "more_steps_needed": "True when more steps than estimated are needed.",
 }
 
 
@@ -128,9 +128,8 @@ class PlannerTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Breaks down complex tasks through interactive, sequential planning with revision and branching capabilities. "
-            "Use for complex project planning, system design, migration strategies, and architectural decisions. "
-            "Builds plans incrementally with deep reflection for complex scenarios."
+            "Sequential planning with revision and branching; makes no model call. Use for multi-step project, "
+            "migration or architecture plans. Not for tasks you can act on directly."
         )
 
     def get_system_prompt(self) -> str:
@@ -198,6 +197,11 @@ class PlannerTool(WorkflowTool):
             "more_steps_needed": {
                 "type": "boolean",
                 "description": PLANNER_FIELD_DESCRIPTIONS["more_steps_needed"],
+            },
+            "use_assistant_model": {
+                "type": "boolean",
+                "default": True,
+                "description": "Ignored: planner runs no expert analysis.",
             },
         }
 

@@ -16,7 +16,10 @@ if TYPE_CHECKING:
 
 
 LOOKUP_FIELD_DESCRIPTIONS = {
-    "prompt": "The API, SDK, library, framework, or technology you need current documentation, version info, breaking changes, or migration guidance for.",
+    "prompt": (
+        "API, SDK, library, framework or other technology to look up and what you need (docs, version, breaking "
+        "changes, migration)."
+    ),
 }
 
 
@@ -75,8 +78,8 @@ class LookupTool(SimpleTool):
 
     def get_description(self) -> str:
         return (
-            "Use this tool automatically when you need current API/SDK documentation, latest version info, breaking changes, deprecations, migration guides, or official release notes. "
-            "This tool searches authoritative sources (official docs, GitHub, package registries) to ensure up-to-date accuracy."
+            "Current API/SDK docs, versions, breaking changes, deprecations, migration guides and release notes from "
+            "authoritative sources. Use automatically when currency matters; not for stable basics."
         )
 
     def get_system_prompt(self) -> str:

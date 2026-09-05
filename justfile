@@ -56,3 +56,19 @@ models-audit-offline *ARGS:
 # CI gate: exit 1 when deprecated/stale/collision/schema drift exists
 models-audit-strict:
     uv run python scripts/audit_model_registry.py --cache-dir .cache/model-catalogs --fail-on-drift
+
+# --- tool surface ------------------------------------------------------------
+#
+# Character cost of the MCP tool surface per channel: eager (names +
+# descriptions, what a deferring client loads at handshake) and full (adds
+# every inputSchema). tests/test_tool_surface.py pins the tool-name set and a
+# per-tool description cap; `scripts/tool_surface.py check` diffs the
+# structural surface (names, params, types, enums, defaults) against a snapshot.
+
+# Measure the tool surface; pass `--json` for machine-readable output
+tool-surface *ARGS:
+    uv run python scripts/tool_surface.py measure {{ARGS}}
+
+# Measure with the shipped DISABLED_TOOLS default applied
+tool-surface-preset:
+    uv run python scripts/tool_surface.py measure --preset

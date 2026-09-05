@@ -34,38 +34,28 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions matching original debug tool
 DEBUG_INVESTIGATION_FIELD_DESCRIPTIONS = {
     "step": (
-        "Investigation step. Step 1: State issue+direction. "
-        "Symptoms misleading; 'no bug' valid. Trace dependencies, verify hypotheses. "
-        "Use relevant_files for code; this for text only."
+        "Step 1: the issue and direction. Later: trace dependencies, test hypotheses. Symptoms can mislead; "
+        "'no bug' is valid. Text only; code goes in relevant_files."
     ),
-    "step_number": "Current step index (starts at 1). Build upon previous steps.",
-    "total_steps": (
-        "Estimated total steps needed to complete the investigation. Adjust as new findings emerge. "
-        "IMPORTANT: When continuation_id is provided (continuing a previous conversation), set this to 1 as we're not starting a new multi-step investigation."
-    ),
+    "step_number": "Current step, starting at 1.",
+    "total_steps": "Estimated steps to finish; adjust as findings emerge. When continuation_id is set, use 1.",
     "next_step_required": (
-        "True if you plan to continue the investigation with another step. False means root cause is known or investigation is complete. "
-        "IMPORTANT: When continuation_id is provided (continuing a previous conversation), set this to False to immediately proceed with expert analysis."
+        "False when the root cause is known or the investigation is complete; this triggers expert analysis. When "
+        "continuation_id is set, use False."
     ),
-    "findings": (
-        "Discoveries: clues, code/log evidence, disproven theories. Be specific. "
-        "If no bug found, document clearly as valid."
-    ),
-    "files_checked": "All examined files (absolute paths), including ruled-out ones.",
-    "relevant_files": "Files directly relevant to issue (absolute paths). Cause, trigger, or manifestation locations.",
+    "findings": "Clues, code/log evidence, disproven theories; be specific. 'No bug found' is a valid result.",
+    "files_checked": "Absolute paths of all files examined, ruled-out ones included.",
+    "relevant_files": "Absolute paths of files where the issue is caused, triggered or manifests.",
     "relevant_context": "Methods/functions central to issue: 'Class.method' or 'function'. Focus on inputs/branching/state.",
     "hypothesis": (
-        "Concrete root cause theory from evidence. Can revise. "
-        "Valid: 'No bug found - user misunderstanding' or 'Symptoms unrelated to code' if supported."
+        "Root cause theory from evidence; revisable. 'No bug found' or 'symptoms unrelated to code' are valid if "
+        "supported."
     ),
     "confidence": (
-        "Your confidence in the hypothesis: exploring (starting out), low (early idea), medium (some evidence), "
-        "high (strong evidence), very_high (very strong evidence), almost_certain (nearly confirmed), "
-        "certain (100% confidence - root cause and fix are both confirmed locally with no need for external validation). "
-        "WARNING: Do NOT use 'certain' unless the issue can be fully resolved with a fix, use 'very_high' or 'almost_certain' instead when not 100% sure. "
-        "Using 'certain' means you have ABSOLUTE confidence locally and PREVENTS external model validation."
+        "Confidence in the hypothesis. Use certain only when root cause and fix are both confirmed locally: it skips "
+        "external model validation. If nearly but not fully sure, use very_high or almost_certain."
     ),
-    "images": "Optional screenshots/visuals clarifying issue (absolute paths).",
+    "images": "Optional absolute paths to screenshots or visuals.",
 }
 
 
@@ -119,9 +109,8 @@ class DebugIssueTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Performs systematic debugging and root cause analysis for any type of issue. "
-            "Use for complex bugs, mysterious errors, performance issues, race conditions, memory leaks, and integration problems. "
-            "Guides through structured investigation with hypothesis testing and expert analysis."
+            "Multi-step debugging and root cause analysis with expert-model validation. Use for bugs with an unclear "
+            "cause: errors, performance, races, leaks, integration failures. Not for issues you can fix directly."
         )
 
     def get_system_prompt(self) -> str:

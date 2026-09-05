@@ -78,8 +78,8 @@ class CLinkTool(SimpleTool):
 
     def get_description(self) -> str:
         return (
-            "Link a request to an external AI CLI (Gemini CLI, Qwen CLI, etc.) through PAL MCP to reuse "
-            "their capabilities inside existing workflows."
+            "Run a request through an external AI CLI (e.g. claude, codex, gemini; see cli_name) and return its answer. "
+            "Use when the user asks for that CLI or wants an independent review or plan from it."
         )
 
     def get_annotations(self) -> dict[str, Any]:
@@ -104,31 +104,31 @@ class CLinkTool(SimpleTool):
         # Surface configured CLI names and roles directly in the schema so MCP clients
         # (and downstream agents) can discover available options without consulting
         # a separate registry call.
-        role_descriptions = []
-        for name in self._cli_names:
-            roles = ", ".join(sorted(self._role_map.get(name, ["default"]))) or "default"
-            role_descriptions.append(f"{name}: {roles}")
+        role_sets = {name: sorted(self._role_map.get(name, ["default"]) or ["default"]) for name in self._cli_names}
 
-        if role_descriptions:
+        if role_sets:
             cli_available = ", ".join(self._cli_names) if self._cli_names else "(none configured)"
             default_text = (
                 f" Default: {self._default_cli_name}." if self._default_cli_name and len(self._cli_names) <= 1 else ""
             )
-            cli_description = (
-                "Configured CLI client name (from conf/cli_clients). Available: " + cli_available + default_text
-            )
-            role_description = (
-                "Optional role preset defined for the selected CLI (defaults to 'default'). Roles per CLI: "
-                + "; ".join(role_descriptions)
-            )
+            cli_description = "CLI (conf/cli_clients). Available: " + cli_available + default_text
+            distinct_role_sets = {tuple(roles) for roles in role_sets.values()}
+            if len(distinct_role_sets) == 1:
+                # Every CLI offers the same roles: list them once instead of per CLI.
+                roles_text = "Roles: " + ", ".join(next(iter(distinct_role_sets))) + " (all CLIs)."
+            else:
+                roles_text = "Roles per CLI: " + "; ".join(
+                    f"{name}: {', '.join(roles)}" for name, roles in role_sets.items()
+                )
+            role_description = "Role preset (default 'default'). " + roles_text
         else:
-            cli_description = "Configured CLI client name (from conf/cli_clients)."
-            role_description = "Optional role preset defined for the selected CLI (defaults to 'default')."
+            cli_description = "CLI (conf/cli_clients)."
+            role_description = "Role preset (default 'default')."
 
         properties = {
             "prompt": {
                 "type": "string",
-                "description": "User request forwarded to the CLI (conversation context is pre-applied).",
+                "description": "Request for the CLI; conversation context is pre-applied.",
             },
             "cli_name": {
                 "type": "string",

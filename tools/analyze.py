@@ -35,48 +35,32 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions for analyze workflow
 ANALYZE_WORKFLOW_FIELD_DESCRIPTIONS = {
     "step": (
-        "The analysis plan. Step 1: State your strategy, including how you will map the codebase structure, "
-        "understand business logic, and assess code quality, performance implications, and architectural patterns. "
-        "Later steps: Report findings and adapt the approach as new insights emerge."
+        "Step 1: state the strategy (how you will map structure, business logic, quality, performance, architecture). "
+        "Later steps: report findings and adapt the plan."
     ),
-    "step_number": (
-        "The index of the current step in the analysis sequence, beginning at 1. Each step should build upon or "
-        "revise the previous one."
-    ),
-    "total_steps": (
-        "Your current estimate for how many steps will be needed to complete the analysis. "
-        "Adjust as new findings emerge."
-    ),
+    "step_number": "Current step index, starting at 1. Each step builds on or revises the previous one.",
+    "total_steps": "Estimated steps to complete the analysis; adjust as findings emerge.",
     "next_step_required": (
-        "Set to true if you plan to continue the investigation with another step. False means you believe the "
-        "analysis is complete and ready for expert validation."
+        "True to continue with another step. False means the analysis is complete and ready for expert validation."
     ),
     "findings": (
-        "Summary of discoveries from this step, including architectural patterns, tech stack assessment, scalability characteristics, "
-        "performance implications, maintainability factors, and strategic improvement opportunities. "
-        "IMPORTANT: Document both strengths (good patterns, solid architecture) and concerns (tech debt, overengineering, unnecessary complexity). "
-        "In later steps, confirm or update past findings with additional evidence."
+        "Discoveries this step: architecture, tech stack, scalability, performance, maintainability, improvement "
+        "opportunities. Record both strengths and concerns (tech debt, overengineering, needless complexity). Later "
+        "steps confirm or revise earlier findings."
     ),
-    "files_checked": (
-        "List all files examined (absolute paths). Include even ruled-out files to track exploration path."
-    ),
+    "files_checked": "All files examined (absolute paths), including ones ruled out.",
     "relevant_files": (
-        "Subset of files_checked directly relevant to analysis findings (absolute paths). Include files with "
-        "significant patterns, architectural decisions, or strategic improvement opportunities."
+        "Subset of files_checked bearing on the findings (absolute paths): key patterns, architectural decisions, "
+        "improvement opportunities. Required in step 1."
     ),
     "relevant_context": (
         "List methods/functions central to analysis findings, in 'ClassName.methodName' or 'functionName' format. "
         "Prioritize those demonstrating key patterns, architectural decisions, or improvement opportunities."
     ),
-    "images": (
-        "Optional absolute paths to architecture diagrams or visual references that help with analysis context."
-    ),
-    "confidence": (
-        "Your confidence in the analysis: exploring, low, medium, high, very_high, almost_certain, or certain. "
-        "'certain' indicates the analysis is complete and ready for validation."
-    ),
-    "analysis_type": "Type of analysis to perform (architecture, performance, security, quality, general)",
-    "output_format": "How to format the output (summary, detailed, actionable)",
+    "images": "Optional absolute paths to architecture diagrams or other visual references.",
+    "confidence": "Confidence in the analysis. 'certain' means the analysis is complete and ready for validation.",
+    "analysis_type": "Focus of the analysis.",
+    "output_format": "Output style.",
 }
 
 
@@ -104,7 +88,7 @@ class AnalyzeWorkflowRequest(WorkflowRequest):
     # Issues found during analysis (structured with severity)
     issues_found: list[dict] = Field(
         default_factory=list,
-        description="Issues or concerns identified during analysis, each with severity level (critical, high, medium, low)",
+        description="Issues found, as objects with 'severity' (critical, high, medium, low) and 'description'.",
     )
 
     # Optional images for visual context
@@ -150,9 +134,8 @@ class AnalyzeTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Performs comprehensive code analysis with systematic investigation and expert validation. "
-            "Use for architecture, performance, maintainability, and pattern analysis. "
-            "Guides through structured code review and strategic planning."
+            "Step-by-step code analysis with expert validation. Use for architecture, performance, maintainability or "
+            "pattern assessment of a codebase. Not for a lookup answerable from a single file."
         )
 
     def get_system_prompt(self) -> str:
@@ -225,7 +208,9 @@ class AnalyzeTool(WorkflowTool):
             "issues_found": {
                 "type": "array",
                 "items": {"type": "object"},
-                "description": "Issues or concerns identified during analysis, each with severity level (critical, high, medium, low)",
+                "description": (
+                    "Issues found, as objects with 'severity' (critical, high, medium, low) and 'description'."
+                ),
             },
             "analysis_type": {
                 "type": "string",

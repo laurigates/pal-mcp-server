@@ -46,12 +46,12 @@ DOCGEN_FIELD_DESCRIPTIONS = {
     "findings": "Summarize documentation gaps, complexity, call flows, and well-documented areas. Stop and report immediately if you uncover a bug.",
     "relevant_files": "Absolute paths for the file(s) you are documenting this step—stick to a single file per step.",
     "relevant_context": "Functions or methods needing documentation (e.g. 'Class.method', 'function_name'), especially complex or user-facing areas.",
-    "num_files_documented": "Count of files finished so far. Increment only when a file is fully documented.",
-    "total_files_to_document": "Total files identified in discovery; completion requires matching this count.",
-    "document_complexity": "Include algorithmic complexity (Big O) analysis when True (default).",
-    "document_flow": "Include call flow/dependency notes when True (default).",
-    "update_existing": "True (default) to polish inaccurate or outdated docs instead of leaving them untouched.",
-    "comments_on_complex_logic": "True (default) to add inline comments around non-obvious logic.",
+    "num_files_documented": "Files fully documented so far; increment only when a file is complete.",
+    "total_files_to_document": "Files identified in discovery; completion requires matching this count.",
+    "document_complexity": "Include Big O complexity analysis.",
+    "document_flow": "Include call flow and dependency notes.",
+    "update_existing": "Update inaccurate or outdated docs rather than leaving them.",
+    "comments_on_complex_logic": "Add inline comments around non-obvious logic.",
 }
 
 
@@ -104,9 +104,8 @@ class DocgenTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Generates comprehensive code documentation with systematic analysis of functions, classes, and complexity. "
-            "Use for documentation generation, code analysis, complexity assessment, and API documentation. "
-            "Analyzes code structure and patterns to create thorough documentation."
+            "Guides file-by-file documentation of a codebase: docstrings, Big O complexity, call flow, "
+            "inline comments. Use to document one file or many. Not for a single docstring you can write directly."
         )
 
     def get_system_prompt(self) -> str:
@@ -175,6 +174,11 @@ class DocgenTool(WorkflowTool):
                 "default": 0,
                 "minimum": 0,
                 "description": DOCGEN_FIELD_DESCRIPTIONS["total_files_to_document"],
+            },
+            "use_assistant_model": {
+                "type": "boolean",
+                "default": True,
+                "description": "Ignored: docgen runs no expert analysis.",
             },
         }
 

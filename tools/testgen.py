@@ -34,24 +34,27 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions for test generation workflow
 TESTGEN_WORKFLOW_FIELD_DESCRIPTIONS = {
     "step": (
-        "Test plan for this step. Step 1: outline how you'll analyse structure, business logic, critical paths, and edge cases. Later steps: record findings and new scenarios as they emerge."
+        "Step 1: outline how you will analyse structure, business logic, critical paths, and edge cases. Later "
+        "steps: record findings and new scenarios."
     ),
-    "step_number": "Current test-generation step (starts at 1) — each step should build on prior work.",
-    "total_steps": "Estimated number of steps needed for test planning; adjust as new scenarios appear.",
-    "next_step_required": "True while more investigation or planning remains; set False when test planning is ready for expert validation.",
-    "findings": "Summarise functionality, critical paths, edge cases, boundary conditions, error handling, and existing test patterns. Cover both happy and failure paths.",
-    "files_checked": "Absolute paths of every file examined, including those ruled out.",
-    "relevant_files": "Absolute paths of code that requires new or updated tests (implementation, dependencies, existing test fixtures).",
+    "step_number": "Current step, starting at 1; each builds on prior work.",
+    "total_steps": "Estimated steps for test planning; adjust as scenarios appear.",
+    "next_step_required": "True while planning continues; False when the test plan is ready for expert validation.",
+    "findings": (
+        "Functionality, critical paths, edge cases, boundary conditions, error handling, and existing test patterns; "
+        "cover happy and failure paths."
+    ),
+    "files_checked": "All files examined (absolute paths), including ones ruled out.",
+    "relevant_files": (
+        "Absolute paths of code needing new or updated tests (plus dependencies, existing fixtures). "
+        "Required in step 1."
+    ),
     "relevant_context": "Functions/methods needing coverage (e.g. 'Class.method', 'function_name'), with emphasis on critical paths and error-prone code.",
     "confidence": (
-        "Indicate your current confidence in the test generation assessment. Use: 'exploring' (starting analysis), "
-        "'low' (early investigation), 'medium' (some patterns identified), 'high' (strong understanding), "
-        "'very_high' (very strong understanding), 'almost_certain' (nearly complete test plan), 'certain' "
-        "(100% confidence - test plan is thoroughly complete and all test scenarios are identified with no need for external model validation). "
-        "Do NOT use 'certain' unless the test generation analysis is comprehensively complete, use 'very_high' or 'almost_certain' instead if not 100% sure. "
-        "Using 'certain' means you have complete confidence locally and prevents external model validation."
+        "Confidence in the test plan. 'certain' means the plan is complete with every scenario identified, and skips "
+        "external model validation; if not fully sure, use 'very_high' or 'almost_certain' instead."
     ),
-    "images": "Optional absolute paths to diagrams or visuals that clarify the system under test.",
+    "images": "Optional absolute paths to diagrams of the system under test.",
 }
 
 
@@ -113,9 +116,8 @@ class TestGenTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Creates comprehensive test suites with edge case coverage for specific functions, classes, or modules. "
-            "Analyzes code paths, identifies failure modes, and generates framework-specific tests. "
-            "Be specific about scope - target particular components rather than testing everything."
+            "Generates framework-specific tests with edge-case coverage for named functions, classes, or modules. "
+            "Scope to specific components, not the whole codebase. Not for running tests or debugging a failing one."
         )
 
     def get_system_prompt(self) -> str:

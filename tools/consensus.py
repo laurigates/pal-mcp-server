@@ -39,24 +39,24 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions for consensus workflow
 CONSENSUS_WORKFLOW_FIELD_DESCRIPTIONS = {
     "step": (
-        "Consensus prompt. Step 1: write the exact proposal/question every model will see (use 'Evaluate…', not meta commentary). "
-        "Steps 2+: capture internal notes about the latest model response—these notes are NOT sent to other models."
+        "Step 1: the exact proposal every model sees, phrased as 'Evaluate…' (no meta commentary). "
+        "Steps 2+: notes on the latest response; never sent to other models."
     ),
-    "step_number": "Current step index (starts at 1). Step 1 is your analysis; steps 2+ handle each model response.",
-    "total_steps": "Total steps = number of models consulted plus the final synthesis step.",
-    "next_step_required": "True if more model consultations remain; set false when ready to synthesize.",
+    "step_number": "Starts at 1. Step 1: your own analysis; steps 2+: one model response each.",
+    "total_steps": "Models consulted plus one final synthesis step.",
+    "next_step_required": "True while consultations remain; false when ready to synthesize.",
     "findings": (
-        "Step 1: your independent analysis for later synthesis (not shared with other models). Steps 2+: summarize the newest model response."
+        "Step 1: your own analysis, kept for synthesis (not shared with models). Steps 2+: summary of the newest "
+        "response."
     ),
-    "relevant_files": "Optional supporting files that help the consensus analysis. Must be absolute full, non-abbreviated paths.",
+    "relevant_files": "Optional supporting files; absolute, non-abbreviated paths.",
     "models": (
-        "User-specified list of models to consult (provide at least two entries). "
-        "Each entry may include model, stance (for/against/neutral), and stance_prompt. "
-        "Each (model, stance) pair must be unique, e.g. [{'model':'gpt5','stance':'for'}, {'model':'pro','stance':'against'}]."
+        "Models to consult, at least two. Entry keys: model, stance (for/against/neutral), stance_prompt. (model, "
+        "stance) pairs must be unique, e.g. [{'model':'gpt5','stance':'for'}, {'model':'pro','stance':'against'}]."
     ),
     "current_model_index": "0-based index of the next model to consult (managed internally).",
     "model_responses": "Internal log of responses gathered so far.",
-    "images": "Optional absolute image paths or base64 references that add helpful visual context.",
+    "images": "Optional absolute image paths or base64 references.",
 }
 
 
@@ -149,9 +149,9 @@ class ConsensusTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Builds multi-model consensus through systematic analysis and structured debate. "
-            "Use for complex decisions, architectural choices, feature proposals, and technology evaluations. "
-            "Consults multiple models with different stances to synthesize comprehensive recommendations."
+            "Sends one proposal to several models with for/against/neutral stances; returns each answer for you to "
+            "synthesize. Use for design or technology decisions needing independent views. Not for decisions with one "
+            "clear answer."
         )
 
     def get_system_prompt(self) -> str:
@@ -235,10 +235,7 @@ of the evidence, even when it strongly points in one direction.""",
                     },
                     "required": ["model"],
                 },
-                "description": (
-                    "User-specified roster of models to consult (provide at least two entries). "
-                    + CONSENSUS_WORKFLOW_FIELD_DESCRIPTIONS["models"]
-                ),
+                "description": CONSENSUS_WORKFLOW_FIELD_DESCRIPTIONS["models"],
                 "minItems": 2,
             },
             "current_model_index": {
@@ -256,12 +253,17 @@ of the evidence, even when it strongly points in one direction.""",
                 "items": {"type": "string"},
                 "description": CONSENSUS_WORKFLOW_FIELD_DESCRIPTIONS["images"],
             },
+            "use_assistant_model": {
+                "type": "boolean",
+                "default": True,
+                "description": "Ignored: consensus runs no expert analysis.",
+            },
         }
 
         # Provide guidance on available models similar to single-model tools
         model_description = (
-            "When the user names a model, you MUST use that exact value or report the "
-            "provider error—never swap in another option. Use the `listmodels` tool for the full roster."
+            "If the user names a model, use that exact value or report the provider error; never substitute. "
+            "`listmodels` lists the roster."
         )
 
         summaries, total, restricted = self._get_ranked_model_summaries()
@@ -276,8 +278,7 @@ of the evidence, even when it strongly points in one direction.""",
             model_description = f"{model_description} {top_line}"
         else:
             model_description = (
-                f"{model_description} No models detected—configure provider credentials or use the `listmodels` tool "
-                "to inspect availability."
+                f"{model_description} No models detected; configure provider credentials or check `listmodels`."
             )
 
         restriction_note = self._get_restriction_note()

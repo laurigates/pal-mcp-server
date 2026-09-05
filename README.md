@@ -175,6 +175,15 @@ To optimize context window usage, only essential tools are enabled by default.
 
 **Disabled by default:** `analyze`, `refactor`, `testgen`, `secaudit`, `docgen`, `tracer`
 
+### Measured Cost
+
+Tool descriptions are the eager channel: a client that defers schema loading (Claude Code, for one) pays tool names plus descriptions at every session start and fetches each tool's `inputSchema` per call. Character counts from `just tool-surface` and `just tool-surface-preset`, measured with no provider credentials configured (a configured provider appends its model roster to every `model` parameter, which raises the full count):
+
+| Preset | Tools | Eager (names + descriptions) | Full (adds every `inputSchema`) |
+|---|---|---|---|
+| All tools (`DISABLED_TOOLS=`) | 19 | 3,587 | 44,815 |
+| Shipped default (`.env.example`) | 13 | 2,340 | 24,453 |
+
 ### Enabling Additional Tools
 
 Remove a tool from the `DISABLED_TOOLS` list to enable it.
