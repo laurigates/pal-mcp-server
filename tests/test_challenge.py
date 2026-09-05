@@ -155,7 +155,7 @@ class TestChallengeTool:
         assert "prompt" in fields
         assert fields["prompt"]["type"] == "string"
         assert "Statement to scrutinize" in fields["prompt"]["description"]
-        assert "strip the word 'challenge'" in fields["prompt"]["description"]
+        assert "drop the word 'challenge'" in fields["prompt"]["description"]
 
     def test_required_fields_list(self):
         """Test required fields list"""

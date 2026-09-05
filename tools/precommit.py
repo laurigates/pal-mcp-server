@@ -34,30 +34,33 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions for precommit workflow
 PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS = {
     "step": (
-        "Step 1: outline how you'll validate the git changes. Later steps: report findings. Review diffs and impacts, use `relevant_files`, and avoid pasting large snippets."
+        "Step 1: how you will validate the changes. Later: findings on diffs and impact. Reference code via "
+        "relevant_files; no large snippets."
     ),
-    "step_number": "Current pre-commit step number (starts at 1).",
+    "step_number": "Current step, starting at 1.",
     "total_steps": (
-        "Planned number of validation steps. External validation: use at most three (analysis → follow-ups → summary). Internal validation: a single step. Honour these limits when resuming via continuation_id."
+        "Up to 3 steps for external validation (analysis, follow-ups, summary), 1 for internal; same limits when "
+        "resuming via continuation_id."
     ),
     "next_step_required": (
-        "True to continue with another step, False when validation is complete. "
-        "CRITICAL: If total_steps>=3 or when `precommit_type = external`, set to True until the final step. "
-        "When continuation_id is provided: Follow the same validation rules based on precommit_type."
+        "False when validation is complete. If total_steps >= 3 or precommit_type is external, stay True until the "
+        "final step; same on continuations."
     ),
-    "findings": "Record git diff insights, risks, missing tests, security concerns, and positives; update previous notes as you go.",
-    "files_checked": "Absolute paths for every file examined, including ruled-out candidates.",
-    "relevant_files": "Absolute paths of files involved in the change or validation (code, configs, tests, docs). Must be absolute full non-abbreviated paths.",
+    "findings": "Diff insights, risks, missing tests, security concerns and positives; revise each step.",
+    "files_checked": "Absolute paths of all files examined, ruled-out ones included.",
+    "relevant_files": (
+        "Files in the change or its validation (code, config, tests, docs); full absolute paths, do not shorten."
+    ),
     "relevant_context": "Key functions/methods touched by the change (e.g. 'Class.method', 'function_name').",
-    "issues_found": "List issues with severity (critical/high/medium/low) plus descriptions (bugs, security, performance, coverage).",
-    "precommit_type": "'external' (default, triggers expert model) or 'internal' (local-only validation).",
-    "images": "Optional absolute paths to screenshots or diagrams that aid validation.",
-    "path": "Absolute path to the repository root. Required in step 1.",
-    "compare_to": "Optional git ref (branch/tag/commit) to diff against; falls back to staged/unstaged changes.",
-    "include_staged": "Whether to inspect staged changes (ignored when `compare_to` is set).",
-    "include_unstaged": "Whether to inspect unstaged changes (ignored when `compare_to` is set).",
-    "focus_on": "Optional emphasis areas such as security, performance, or test coverage.",
-    "severity_filter": "Lowest severity to include when reporting issues.",
+    "issues_found": "Issues as {severity: critical|high|medium|low, description}.",
+    "precommit_type": "external (default) adds an expert-model follow-up; internal is local only.",
+    "images": "Optional absolute paths to screenshots or diagrams.",
+    "path": "Absolute path to the repo root. Required in step 1.",
+    "compare_to": "Git ref to diff against; default is staged/unstaged changes.",
+    "include_staged": "Inspect staged changes; ignored when compare_to is set.",
+    "include_unstaged": "Inspect unstaged changes; ignored when compare_to is set.",
+    "focus_on": "Emphasis, e.g. security, performance, test coverage.",
+    "severity_filter": "Lowest severity to report.",
 }
 
 
@@ -134,9 +137,9 @@ class PrecommitTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Validates git changes and repository state before committing with systematic analysis. "
-            "Use for multi-repository validation, security review, change impact assessment, and completeness verification. "
-            "Guides through structured investigation with expert analysis."
+            "Validates git changes before a commit or merge (diff, impact, security, completeness) with expert "
+            "validation. Use before commits, also across repos; compare_to diffs vs a ref. Not for code outside a "
+            "diff; use codereview."
         )
 
     def get_system_prompt(self) -> str:
@@ -192,6 +195,11 @@ class PrecommitTool(WorkflowTool):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["relevant_files"],
+            },
+            "confidence": {
+                "type": "string",
+                "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
+                "description": "Ignored: precommit does not read confidence; precommit_type steers validation.",
             },
             "precommit_type": {
                 "type": "string",

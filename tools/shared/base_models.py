@@ -21,37 +21,31 @@ logger = logging.getLogger(__name__)
 COMMON_FIELD_DESCRIPTIONS = {
     "model": "Model to run. Supply a name if requested by the user or stay in auto mode. When in auto mode, use `listmodels` tool for model discovery.",
     "temperature": "0 = deterministic · 1 = creative.",
-    "thinking_mode": "Reasoning depth: minimal, low, medium, high, or max.",
+    "thinking_mode": "Reasoning depth.",
     "continuation_id": (
-        "Unique thread continuation ID for multi-turn conversations. Works across different tools. "
-        "ALWAYS reuse the last continuation_id you were given—this preserves full conversation context, "
-        "files, and findings so the agent can resume seamlessly."
+        "Thread ID for multi-turn conversations; works across tools. Always reuse the last one you were given so "
+        "context, files, and findings carry over."
     ),
-    "images": "Optional absolute image paths or base64 blobs for visual context.",
+    "images": "Absolute image paths or base64 blobs.",
     "absolute_file_paths": "Full paths to relevant code",
 }
 
 # Workflow-specific field descriptions
 WORKFLOW_FIELD_DESCRIPTIONS = {
-    "step": "Current work step content and findings from your overall work",
-    "step_number": "Current step number in work sequence (starts at 1)",
-    "total_steps": "Estimated total steps needed to complete work",
-    "next_step_required": "Whether another work step is needed. When false, aim to reduce total_steps to match step_number to avoid mismatch.",
-    "findings": "Important findings, evidence and insights discovered in this step",
-    "files_checked": "List of files examined during this work step",
-    "relevant_files": "Files identified as relevant to issue/goal (FULL absolute paths to real files/folders - DO NOT SHORTEN)",
-    "relevant_context": "Methods/functions identified as involved in the issue",
-    "issues_found": "Issues identified with severity levels during work",
-    "confidence": (
-        "Confidence level: exploring (just starting), low (early investigation), "
-        "medium (some evidence), high (strong evidence), very_high (comprehensive understanding), "
-        "almost_certain (near complete confidence), certain (100% confidence locally - no external validation needed)"
-    ),
-    "hypothesis": "Current theory about issue/goal based on work",
+    "step": "Content and findings of the current step.",
+    "step_number": "Current step, starting at 1.",
+    "total_steps": "Estimated total steps.",
+    "next_step_required": "True if another step follows; when false, set total_steps equal to step_number.",
+    "findings": "Findings and evidence from this step.",
+    "files_checked": "Files examined this step (absolute paths).",
+    "relevant_files": "Relevant files or folders as full absolute paths; do not shorten.",
+    "relevant_context": "Methods/functions involved in the issue.",
+    "issues_found": "Issues found, each with a severity level.",
+    "confidence": "Confidence in your findings so far: exploring, low, medium, high, very_high, almost_certain or certain.",
+    "hypothesis": "Current theory about the issue or goal.",
     "use_assistant_model": (
-        "Use assistant model for expert analysis after workflow steps. "
-        "False skips expert analysis, relies solely on your personal investigation. "
-        "Defaults to True for comprehensive validation."
+        "Call the assistant model for expert analysis after the workflow steps. False skips it and relies only on your "
+        "own investigation."
     ),
 }
 

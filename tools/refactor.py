@@ -35,58 +35,41 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions for refactor tool
 REFACTOR_FIELD_DESCRIPTIONS = {
     "step": (
-        "The refactoring plan. Step 1: State strategy. Later steps: Report findings. "
-        "CRITICAL: Examine code for smells, and opportunities for decomposition, modernization, and organization. "
-        "Use 'relevant_files' for code. FORBIDDEN: Large code snippets."
+        "Step 1: state the strategy. Later steps: report findings on smells and decomposition, modernization, and "
+        "organization opportunities. Reference code via relevant_files; do not paste large snippets."
     ),
-    "step_number": (
-        "The index of the current step in the refactoring investigation sequence, beginning at 1. Each step should "
-        "build upon or revise the previous one."
-    ),
-    "total_steps": (
-        "Your current estimate for how many steps will be needed to complete the refactoring investigation. "
-        "Adjust as new opportunities emerge."
-    ),
+    "step_number": "Current step index, starting at 1. Each step builds on or revises the previous one.",
+    "total_steps": "Estimated steps to complete the investigation; adjust as opportunities emerge.",
     "next_step_required": (
-        "Set to true if you plan to continue the investigation with another step. False means you believe the "
-        "refactoring analysis is complete and ready for expert validation."
+        "True to continue with another step. False means the refactoring analysis is complete and ready for expert "
+        "validation."
     ),
     "findings": (
-        "Summary of discoveries from this step, including code smells and opportunities for decomposition, modernization, or organization. "
-        "Document both strengths and weaknesses. In later steps, confirm or update past findings."
+        "Discoveries this step: code smells and decomposition, modernization, or organization opportunities. Note "
+        "strengths and weaknesses. Later steps confirm or revise earlier findings."
     ),
-    "files_checked": (
-        "List all files examined (absolute paths). Include even ruled-out files to track exploration path."
-    ),
-    "relevant_files": (
-        "Subset of files_checked with code requiring refactoring (absolute paths). Include files with "
-        "code smells, decomposition needs, or improvement opportunities."
-    ),
+    "files_checked": "All files examined (absolute paths), including ones ruled out.",
+    "relevant_files": "Subset of files_checked needing refactoring (absolute paths). Required in step 1.",
     "relevant_context": (
         "List methods/functions central to refactoring opportunities, in 'ClassName.methodName' or 'functionName' format. "
         "Prioritize those with code smells or needing improvement."
     ),
     "issues_found": (
-        "Refactoring opportunities as dictionaries with 'severity' (critical/high/medium/low), "
-        "'type' (codesmells/decompose/modernize/organization), and 'description'. "
-        "Include all improvement opportunities found."
+        "Refactoring opportunities as objects with 'severity' (critical/high/medium/low), 'type' "
+        "(codesmells/decompose/modernize/organization), and 'description'."
     ),
     "confidence": (
-        "Your confidence in refactoring analysis: exploring (starting), incomplete (significant work remaining), "
-        "partial (some opportunities found, more analysis needed), complete (comprehensive analysis finished, "
-        "all major opportunities identified). "
-        "WARNING: Use 'complete' ONLY when fully analyzed and can provide recommendations without expert help. "
-        "'complete' PREVENTS expert validation. Use 'partial' for large files or uncertain analysis."
+        "exploring (starting), incomplete (much work remains), partial (some opportunities found, more analysis "
+        "needed), complete (all major opportunities identified). 'complete' skips expert validation; use it only when "
+        "you can recommend without expert help. Prefer 'partial' for large files or uncertain analysis."
     ),
     "images": (
-        "Optional list of absolute paths to architecture diagrams, UI mockups, design documents, or visual references "
-        "that help with refactoring context. Only include if they materially assist understanding or assessment."
+        "Optional absolute paths to diagrams, mockups, or design documents. Include only if they materially help."
     ),
-    "refactor_type": "Type of refactoring analysis to perform (codesmells, decompose, modernize, organization)",
-    "focus_areas": "Specific areas to focus on (e.g., 'performance', 'readability', 'maintainability', 'security')",
+    "refactor_type": "Kind of refactoring analysis to perform.",
+    "focus_areas": "Free-text areas to emphasise, e.g. 'performance', 'readability'.",
     "style_guide_examples": (
-        "Optional existing code files to use as style/pattern reference (must be FULL absolute paths to real files / "
-        "folders - DO NOT SHORTEN). These files represent the target coding style and patterns for the project."
+        "Optional files or folders showing the target coding style. Full absolute paths; do not shorten."
     ),
 }
 
@@ -159,9 +142,8 @@ class RefactorTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Analyzes code for refactoring opportunities with systematic investigation. "
-            "Use for code smell detection, decomposition planning, modernization, and maintainability improvements. "
-            "Guides through structured analysis with expert validation."
+            "Step-by-step refactoring analysis with expert validation. Use for code smell detection, decomposition "
+            "planning, modernization, or maintainability improvements. Not for edits you can make yourself."
         )
 
     def get_system_prompt(self) -> str:

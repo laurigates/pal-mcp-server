@@ -35,29 +35,31 @@ logger = logging.getLogger(__name__)
 # Tool-specific field descriptions for code review workflow
 CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS = {
     "step": (
-        "Review narrative. Step 1: outline the review strategy. Later steps: report findings. MUST cover quality, security, "
-        "performance, and architecture. Reference code via `relevant_files`; avoid dumping large snippets."
+        "Step 1: review strategy. Later: findings across quality, security, performance and architecture. Reference "
+        "code via relevant_files; no large snippets."
     ),
-    "step_number": "Current review step (starts at 1) – each step should build on the last.",
+    "step_number": "Current step, starting at 1.",
     "total_steps": (
-        "Number of review steps planned. External validation: two steps (analysis + summary). Internal validation: one step. "
-        "Use the same limits when continuing an existing review via continuation_id."
+        "2 steps for external validation (analysis, summary), 1 for internal; same limits when continuing via "
+        "continuation_id."
     ),
     "next_step_required": (
-        "True when another review step follows. External validation: step 1 → True, step 2 → False. Internal validation: set False immediately. "
-        "Apply the same rule on continuation flows."
+        "external: True on step 1, False on step 2; internal: False immediately. Same on continuations."
     ),
-    "findings": "Capture findings (positive and negative) across quality, security, performance, and architecture; update each step.",
-    "files_checked": "Absolute paths of every file reviewed, including those ruled out.",
-    "relevant_files": "Step 1: list all files/dirs under review. Must be absolute full non-abbreviated paths. Final step: narrow to files tied to key findings.",
+    "findings": "Findings so far, positive and negative; revise each step.",
+    "files_checked": "Absolute paths of all files examined, ruled-out ones included.",
+    "relevant_files": (
+        "Step 1: all files or directories under review, required; full absolute paths, do not shorten. Final step: "
+        "only files tied to key findings."
+    ),
     "relevant_context": "Functions or methods central to findings (e.g. 'Class.method' or 'function_name').",
-    "issues_found": "Issues with severity (critical/high/medium/low) and descriptions.",
-    "review_validation_type": "Set 'external' (default) for expert follow-up or 'internal' for local-only review.",
-    "images": "Optional diagram or screenshot paths that clarify review context.",
-    "review_type": "Review focus: full, security, performance, or quick.",
-    "focus_on": "Optional note on areas to emphasise (e.g. 'threading', 'auth flow').",
-    "standards": "Coding standards or style guides to enforce.",
-    "severity_filter": "Lowest severity to include when reporting issues (critical/high/medium/low/all).",
+    "issues_found": "Issues as {severity: critical|high|medium|low, description}.",
+    "review_validation_type": "external (default) adds an expert-model follow-up; internal is local only.",
+    "images": "Optional absolute paths to diagrams or screenshots.",
+    "review_type": "Review focus.",
+    "focus_on": "Emphasis, e.g. 'threading' or 'auth flow'.",
+    "standards": "Standards or style guide to enforce.",
+    "severity_filter": "Lowest severity to report.",
 }
 
 
@@ -135,9 +137,8 @@ class CodeReviewTool(WorkflowTool):
 
     def get_description(self) -> str:
         return (
-            "Performs systematic, step-by-step code review with expert validation. "
-            "Use for comprehensive analysis covering quality, security, performance, and architecture. "
-            "Guides through structured investigation to ensure thoroughness."
+            "Multi-step code review with expert-model validation: quality, security, performance, architecture. Use to "
+            "review a change set or module. Not for fixes you can make directly."
         )
 
     def get_system_prompt(self) -> str:
@@ -193,6 +194,11 @@ class CodeReviewTool(WorkflowTool):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["relevant_files"],
+            },
+            "confidence": {
+                "type": "string",
+                "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
+                "description": "Ignored: codereview does not read confidence; review_validation_type steers validation.",
             },
             "review_validation_type": {
                 "type": "string",

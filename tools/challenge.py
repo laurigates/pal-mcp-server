@@ -24,8 +24,8 @@ from .simple.base import SimpleTool
 # Field descriptions for the Challenge tool
 CHALLENGE_FIELD_DESCRIPTIONS = {
     "prompt": (
-        "Statement to scrutinize. If you invoke `challenge` manually, strip the word 'challenge' and pass just the statement. "
-        "Automatic invocations send the full user message as-is; do not modify it."
+        "Statement to scrutinize. Manual: drop the word 'challenge', pass the statement only. Automatic: pass the full "
+        "user message unmodified."
     ),
 }
 
@@ -54,8 +54,9 @@ class ChallengeTool(SimpleTool):
 
     def get_description(self) -> str:
         return (
-            "Prevents reflexive agreement by forcing critical thinking and reasoned analysis when a statement is challenged. "
-            "Trigger automatically when a user critically questions, disagrees or appears to push back on earlier answers, and use it manually to sanity-check contentious claims."
+            "Replaces reflexive agreement with critical thinking and reasoned analysis. Trigger automatically when the "
+            "user critically questions, disagrees with or pushes back on an earlier answer; manually on contentious "
+            "claims."
         )
 
     def get_system_prompt(self) -> str:

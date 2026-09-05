@@ -99,9 +99,8 @@ class JulesTool(SimpleTool):
 
     def get_description(self) -> str:
         return (
-            "Drive Google Jules, an asynchronous AI coding agent that works on a connected GitHub repo. "
-            "Action-based and non-blocking: list_sources, create (start a session), status (poll progress + "
-            "get the PR), message (steer), approve (approve a plan). Requires JULES_API_KEY."
+            "Drive Google Jules, an async coding agent on a connected GitHub repo. One non-blocking action per call: "
+            "list_sources, create, status, message, approve. Needs JULES_API_KEY. Not for edits to the local checkout."
         )
 
     def get_annotations(self) -> dict[str, Any] | None:
@@ -132,45 +131,44 @@ class JulesTool(SimpleTool):
                 "type": "string",
                 "enum": list(VALID_ACTIONS),
                 "description": (
-                    "Operation to perform: 'list_sources' (discover repos), 'create' (start a session), "
-                    "'status' (poll state + activities + PR output), 'message' (steer a running session), "
-                    "'approve' (approve a pending plan)."
+                    "list_sources: discover repos; create: start a session; status: poll state, activities, PR; "
+                    "message: steer a running session; approve: approve the pending plan."
                 ),
             },
             "prompt": {
                 "type": "string",
-                "description": "Task for Jules (create) or steering feedback (message).",
+                "description": "Task (create) or steering feedback (message).",
             },
             "source": {
                 "type": "string",
-                "description": "Source resource name for create, e.g. 'sources/github/{owner}/{repo}'.",
+                "description": "Source for create, e.g. 'sources/github/{owner}/{repo}'.",
             },
             "starting_branch": {
                 "type": "string",
-                "description": "Base branch for the session (create). Defaults to the repository default branch.",
+                "description": "Base branch (create); defaults to the repo default branch.",
             },
             "session_id": {
                 "type": "string",
-                "description": "Session id for status/message/approve (raw id or 'sessions/{id}').",
+                "description": "Session id for status/message/approve; raw or 'sessions/{id}'.",
             },
             "title": {
                 "type": "string",
-                "description": "Optional session title (create).",
+                "description": "Session title (create).",
             },
             "require_plan_approval": {
                 "type": "boolean",
-                "description": "If true, the session waits for action=approve before executing (create).",
+                "description": "Create: wait for action=approve before executing.",
             },
             "automation_mode": {
                 "type": "string",
                 "enum": list(AUTOMATION_MODES),
-                "description": "Automation mode for create. AUTO_CREATE_PR opens a pull request automatically.",
+                "description": "Create: AUTO_CREATE_PR opens a pull request automatically.",
             },
             "page_size": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 100,
-                "description": "Max recent activities to return for status.",
+                "description": "Max activities returned by status.",
             },
         }
         return {

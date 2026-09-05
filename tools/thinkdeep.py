@@ -86,11 +86,11 @@ class ThinkDeepWorkflowRequest(WorkflowRequest):
     # Context files and investigation scope
     problem_context: str | None = Field(
         default=None,
-        description="Additional context about problem/goal. Be expressive.",
+        description="Extra context on the problem or goal.",
     )
     focus_areas: list[str] | None = Field(
         default=None,
-        description="Focus aspects (architecture, performance, security, etc.)",
+        description="Focus areas, e.g. architecture, performance, security.",
     )
 
 
@@ -104,9 +104,8 @@ class ThinkDeepTool(WorkflowTool):
 
     name = "thinkdeep"
     description = (
-        "Performs multi-stage investigation and reasoning for complex problem analysis. "
-        "Use for architecture decisions, complex bugs, performance challenges, and security analysis. "
-        "Provides systematic hypothesis testing, evidence-based investigation, and expert validation."
+        "Multi-step investigation and reasoning with expert-model validation. Use for architecture decisions, hard "
+        "bugs, performance or security analysis. Not for questions you can answer directly."
     )
 
     def __init__(self):
@@ -141,12 +140,20 @@ class ThinkDeepTool(WorkflowTool):
         thinkdeep_field_overrides = {
             "problem_context": {
                 "type": "string",
-                "description": "Additional context about problem/goal. Be expressive.",
+                "description": "Extra context on the problem or goal.",
             },
             "focus_areas": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Focus aspects (architecture, performance, security, etc.)",
+                "description": "Focus areas, e.g. architecture, performance, security.",
+            },
+            "confidence": {
+                "type": "string",
+                "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
+                "description": (
+                    "Confidence in your analysis: exploring, low, medium, high, very_high, almost_certain or certain. "
+                    "certain skips expert validation; use very_high or almost_certain when not fully verified."
+                ),
             },
         }
 

@@ -312,7 +312,7 @@ class TestSecauditTool:
         # Verify field descriptions are comprehensive
         assert "OWASP Top 10" in fields["step"]
         assert "OWASP Top 10" in fields["step"]
-        assert "MANDATORY" in fields["step"]
+        assert "relevant_files" in fields["step"]
         assert "Security context" in fields["security_scope"]
         assert "threat level" in fields["threat_level"]
         assert "compliance frameworks" in fields["compliance_requirements"]
