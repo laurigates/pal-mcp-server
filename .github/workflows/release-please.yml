@@ -60,7 +60,7 @@ jobs:
           # The annotation below is inert unless the org Renovate config enables a
           # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.11.x"
+          version: "0.12.x"
           enable-cache: true
 
       - name: Build distributions

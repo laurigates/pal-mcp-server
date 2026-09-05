@@ -66,10 +66,15 @@ py-modules = ["server", "config"]
 #
 # The floor is 0.8.17 because that is the version verified to read this
 # lockfile's `revision = 3`, not the first one that does. Now that the
-# Dockerfile is on the maintained trixie line at 0.11.x — same series as
-# setup-uv in the workflows — only contributors still sitting on 0.8-0.10 keep
-# the floor this low; raising it to >=0.11 is a call about who that breaks.
-required-version = ">=0.8.17,<0.12"
+# Dockerfile is on the maintained trixie line at 0.12.x — same series as
+# setup-uv in the workflows — only contributors still sitting on 0.8-0.11 keep
+# the floor this low; raising it to >=0.12 is a call about who that breaks.
+#
+# Ceiling raised 0.12 -> 0.13 (2026-09): 0.12.6 and 0.12.9 both read and
+# rewrite this lockfile at `revision = 3`, so the bound's failure mode does
+# not apply to the 0.12 series. The bound itself stays, for the next uv that
+# does move the revision.
+required-version = ">=0.8.17,<0.13"
 
 [tool.ruff]
 target-version = "py310"
