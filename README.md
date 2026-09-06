@@ -1,5 +1,10 @@
 # PAL MCP: Many Workflows. One Context.
 
+[![PyPI](https://img.shields.io/pypi/v/pal-mcp-server)](https://pypi.org/project/pal-mcp-server/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/github/actions/workflow/status/laurigates/pal-mcp-server/test.yml?label=tests)](https://github.com/laurigates/pal-mcp-server/actions/workflows/test.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+
 A Model Context Protocol server that connects AI CLIs to multiple AI models. It works with Claude Code, Gemini CLI, Codex CLI, Qwen Code CLI, and Cursor, and supports providers including Gemini, OpenAI, Anthropic, Grok, Azure, Ollama, OpenRouter, DIAL, and OpenCode Go.
 
 ---
@@ -277,6 +282,42 @@ Videos demonstrating the `chat`, `consensus`, `precommit`, `apilookup`, and `cha
 → Deep investigation → Expert analysis → Solution implementation → Pre-commit validation
 
 See the [Advanced Usage Guide](docs/advanced-usage.md) for complex workflows, model configuration, and power-user features.
+
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Language | Python 3.10+ |
+| Protocol | [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) (`mcp~=1.29`) |
+| Packaging / env | [uv](https://docs.astral.sh/uv/) with `uv.lock`, setuptools build backend |
+| Lint & format | [ruff](https://docs.astral.sh/ruff/) |
+| Type check | [ty](https://github.com/astral-sh/ty) (pre-1.0, advisory) |
+| Tests | pytest (`pytest-asyncio`, `pytest-mock`) |
+| Provider SDKs | `google-genai`, `openai` (also fronts Azure, X.AI, DIAL, OpenRouter, OpenCode Go, and OpenAI-compatible local servers) |
+| Release | release-please, conventional commits, GHCR container builds |
+
+## Development
+
+Running PAL as a user needs no clone — `uvx pal-mcp-server` fetches the published
+package. Working *on* PAL does:
+
+```bash
+git clone https://github.com/laurigates/pal-mcp-server.git
+cd pal-mcp-server
+uv sync --group dev
+```
+
+`./code_quality_checks.sh` is the gate that must pass before every commit: it runs
+the lockfile check, `ruff check --fix`, `ruff format`, `ty check`, and the unit
+tests. Individual commands, the integration and simulator test tiers, and the
+model-registry audit are documented in [`CLAUDE.md`](CLAUDE.md); project layout
+and coding style are in [`AGENTS.md`](AGENTS.md), and the subsystem map is in
+[`docs/architecture.md`](docs/architecture.md).
+
+Commits follow conventional-commit format — release-please parses them to bump
+the version and write the changelog, so never hand-edit `CHANGELOG.md` or the
+`version` field in `pyproject.toml`. See
+[Contributing](docs/contributions.md) for the full PR process.
 
 ## Quick Links
 
