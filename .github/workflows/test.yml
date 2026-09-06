@@ -3,6 +3,12 @@ name: Tests
 on:
   pull_request:
     branches: [main]
+  # main is otherwise never built: every workflow here is PR- or tag-triggered,
+  # so a tree broken at merge time (two PRs that each passed on a stale base, a
+  # commit landed with --admin) produced no red anywhere and was first seen on
+  # the next PR, attributed to that PR.
+  push:
+    branches: [main]
 
 # Mostly to stop a force-push (or the relock commit on a release PR) leaving a
 # second copy of the 3-way matrix running against code that has been replaced.
@@ -11,7 +17,10 @@ on:
 # has usually already happened by the time cancellation lands.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseding only makes sense for a PR, where the next push replaces the code
+  # under test. Each commit on main is a distinct thing to have verified, so a
+  # main run is never cancelled by the one behind it.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
