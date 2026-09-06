@@ -1,0 +1,6 @@
+# Tracking for configure-plugin compliance checks (/configure:status, /configure:all).
+components:
+  readme: "2025.1"
+  readme_style: "standard"
+  readme_has_logo: false
+  readme_badges: ["pypi", "python", "tests", "license"]
