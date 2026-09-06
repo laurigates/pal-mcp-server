@@ -3,6 +3,17 @@ name = "pal-mcp-server"
 version = "10.6.0"
 description = "AI-powered MCP server with multiple model providers"
 requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+# requires-python has no upper bound, so newer interpreters resolve; these are
+# the versions .github/workflows/test.yml actually exercises. Keep the two lists
+# in step — a classifier is a claim that the version is tested.
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     # Floor is a security bound, not a routine bump: 1.28.1 fixes
     # CVE-2026-52869 and CVE-2026-52870 (HTTP transports serving session
@@ -142,5 +153,7 @@ markers = [
 ]
 
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+# 77 is the floor for PEP 639: the SPDX `license` string and `license-files`
+# in [project] are errors on older setuptools.
+requires = ["setuptools>=77", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
