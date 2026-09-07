@@ -178,6 +178,13 @@ CLAUDE.local.md
 # Claude Code personal settings
 .claude/settings.local.json
 
+# Claude Code agent worktrees. These are nested checkouts of this same repo, so
+# leaving them untracked-but-unignored puts another agent's in-progress code
+# inside `ruff check .` and `ty check .` — code_quality_checks.sh then fails on
+# a file the branch under test does not contain. `/worktrees/` below predates
+# Claude Code and does not match this path.
+.claude/worktrees/
+
 # Standalone mode files
 .pal_venv/
 .docker_cleaned
