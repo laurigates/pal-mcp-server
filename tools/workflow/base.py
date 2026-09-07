@@ -300,7 +300,7 @@ class WorkflowTool(BaseTool, BaseWorkflowMixin):
         return "\n".join(context_parts)
 
     def handle_completion_without_expert_analysis(
-        self, request, consolidated_findings, initial_description: str = None
+        self, request, consolidated_findings, initial_description: str | None = None
     ) -> dict[str, Any]:
         """
         Generic handler for completion when expert analysis is not needed.

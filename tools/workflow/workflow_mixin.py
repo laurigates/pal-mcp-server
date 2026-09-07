@@ -169,6 +169,23 @@ class BaseWorkflowMixin(ABC):
         """
         pass
 
+    @abstractmethod
+    def handle_completion_without_expert_analysis(
+        self, request: Any, consolidated_findings: ConsolidatedFindings, initial_description: str | None = None
+    ) -> dict[str, Any]:
+        """Build the response for a workflow that completes without expert analysis.
+
+        Declared here because ``handle_work_completion`` below calls it, but
+        implemented by ``WorkflowTool`` (tools/workflow/base.py) rather than here.
+        The mixin used to carry a second, concrete copy of this method; since
+        ``WorkflowTool(BaseTool, BaseWorkflowMixin)`` puts base.py first in the
+        MRO, that copy was unreachable and the two drifted apart until every
+        behaviour change had to be written twice (issue #101, and #96 before it).
+        Keeping the contract abstract means a re-added body fails loudly instead
+        of silently shadowing nothing.
+        """
+        pass
+
     # ================================================================================
     # Hook Methods - Default Implementations with Override Capability
     # ================================================================================
@@ -883,49 +900,6 @@ class BaseWorkflowMixin(ABC):
         Override in tools like debug to check for "certain" confidence.
         """
         return False
-
-    def handle_completion_without_expert_analysis(self, request, consolidated_findings) -> dict:
-        """
-        Handle completion when skipping expert analysis.
-
-        Tools can override this for custom high-confidence completion handling.
-        Default implementation provides generic response.
-        """
-        work_summary = self.prepare_work_summary()
-        continuation_id = self.get_request_continuation_id(request)
-
-        completion = {
-            "initial_request": self.get_initial_request(request.step),
-            "steps_taken": len(consolidated_findings.findings),
-            "files_examined": list(consolidated_findings.files_checked),
-            "relevant_files": list(consolidated_findings.relevant_files),
-            "relevant_context": list(consolidated_findings.relevant_context),
-            "work_summary": work_summary,
-            # Text the caller sent in, echoed back. No model produced it, so it is
-            # not labelled as an analysis (issue #96).
-            "caller_findings": self.get_final_analysis_from_request(request),
-        }
-        # Only emit a confidence the caller actually stated; tools whose request has
-        # no usable confidence return None here.
-        confidence_level = self.get_confidence_level(request)
-        if confidence_level is not None:
-            completion["confidence_level"] = confidence_level
-
-        response_data = {
-            "status": self.get_completion_status(),
-            f"complete_{self.get_name()}": completion,
-            "next_steps": self.get_completion_message(),
-            "skip_expert_analysis": True,
-            "expert_analysis": {
-                "status": self.get_skip_expert_analysis_status(),
-                "reason": self.get_skip_reason(),
-            },
-        }
-
-        if continuation_id:
-            response_data["continuation_id"] = continuation_id
-
-        return response_data
 
     # ================================================================================
     # Inheritance Hook Methods - Replace hasattr/getattr Anti-patterns
