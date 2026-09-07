@@ -1625,6 +1625,7 @@ class BaseWorkflowMixin(ABC):
                     provider_type_name = "unknown"
                 arguments["_expert_model_called"] = model_name
                 arguments["_expert_provider_called"] = provider_type_name
+                expert_capabilities = getattr(self._model_context, "capabilities", None)
                 model_response = await provider.generate_content(
                     prompt=prompt,
                     model_name=model_name,
@@ -1632,6 +1633,13 @@ class BaseWorkflowMixin(ABC):
                     temperature=validated_temperature,
                     thinking_mode=self.get_request_thinking_mode(request),
                     images=list(set(self.consolidated_findings.images)) if self.consolidated_findings.images else None,
+                    # Bound the expert reply by what our registry says this model
+                    # supports; otherwise the provider's own default governs
+                    # (issue #114). Same defensive read as the capability-augmented
+                    # prompt above, since a stubbed context need not carry it.
+                    max_output_tokens=(
+                        expert_capabilities.get_effective_max_output_tokens() if expert_capabilities else None
+                    ),
                 )
             await progress.update(
                 f"{self.get_name()} · {model_name} · expert analysis done · {summarize_usage(model_response.usage)}"

@@ -462,6 +462,10 @@ class SimpleTool(BaseTool):
                     temperature=temperature,
                     thinking_mode=thinking_mode if supports_thinking else None,
                     images=images if images else None,
+                    # Bound the reply by what our registry says this model supports;
+                    # without it the provider's own default governs, which differs
+                    # per provider and is not what we advertise (issue #114).
+                    max_output_tokens=capabilities.get_effective_max_output_tokens(),
                 )
 
             logger.info(f"Received response from {provider.get_provider_type().value} API for {self.get_name()}")
@@ -526,6 +530,7 @@ class SimpleTool(BaseTool):
                                     temperature=temperature,
                                     thinking_mode=thinking_mode if supports_thinking else None,
                                     images=images if images else None,
+                                    max_output_tokens=capabilities.get_effective_max_output_tokens(),
                                 )
 
                             if retry_response.content:

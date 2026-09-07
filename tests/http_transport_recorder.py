@@ -317,7 +317,7 @@ class ReplayTransport(httpx.MockTransport):
                     semantic_dict = self._extract_semantic_fields(content_dict)
                     content_str = json.dumps(semantic_dict, sort_keys=True)
                 else:
-                    content_str = json.dumps(content_dict, sort_keys=True)
+                    content_str = json.dumps(self._without_token_limits(content_dict), sort_keys=True)
         except json.JSONDecodeError:
             # Not JSON, use as-is
             pass
@@ -331,6 +331,27 @@ class ReplayTransport(httpx.MockTransport):
         """Check if this is an o3 model request."""
         model = content_dict.get("model", "")
         return model.startswith("o3")
+
+    #: Output-ceiling fields, dropped before hashing a non-o3 request.
+    #:
+    #: The o3 semantic matcher has always ignored "token limits and other
+    #: metadata" (see CASSETTE_MAINTENANCE.md); this applies the same rule to
+    #: every other model. A ceiling bounds how long a reply may be and does not
+    #: change which reply the model gives, so it is not part of what a cassette
+    #: is recording. Issue #114 started sending these for the first time, which
+    #: would otherwise have invalidated every cassette recorded before it over a
+    #: field that carries no semantic content.
+    #:
+    #: What still has to hold: the assertion that the ceiling is actually sent
+    #: lives in a direct payload test, not here, so relaxing the matcher does
+    #: not leave that behaviour unpinned.
+    TOKEN_LIMIT_FIELDS = ("max_tokens", "max_completion_tokens", "max_output_tokens")
+
+    def _without_token_limits(self, content_dict: dict) -> dict:
+        """Return the request body with output-ceiling fields removed."""
+        if not isinstance(content_dict, dict):
+            return content_dict
+        return {key: value for key, value in content_dict.items() if key not in self.TOKEN_LIMIT_FIELDS}
 
     def _extract_semantic_fields(self, content_dict: dict) -> dict:
         """Extract only semantic fields for matching, ignoring volatile prompts.
@@ -382,6 +403,8 @@ class ReplayTransport(httpx.MockTransport):
             # Apply same semantic matching for o3 models
             if self._is_o3_model_request(content):
                 content = self._extract_semantic_fields(content)
+            else:
+                content = self._without_token_limits(content)
             content_str = json.dumps(content, sort_keys=True)
         else:
             content_str = str(content)

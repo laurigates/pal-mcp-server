@@ -76,6 +76,18 @@ class ModelCapabilities:
 
         return self.temperature_constraint.get_corrected_value(requested_temperature)
 
+    def get_effective_max_output_tokens(self) -> int | None:
+        """Return the output ceiling to send, or ``None`` to omit the parameter.
+
+        ``max_output_tokens`` defaults to 0 and many registry entries never set
+        it, so 0 means "this registry states no ceiling", not "allow zero
+        tokens". Sending ``max_tokens: 0`` would ask the provider for an empty
+        completion, which is the failure mode issue #114 calls out; callers get
+        ``None`` for that case and leave the field off the request entirely.
+        """
+
+        return self.max_output_tokens if self.max_output_tokens > 0 else None
+
     def get_effective_capability_rank(self) -> int:
         """Calculate the runtime capability rank from intelligence + capabilities."""
 

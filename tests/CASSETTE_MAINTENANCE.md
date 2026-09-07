@@ -11,9 +11,33 @@ This project uses HTTP cassettes (recorded HTTP interactions) to test API integr
 For most models, cassettes match requests using:
 - HTTP method (GET, POST, etc.)
 - Request path (/v1/chat/completions, etc.)
-- **Exact hash of the request body**
+- **Exact hash of the request body**, minus the output-ceiling fields below
 
-If ANY part of the request changes, the hash changes and the cassette won't match.
+If ANY other part of the request changes, the hash changes and the cassette won't match.
+
+**Output-ceiling fields are excluded from the hash for every model**:
+`max_tokens`, `max_completion_tokens`, `max_output_tokens`
+(`TransportReplayer.TOKEN_LIMIT_FIELDS` in `http_transport_recorder.py`).
+
+The o3 semantic matcher below has always ignored "token limits and other
+metadata"; this applies the same rule to the other models. A ceiling bounds how
+long a reply may be, and does not change which reply the model gives, so it is
+not part of what a cassette records. Issue #114 started sending these for the
+first time, which would otherwise have invalidated every cassette recorded
+before it over a field carrying no semantic content.
+
+This does **not** leave the behaviour unpinned: that PAL sends the ceiling is
+asserted directly against the provider request in
+`tests/test_max_output_tokens_is_sent.py`, which is where it belongs.
+
+> **Gemini cassettes are a different mechanism and are NOT covered by this.**
+> `tests/gemini_cassettes/**` are replayed by the google-genai SDK's own
+> `_replay_api_client`, which asserts exact request-body equality and offers no
+> hook to relax it. When a Gemini request gains a field, those cassettes must be
+> updated or re-recorded. Two were hand-updated for #114 by adding
+> `"maxOutputTokens": 65536` to the recorded `generationConfig`; the responses
+> were not re-recorded, which is sound here only because a ceiling far above the
+> recorded answer's length cannot have changed that answer.
 
 ### Semantic Matching (o3 Models)
 

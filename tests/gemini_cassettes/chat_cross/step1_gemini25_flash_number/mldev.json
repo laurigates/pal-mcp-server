@@ -25,6 +25,7 @@
             "generationConfig": {
               "temperature": 0.2,
               "candidateCount": 1,
+              "maxOutputTokens": 65536,
               "thinkingConfig": {
                 "thinking_budget": 8110
               }
