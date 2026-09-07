@@ -119,6 +119,10 @@ class PlannerTool(WorkflowTool):
     - Self-contained operation (no expert analysis)
     """
 
+    # Persisted in the thread so branches survive a continuation; they accumulate
+    # across steps and previously lived only on the instance (issue #100).
+    PERSISTED_STATE_ATTRS = ("branches",)
+
     def __init__(self):
         super().__init__()
         self.branches = {}

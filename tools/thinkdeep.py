@@ -108,6 +108,10 @@ class ThinkDeepTool(WorkflowTool):
         "bugs, performance or security analysis. Not for questions you can answer directly."
     )
 
+    # Persisted in the thread so a continuation's expert call runs at this thread's
+    # thinking_mode and temperature, not another caller's (issue #100).
+    PERSISTED_STATE_ATTRS = ("stored_request_params",)
+
     def __init__(self):
         """Initialize the ThinkDeep workflow tool"""
         super().__init__()

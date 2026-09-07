@@ -510,6 +510,21 @@ of the evidence, even when it strongly points in one direction.""",
             self.accumulated_responses = []
             # Set total steps: len(models) (each step includes consultation + response)
             request.total_steps = len(self.models_to_consult)
+        elif continuation_id:
+            # Steps 2+ land on a fresh tool instance (issue #99), so the roster, the
+            # responses gathered so far, and the original proposal all come from the
+            # thread. This path does not reach the mixin's restore because consensus
+            # overrides execute_workflow, so it repeats it against the same state
+            # (issue #100). Without it a later step consults nothing and synthesises
+            # an empty consensus.
+            state = self.load_persisted_workflow_state(continuation_id)
+            if state is not None:
+                self.work_history = state.get("work_history", [])
+                self.initial_request = state.get("initial_request")
+                self._reprocess_consolidated_findings()
+                if self.initial_request is not None:
+                    self.store_initial_issue(self.initial_request)
+                self.restore_tool_state(state.get("tool_state") or {})
 
         # For all steps (1 through total_steps), consult the corresponding model
         if request.step_number <= request.total_steps:
@@ -866,6 +881,21 @@ of the evidence, even when it strongly points in one direction.""",
         """Store initial prompt for model consultations."""
         self.original_proposal = step_description
         self.initial_prompt = step_description  # Keep for backward compatibility
+
+    # Consensus keeps lists rather than the config dicts PERSISTED_STATE_ATTRS
+    # handles, so it implements the pair directly (issue #100). The roster is
+    # fixed on step 1 and indexed by every later step, and the responses
+    # accumulate across steps into _build_complete_consensus — both used to
+    # survive only because every call shared one tool object.
+    def get_persisted_tool_state(self) -> dict[str, Any]:
+        return {
+            "models_to_consult": self.models_to_consult,
+            "accumulated_responses": self.accumulated_responses,
+        }
+
+    def restore_tool_state(self, state: dict[str, Any]) -> None:
+        self.models_to_consult = state.get("models_to_consult") or []
+        self.accumulated_responses = state.get("accumulated_responses") or []
 
     # Required abstract methods from BaseTool
     def get_request_model(self):

@@ -701,7 +701,18 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
     # Route to AI-powered tools that require Gemini API calls
     if name in TOOLS:
         logger.info(f"Executing tool '{name}' with {len(arguments)} parameter(s)")
-        tool = TOOLS[name]
+        # Give every call its own tool object. TOOLS holds one instance per tool and
+        # the MCP SDK runs each request in its own asyncio task, so two concurrent
+        # calls used to share every attribute written to ``self`` — work_history,
+        # consolidated_findings, and each workflow tool's step-1 config — across the
+        # await inside _call_expert_analysis. One call would then answer with, and
+        # persist into its own thread, the other call's investigation (issue #99).
+        #
+        # A fresh instance rather than copy.copy: the shared attributes are mutable
+        # containers, which a shallow copy leaves aliased. BaseTool.__init__ only
+        # caches name, description and default temperature, so this costs nothing.
+        # TOOLS itself stays the source for list_tools, which only reads schemas.
+        tool = type(TOOLS[name])()
 
         # EARLY MODEL RESOLUTION AT MCP BOUNDARY
         # Resolve model before passing to tool - this ensures consistent model handling
