@@ -25,7 +25,7 @@ import json
 
 import pytest
 
-from server import handle_call_tool
+from tests.mcp_call_helpers import call_tool
 from tools.workflow.workflow_mixin import BaseWorkflowMixin
 from utils.conversation_memory import get_thread
 
@@ -50,8 +50,10 @@ def _codereview_args(path: str, findings: str, **overrides) -> dict:
 
 
 def _parse(result) -> dict:
-    assert len(result) == 1
-    return json.loads(result[0].text)
+    """Read the single text block out of a CallToolResult."""
+    assert result.is_error is not True, f"tools/call returned an error result: {result.content}"
+    assert len(result.content) == 1
+    return json.loads(result.content[0].text)
 
 
 def _stub_expert_analysis(monkeypatch, *, seconds: float = EXPERT_AWAIT_SECONDS):
@@ -79,10 +81,10 @@ async def test_concurrent_calls_report_only_their_own_investigation(tmp_path, mo
 
     async def _call_b_during_a_await():
         await asyncio.sleep(SECOND_CALL_DELAY_SECONDS)
-        return await handle_call_tool("codereview", args_b)
+        return await call_tool("codereview", args_b)
 
     result_a, result_b = await asyncio.gather(
-        handle_call_tool("codereview", args_a),
+        call_tool("codereview", args_a),
         _call_b_during_a_await(),
     )
     response_a, response_b = _parse(result_a), _parse(result_b)
@@ -114,10 +116,10 @@ async def test_concurrent_calls_persist_only_their_own_thread(tmp_path, monkeypa
 
     async def _call_b_during_a_await():
         await asyncio.sleep(SECOND_CALL_DELAY_SECONDS)
-        return await handle_call_tool("codereview", args_b)
+        return await call_tool("codereview", args_b)
 
     result_a, result_b = await asyncio.gather(
-        handle_call_tool("codereview", args_a),
+        call_tool("codereview", args_a),
         _call_b_during_a_await(),
     )
     response_a, response_b = _parse(result_a), _parse(result_b)
@@ -155,7 +157,7 @@ async def test_continuation_restores_tool_config_from_the_thread(tmp_path, monke
     target = tmp_path / "epsilon.py"
     target.write_text("# epsilon\n")
 
-    step_one = await handle_call_tool(
+    step_one = await call_tool(
         "codereview",
         _codereview_args(
             str(target),

@@ -2,7 +2,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from mcp.types import CallToolRequest, CallToolRequestParams
+from mcp.types import CallToolRequestParams
 
 from providers.registry import ModelProviderRegistry
 from server import server as mcp_server
@@ -38,11 +38,16 @@ def _install_dummy_provider(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_tool_execution_error_sets_is_error_flag_for_mcp_response(monkeypatch):
-    """Ensure ToolExecutionError surfaces as CallToolResult with isError=True."""
+    """Ensure ToolExecutionError surfaces as CallToolResult with is_error=True."""
 
     _install_dummy_provider(monkeypatch)
 
-    handler = mcp_server.request_handlers[CallToolRequest]
+    # v2 dispatches on the method string and exposes the registered entry through
+    # get_request_handler; the request_handlers mapping keyed by request type is
+    # gone. Reaching the handler this way still proves the SDK routes tools/call
+    # to our boundary rather than asserting on an imported function.
+    entry = mcp_server.get_request_handler("tools/call")
+    assert entry is not None, "tools/call is not registered on the server"
 
     arguments = {
         "prompt": "Trigger working_directory_absolute_path validation failure",
@@ -51,14 +56,12 @@ async def test_tool_execution_error_sets_is_error_flag_for_mcp_response(monkeypa
         "model": "gemini-2.5-flash",
     }
 
-    request = CallToolRequest(params=CallToolRequestParams(name="chat", arguments=arguments))
+    result = await entry.handler(None, CallToolRequestParams(name="chat", arguments=arguments))
 
-    server_result = await handler(request)
+    assert result.is_error is True
+    assert result.content, "Expected error response content"
 
-    assert server_result.root.isError is True
-    assert server_result.root.content, "Expected error response content"
-
-    payload = server_result.root.content[0].text
+    payload = result.content[0].text
     data = json.loads(payload)
     assert data["status"] == "error"
     assert "absolute" in data["content"].lower()

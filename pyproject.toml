@@ -15,13 +15,14 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    # Floor is a security bound, not a routine bump: 1.28.1 fixes
-    # CVE-2026-52869 and CVE-2026-52870 (HTTP transports serving session
-    # requests without verifying the authenticated principal; experimental task
-    # handlers reachable by any client), and 1.28.1 also carries CVE-2026-59950
-    # (WebSocket transport missing Host/Origin validation). Do not lower this
-    # without confirming those remain fixed.
-    "mcp~=1.29",
+    # Floor is a security bound, not a routine bump. The 1.x floor was 1.28.1,
+    # which fixes CVE-2026-52869 and CVE-2026-52870 (HTTP transports serving
+    # session requests without verifying the authenticated principal;
+    # experimental task handlers reachable by any client) and CVE-2026-59950
+    # (WebSocket transport missing Host/Origin validation). 2.x is downstream of
+    # all three. Do not lower this, and do not move back to 1.x, without
+    # confirming they remain fixed.
+    "mcp~=2.1",
     "google-genai~=2.6",
     "openai~=2.38",
     "pydantic~=2.13",

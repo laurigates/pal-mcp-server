@@ -10,6 +10,7 @@ import pytest
 
 from providers.registry import ModelProviderRegistry
 from providers.shared import ProviderType
+from tests.mcp_call_helpers import call_tool
 from tests.transport_helpers import inject_transport
 from tools.consensus import ConsensusTool
 
@@ -256,9 +257,9 @@ async def test_consensus_auto_mode_with_openrouter_and_gemini(monkeypatch):
             "models": models_to_consult,
         }
 
-        step1_output = await server.handle_call_tool("consensus", step1_args)
-        assert step1_output and step1_output[0].type == "text"
-        step1_payload = json.loads(step1_output[0].text)
+        step1_output = await call_tool("consensus", step1_args)
+        assert step1_output.content and step1_output.content[0].type == "text"
+        step1_payload = json.loads(step1_output.content[0].text)
 
         assert step1_payload["status"] == "analysis_and_first_model_consulted"
         assert step1_payload["model_consulted"] == "claude-3-5-flash-20241022"
@@ -280,13 +281,13 @@ async def test_consensus_auto_mode_with_openrouter_and_gemini(monkeypatch):
         }
 
         try:
-            step2_output = await server.handle_call_tool("consensus", step2_args)
+            step2_output = await call_tool("consensus", step2_args)
         finally:
             # Reset provider registry regardless of outcome to avoid cross-test bleed
             ModelProviderRegistry.reset_for_testing()
 
-    assert step2_output and step2_output[0].type == "text"
-    step2_payload = json.loads(step2_output[0].text)
+    assert step2_output.content and step2_output.content[0].type == "text"
+    step2_payload = json.loads(step2_output.content[0].text)
 
     serialized = json.dumps(step2_payload)
     assert "auto" not in serialized.lower(), "Auto model leakage should be resolved"

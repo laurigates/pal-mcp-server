@@ -231,14 +231,25 @@ def reporter_from_request_context(request_context: Any | None) -> ProgressReport
     """Build a reporter from an MCP request context, tolerating its absence.
 
     The context is missing outside a live request (unit tests, direct tool
-    invocation) and carries no `progressToken` when the client did not opt in.
+    invocation) and carries no progress token when the client did not opt in.
     Both yield an inert reporter rather than an error.
+
+    ``meta`` is read two ways on purpose. Under the mcp 1.x SDK it was a model
+    object carrying ``progressToken``; under 2.x it is a ``RequestParamsMeta``
+    TypedDict — a plain dict — keyed ``progress_token``. Getting this wrong
+    fails silently in the worst way: ``getattr`` on a dict returns None, every
+    reporter comes back inert, and progress notifications simply stop with no
+    error anywhere. Accepting both shapes also keeps this callable from tests
+    that hand it a stub object rather than a dict.
     """
     if request_context is None:
         return ProgressReporter()
 
     meta = getattr(request_context, "meta", None)
-    progress_token = getattr(meta, "progressToken", None) if meta else None
+    if isinstance(meta, dict):
+        progress_token = meta.get("progress_token", meta.get("progressToken"))
+    else:
+        progress_token = getattr(meta, "progress_token", getattr(meta, "progressToken", None)) if meta else None
     if progress_token is None:
         return ProgressReporter()
 

@@ -29,11 +29,17 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server import Server  # noqa: E402
+from mcp.server.context import ServerRequestContext  # noqa: E402
 from mcp.server.models import InitializationOptions  # noqa: E402
 from mcp.server.stdio import stdio_server  # noqa: E402
 from mcp.types import (  # noqa: E402
+    CallToolRequestParams,
     CallToolResult,
+    GetPromptRequestParams,
     GetPromptResult,
+    ListPromptsResult,
+    ListToolsResult,
+    PaginatedRequestParams,
     Prompt,
     PromptMessage,
     PromptsCapability,
@@ -165,9 +171,12 @@ else:
     logger.debug("PAL_MCP_FORCE_ENV_OVERRIDE disabled - system environment variables take precedence")
 
 
-# Create the MCP server instance with a unique name identifier
-# This name is used by MCP clients to identify and connect to this specific server
-server: Server = Server("pal-server")
+# The MCP server instance is constructed near the bottom of this module, after
+# the handler functions exist. v2 registers handlers through constructor
+# ``on_*`` parameters instead of decorators, so the object cannot be built until
+# the functions it references are defined. Its name identifies this server to
+# MCP clients.
+server: "Server"
 
 
 # Constants for tool filtering
@@ -554,8 +563,10 @@ def configure_providers():
             )
 
 
-@server.list_tools()
-async def handle_list_tools() -> list[Tool]:
+async def handle_list_tools(
+    context: ServerRequestContext,  # noqa: ARG001 - required by the on_list_tools signature
+    params: PaginatedRequestParams | None = None,  # noqa: ARG001 - this surface is not paginated
+) -> ListToolsResult:
     """
     List all available tools with their descriptions and input schemas.
 
@@ -605,7 +616,10 @@ async def handle_list_tools() -> list[Tool]:
             Tool(
                 name=tool.name,
                 description=tool.description,
-                inputSchema=tool.get_input_schema(),
+                # v2 renamed the protocol fields to snake_case on the Python side.
+                # The JSON-RPC wire format is unchanged — it is still inputSchema
+                # there — so this rename must not be applied to raw wire payloads.
+                input_schema=tool.get_input_schema(),
                 annotations=tool_annotations,
             )
         )
@@ -617,7 +631,8 @@ async def handle_list_tools() -> list[Tool]:
         logger.debug("OpenRouter registry cache used efficiently across all tool schemas")
 
     logger.debug(f"Returning {len(tools)} tools to MCP client")
-    return tools
+    # v2 removed automatic wrapping of a bare list, so the result type is explicit.
+    return ListToolsResult(tools=tools)
 
 
 def _tool_execution_error_result(payload: str) -> CallToolResult:
@@ -625,37 +640,64 @@ def _tool_execution_error_result(payload: str) -> CallToolResult:
 
     The MCP spec splits failures into protocol errors (JSON-RPC) and *tool
     execution* errors, the latter reported inside the result with
-    ``isError: true``. Everything raised as :class:`ToolExecutionError` is the
+    ``is_error: true``. Everything raised as :class:`ToolExecutionError` is the
     second kind, so it is converted here rather than allowed to escape the
     handler.
     """
-    return CallToolResult(content=[TextContent(type="text", text=payload)], isError=True)
+    return CallToolResult(content=[TextContent(type="text", text=payload)], is_error=True)
 
 
-@server.call_tool()
-async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] | CallToolResult:
+async def handle_call_tool(
+    context: ServerRequestContext,
+    params: CallToolRequestParams,
+) -> CallToolResult:
     """MCP ``tools/call`` entry point and the server's tool-error boundary.
 
     Delegates to :func:`_dispatch_tool_call` and converts any
-    :class:`ToolExecutionError` it raises into an explicit ``isError=True``
+    :class:`ToolExecutionError` it raises into an explicit ``is_error=True``
     result. There are 16 ``raise ToolExecutionError`` sites across the tool
     tree; catching them once here is what makes every one of them arrive at the
     client as an error result rather than as an exception.
 
-    The v1 SDK also performs this conversion for uncaught exceptions, so under
-    v1 the catch is belt-and-braces. It stops being redundant under the v2 SDK
-    (issue #117), which no longer turns handler exceptions into
-    ``CallToolResult(isError=True)`` — hence building it here, against a server
-    that runs, before the API changes underneath it.
+    Under the 1.x SDK this catch was belt-and-braces, because that SDK converted
+    uncaught handler exceptions itself. 2.x does not, so it is now the only
+    thing standing between those 16 raise sites and an exception escaping to the
+    client as a protocol error (issue #117). It was deliberately built first,
+    under 1.x, where it could be verified against a server that runs (#116).
+
+    The bare ``except Exception`` restores the rest of that contract, and is not
+    over-broad defensiveness. 1.x wrapped *every* handler exception, not only
+    ``ToolExecutionError``, and code outside those 16 sites relies on it:
+    ``reconstruct_thread_context`` raises a plain ``ValueError`` for an expired
+    continuation_id, which a client is meant to read and act on ("start a new
+    thread"). Letting that become a JSON-RPC protocol error loses the message
+    and breaks a documented recovery path — caught by the cross-tool simulator
+    scenario, which passes on 1.x and failed here until this clause existed.
+
+    The request context arrives as an argument rather than through the removed
+    ``server.request_context`` property.
     """
     try:
-        return await _dispatch_tool_call(name, arguments)
+        content = await _dispatch_tool_call(params.name, dict(params.arguments or {}), context)
+        return CallToolResult(content=list(content))
     except ToolExecutionError as exc:
-        logger.info(f"Tool '{name}' returned an error result")
+        # Carries a structured ToolOutput payload the client parses as JSON.
+        logger.info(f"Tool '{params.name}' returned an error result")
         return _tool_execution_error_result(exc.payload)
+    except Exception as exc:
+        # Anything else is still a tool *execution* failure from the client's
+        # point of view, so it belongs in the result rather than in the
+        # transport. Logged with a traceback because, unlike the branch above,
+        # reaching here is not a designed outcome.
+        logger.exception(f"Tool '{params.name}' raised an unhandled exception")
+        return _tool_execution_error_result(str(exc))
 
 
-async def _dispatch_tool_call(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def _dispatch_tool_call(
+    name: str,
+    arguments: dict[str, Any],
+    request_context: "ServerRequestContext | None" = None,
+) -> list[TextContent]:
     """
     Handle incoming tool execution requests from MCP clients.
 
@@ -717,12 +759,11 @@ async def _dispatch_tool_call(name: str, arguments: dict[str, Any]) -> list[Text
     # Publish a progress reporter for this call so the tool, the providers it
     # calls, and any CLI agent it spawns can report status to the client without
     # the reporter being threaded through every signature. Inert unless the
-    # client opted in with a progressToken.
-    try:
-        request_context = server.request_context
-    except LookupError:
-        # No live request context (direct invocation, tests). Report nothing.
-        request_context = None
+    # client opted in with a progress token.
+    #
+    # v2 removed the ambient ``server.request_context`` property and passes the
+    # context to the handler instead, so it arrives as an argument. It is None
+    # for direct invocation and tests, which report nothing.
     progress = reporter_from_request_context(request_context)
     # ContextVar.set() here is only safe across concurrent `pal` calls because the
     # MCP SDK dispatches each request in its own asyncio task, and a task inherits a
@@ -1266,8 +1307,10 @@ def _log_activity(message: str, scope: str) -> None:
         logger.debug(f"Activity log write failed for CONVERSATION_ERROR ({scope})", exc_info=True)
 
 
-@server.list_prompts()
-async def handle_list_prompts() -> list[Prompt]:
+async def handle_list_prompts(
+    context: ServerRequestContext,  # noqa: ARG001 - required by the on_list_prompts signature
+    params: PaginatedRequestParams | None = None,  # noqa: ARG001 - this surface is not paginated
+) -> ListPromptsResult:
     """
     List all available prompts for CLI Code shortcuts.
 
@@ -1313,11 +1356,13 @@ async def handle_list_prompts() -> list[Prompt]:
     )
 
     logger.debug(f"Returning {len(prompts)} prompts to MCP client")
-    return prompts
+    return ListPromptsResult(prompts=prompts)
 
 
-@server.get_prompt()
-async def handle_get_prompt(name: str, arguments: dict[str, Any] = None) -> GetPromptResult:
+async def handle_get_prompt(
+    context: ServerRequestContext,  # noqa: ARG001 - required by the on_get_prompt signature
+    params: GetPromptRequestParams,
+) -> GetPromptResult:
     """
     Get prompt details and generate the actual prompt text.
 
@@ -1339,6 +1384,11 @@ async def handle_get_prompt(name: str, arguments: dict[str, Any] = None) -> GetP
     Raises:
         ValueError: If the prompt name is unknown
     """
+    # v2 delivers the request as a params object rather than loose arguments.
+    # Unpacked here so the body below reads the same as it did under 1.x.
+    name = params.name
+    arguments = dict(params.arguments or {})
+
     logger.debug(f"MCP client requested prompt: {name} with args: {arguments}")
 
     # Handle special "continue" case
@@ -1422,6 +1472,19 @@ async def handle_get_prompt(name: str, arguments: dict[str, Any] = None) -> GetP
             )
         ],
     )
+
+
+# Handlers are registered through constructor parameters; v2 removed the
+# ``@server.list_tools()`` style decorators and the ``request_handlers`` mapping
+# they wrote into. Constructing here, below the handler definitions, is what
+# that change requires — the names must already be bound.
+server = Server(
+    "pal-server",
+    on_list_tools=handle_list_tools,
+    on_call_tool=handle_call_tool,
+    on_list_prompts=handle_list_prompts,
+    on_get_prompt=handle_get_prompt,
+)
 
 
 async def main():
