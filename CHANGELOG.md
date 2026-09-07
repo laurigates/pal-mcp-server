@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## [11.0.0](https://github.com/laurigates/pal-mcp-server/compare/v10.6.0...v11.0.0) (2026-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** migrate from the mcp SDK 1.29 to 2.1 ([#131](https://github.com/laurigates/pal-mcp-server/issues/131))
+
+### Features
+
+* **server:** report missing provider configuration over MCP ([#128](https://github.com/laurigates/pal-mcp-server/issues/128)) ([706b962](https://github.com/laurigates/pal-mcp-server/commit/706b962a5d9fd1474ef94ef29cf58a9caf6098c8)), closes [#116](https://github.com/laurigates/pal-mcp-server/issues/116)
+
+
+### Bug Fixes
+
+* **clink:** confine a relayed CLI to its own vendor's credentials ([#123](https://github.com/laurigates/pal-mcp-server/issues/123)) ([05219ad](https://github.com/laurigates/pal-mcp-server/commit/05219ad2006412667f11195508fd8ab19fa6834d)), closes [#119](https://github.com/laurigates/pal-mcp-server/issues/119)
+* **clink:** report UNSUPPORTED_CLIENT from the gemini CLI ([#121](https://github.com/laurigates/pal-mcp-server/issues/121)) ([598d02e](https://github.com/laurigates/pal-mcp-server/commit/598d02ef6d15b5797d9460250cef0336f73cdb41)), closes [#118](https://github.com/laurigates/pal-mcp-server/issues/118)
+* **license:** restore canonical Apache 2.0 text and add NOTICE ([#111](https://github.com/laurigates/pal-mcp-server/issues/111)) ([177de91](https://github.com/laurigates/pal-mcp-server/commit/177de91455b4c7ae306adbea7ef6d99bc00cfd6d)), closes [#109](https://github.com/laurigates/pal-mcp-server/issues/109)
+* **providers:** declare CUSTOM_API_KEY's placeholder so a template key is not a credential ([#125](https://github.com/laurigates/pal-mcp-server/issues/125)) ([31740b6](https://github.com/laurigates/pal-mcp-server/commit/31740b6eebbcd209b0fe2ca73d635409046df7cd)), closes [#115](https://github.com/laurigates/pal-mcp-server/issues/115)
+* **providers:** send the registry's max_output_tokens on every model call ([#129](https://github.com/laurigates/pal-mcp-server/issues/129)) ([e5e71e3](https://github.com/laurigates/pal-mcp-server/commit/e5e71e3030a3d8f375e4ead6aac21d7a417c607a)), closes [#114](https://github.com/laurigates/pal-mcp-server/issues/114)
+* **tools:** drop schema parameters no tool reads ([#126](https://github.com/laurigates/pal-mcp-server/issues/126)) ([7720ee9](https://github.com/laurigates/pal-mcp-server/commit/7720ee91c1c6b6946fabe187ca3b99f91e18b486)), closes [#102](https://github.com/laurigates/pal-mcp-server/issues/102) [#103](https://github.com/laurigates/pal-mcp-server/issues/103)
+* **workflow:** scope workflow state to the call and persist tool config ([#127](https://github.com/laurigates/pal-mcp-server/issues/127)) ([2b99879](https://github.com/laurigates/pal-mcp-server/commit/2b99879de32881c403050a1c7a7201cb75eb12e1)), closes [#99](https://github.com/laurigates/pal-mcp-server/issues/99) [#100](https://github.com/laurigates/pal-mcp-server/issues/100)
+
+
+### Miscellaneous
+
+* **deps:** migrate from the mcp SDK 1.29 to 2.1 ([#131](https://github.com/laurigates/pal-mcp-server/issues/131)) ([1066857](https://github.com/laurigates/pal-mcp-server/commit/10668574275667ea9e49f2fc33d1adf0ce7c3c4c)), closes [#117](https://github.com/laurigates/pal-mcp-server/issues/117)
+
 ## [10.6.0](https://github.com/laurigates/pal-mcp-server/compare/v10.5.0...v10.6.0) (2026-09-05)
 
 
