@@ -66,6 +66,13 @@ EXPECTED_API_KEY_ENV = {
 }
 
 #: The literal each provider's ``from_env`` used to hardcode inline.
+#:
+#: DELTA (intentional, issue #115): CUSTOM was ``None`` here, annotated
+#: "URL-gated, no placeholder". Being URL-gated is why the key is optional, not
+#: a reason to accept a template string as a credential - with no placeholder
+#: declared, ``your_custom_api_key_here`` reached the endpoint as a bearer
+#: token. CUSTOM now declares one like the other seven; the URL remains the
+#: activation gate.
 EXPECTED_PLACEHOLDERS = {
     ProviderType.GOOGLE: "your_gemini_api_key_here",
     ProviderType.OPENAI: "your_openai_api_key_here",
@@ -74,7 +81,7 @@ EXPECTED_PLACEHOLDERS = {
     ProviderType.DIAL: "your_dial_api_key_here",
     ProviderType.OPENCODE_GO: "your_opencode_api_key_here",
     ProviderType.OPENROUTER: "your_openrouter_api_key_here",
-    ProviderType.CUSTOM: None,  # URL-gated, no placeholder
+    ProviderType.CUSTOM: "your_custom_api_key_here",  # was None
 }
 
 #: ``## `` headers emitted by listmodels, in order, including "Summary".
@@ -122,12 +129,21 @@ def test_api_key_env_var_per_provider(provider_type, env_var):
     ids=[cls.__name__ for cls in EXPECTED_CLASS_ORDER],
 )
 def test_from_env_rejects_the_documented_placeholder(provider_cls):
+    """DELTA (intentional, issue #115): CUSTOM used to skip this case.
+
+    It still cannot assert ``from_env() is None`` on its own - the URL is the
+    gate, and the placeholder key is set here without one - but it now has a
+    placeholder to reject, and the assertion is that the template string never
+    becomes the credential. tests/test_provider_from_env.py carries the cases
+    where a URL is present.
+    """
     provider_type = provider_cls.provider_type()
     placeholder = EXPECTED_PLACEHOLDERS[provider_type]
-    if placeholder is None:
-        pytest.skip("Custom provider is URL-gated and has no placeholder")
+    assert placeholder, provider_cls.__name__
     with patch.dict(os.environ, {EXPECTED_API_KEY_ENV[provider_type]: placeholder}, clear=True):
-        assert provider_cls.from_env() is None
+        assert provider_cls.api_key_from_env() is None
+        instance = provider_cls.from_env()
+        assert instance is None or instance.api_key != placeholder
 
 
 def test_declared_metadata_matches_the_deleted_tables():
@@ -167,7 +183,12 @@ def test_allowed_models_env_var_derivation():
 
 def test_gating_env_vars_capture_the_awkward_providers():
     """Activation is not always "has API key"; this is the metadata that lets
-    consumers stop special-casing Custom and Azure by name."""
+    consumers stop special-casing Custom and Azure by name.
+
+    Unchanged by issue #115: declaring an API_KEY_PLACEHOLDER on Custom governs
+    whether the key is believed, not whether the provider activates.
+    CUSTOM_API_KEY stays in OPTIONAL_ENV, so the URL remains the sole gate and
+    an Ollama endpoint with a leftover template key still registers."""
     assert CustomProvider.gating_env_vars() == ("CUSTOM_API_URL",)
     assert AzureOpenAIProvider.gating_env_vars() == ("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")
     assert OpenCodeGoProvider.gating_env_vars() == ("OPENCODE_API_KEY",)
@@ -314,15 +335,37 @@ def test_is_configured_rejects_the_scaffolded_placeholder():
     so this is the common case, not a corner case. Before the refactor the
     comparison was inlined at four call sites; it now lives here only, which
     makes this the guard for all of them.
+
+    Scoped to providers whose key is a gating variable. ``is_configured``
+    answers "can this provider activate?", and it reads only
+    ``gating_env_vars()``; a provider whose key is optional is configured
+    without one, so a placeholder there cannot make it unconfigured. Custom is
+    the only such provider and is pinned separately below.
     """
     for provider_cls in REGISTERED_PROVIDER_CLASSES:
         placeholder = provider_cls.API_KEY_PLACEHOLDER
-        if not placeholder:
+        if not placeholder or provider_cls.API_KEY_ENV not in provider_cls.gating_env_vars():
             continue
         env = dict.fromkeys(provider_cls.gating_env_vars(), "real-value")
         env[provider_cls.API_KEY_ENV] = placeholder
         with patch.dict(os.environ, env, clear=True):
             assert provider_cls.is_configured() is False, provider_cls.__name__
+
+
+def test_custom_stays_configured_with_a_placeholder_key(monkeypatch):
+    """DELTA (intentional, issue #115): the Custom half of the test above.
+
+    Custom's key is optional, so a URL with a leftover template key is a
+    working unauthenticated endpoint - reporting it as unconfigured would hide
+    a correctly pointed Ollama install behind a line the user never edited.
+    What the new placeholder buys is that the template string is not believed
+    as a credential.
+    """
+    monkeypatch.setenv("CUSTOM_API_URL", "http://localhost:11434/v1")
+    monkeypatch.setenv("CUSTOM_API_KEY", CustomProvider.API_KEY_PLACEHOLDER)
+
+    assert CustomProvider.is_configured() is True
+    assert CustomProvider.api_key_from_env() is None
 
 
 def test_is_configured_accepts_a_real_key():
