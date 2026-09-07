@@ -7,6 +7,31 @@ from typing import Any
 
 from .base import BaseParser, ParsedCLIResponse, ParserError
 
+# Google rejects Gemini CLI requests from unsupported account tiers with this code.
+# See https://github.com/google-gemini/gemini-cli/discussions/28017.
+UNSUPPORTED_CLIENT_MARKER = "unsupported_client"
+
+UNSUPPORTED_CLIENT_MESSAGE = (
+    "Gemini CLI rejected the request with UNSUPPORTED_CLIENT. Since 2026-06-18 the `gemini` CLI no "
+    "longer serves Google AI Pro, Google AI Ultra, or free-tier individual accounts. It still works "
+    "with a Gemini Code Assist Standard/Enterprise licence or a paid GEMINI_API_KEY. On any other "
+    "account, Google's replacement is the Antigravity CLI (`agy`, https://antigravity.google), which "
+    "clink does not wrap yet."
+)
+
+
+def mentions_unsupported_client(*streams: str | None) -> bool:
+    """Report whether any CLI stream carries Google's UNSUPPORTED_CLIENT rejection."""
+
+    return any(UNSUPPORTED_CLIENT_MARKER in (stream or "").lower() for stream in streams)
+
+
+class GeminiUnsupportedClientError(ParserError):
+    """Raised when the Gemini CLI refuses to serve the account's auth tier."""
+
+    def __init__(self, message: str = UNSUPPORTED_CLIENT_MESSAGE) -> None:
+        super().__init__(message)
+
 
 class GeminiJSONParser(BaseParser):
     """Parse stdout produced by `gemini -o json`."""
@@ -14,12 +39,19 @@ class GeminiJSONParser(BaseParser):
     name = "gemini_json"
 
     def parse(self, stdout: str, stderr: str) -> ParsedCLIResponse:
+        # stderr carries CLI diagnostics only, so an UNSUPPORTED_CLIENT there is always the
+        # rejection rather than model output quoting the code.
+        if mentions_unsupported_client(stderr):
+            raise GeminiUnsupportedClientError()
+
         if not stdout.strip():
             raise ParserError("Gemini CLI returned empty stdout while JSON output was expected")
 
         try:
             payload: dict[str, Any] = json.loads(stdout)
         except json.JSONDecodeError as exc:  # pragma: no cover - defensive logging
+            if mentions_unsupported_client(stdout):
+                raise GeminiUnsupportedClientError() from exc
             raise ParserError(f"Failed to decode Gemini CLI JSON output: {exc}") from exc
 
         response = payload.get("response")
@@ -53,6 +85,11 @@ class GeminiJSONParser(BaseParser):
             if stderr and stderr.strip():
                 metadata["stderr"] = stderr.strip()
             return ParsedCLIResponse(content=fallback_message, metadata=metadata)
+
+        # No response text was produced, so an UNSUPPORTED_CLIENT here came from a CLI error
+        # payload rather than from a model answer that happens to mention the code.
+        if mentions_unsupported_client(stdout):
+            raise GeminiUnsupportedClientError()
 
         raise ParserError("Gemini CLI response is missing a textual 'response' field")
 

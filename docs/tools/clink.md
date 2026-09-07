@@ -54,7 +54,7 @@ Gemini receives the full conversation context from `consensus` including the con
 - **Full CLI capabilities**: Gemini can use its own web search, file tools, and latest features
 - **Token efficiency**: File references (not full content) to conserve tokens
 - **Cross-tool collaboration**: Combine with other PAL tools like `planner` → `clink` → `codereview`
-- **Free tier available**: Gemini offers 1,000 requests/day free with a personal Google account - great for cost savings across tools
+- **Account requirements**: The Gemini CLI needs a Gemini Code Assist Standard/Enterprise licence or a paid `GEMINI_API_KEY`; it no longer serves free or Pro/Ultra individual accounts (see [Gemini CLI account requirements](#gemini-cli-account-requirements))
 
 ## Available Roles
 
@@ -152,6 +152,19 @@ Each preset points to role-specific prompts in `systemprompts/clink/`. Duplicate
 >
 > If you need Gemini to auto-apply edits, use `--approval-mode auto_edit` instead — it auto-approves edit tools without granting blanket shell execution.
 
+### Gemini CLI account requirements
+
+The `gemini` preset shells out to the Gemini CLI, which since **2026-06-18** no longer serves Google AI Pro, Google AI Ultra, or free-tier individual accounts ([announcement](https://github.com/google-gemini/gemini-cli/discussions/28017)). Those accounts get `UNSUPPORTED_CLIENT` on every request. The Gemini CLI's own README still advertises a free tier, so the repository gives no signal of this.
+
+Two auth paths still work:
+
+- a **Gemini Code Assist Standard or Enterprise** licence, or
+- a paid **`GEMINI_API_KEY`**.
+
+On any other account, Google's replacement is the Antigravity CLI (`agy`, <https://antigravity.google>). clink does not ship an `agy` client yet — `agy` 1.0.12 exposes no structured-output flag, so it needs its own plain-text parser rather than a config file ([issue #118](https://github.com/laurigates/pal-mcp-server/issues/118)).
+
+clink detects the rejection and reports it: a request that fails this way returns a message naming Antigravity and the two working auth paths, instead of a parse or subprocess error.
+
 **Adding new CLIs**: Drop a JSON config into `conf/cli_clients/`, create role prompts in `systemprompts/clink/`, and register a parser/agent if the CLI outputs a new format.
 
 ## When to Use Clink vs Other Tools
@@ -166,7 +179,7 @@ Each preset points to role-specific prompts in `systemprompts/clink/`. Duplicate
 Ensure the relevant CLI is installed and configured:
 
 - [Claude Code](https://www.anthropic.com/claude-code)
-- [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli) — see [Gemini CLI account requirements](#gemini-cli-account-requirements) for which accounts it still serves
 - [Codex CLI](https://docs.sourcegraph.com/codex)
 
 ## Related Guides

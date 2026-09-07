@@ -233,7 +233,8 @@ class BaseCLIAgent:
         """Hook for subclasses to convert CLI errors into successful outputs.
 
         Return an AgentOutput to treat the failure as success, or None to signal
-        that normal error handling should proceed.
+        that normal error handling should proceed. Subclasses may also raise
+        CLIAgentError directly when they can name the cause of the failure.
         """
 
         return None

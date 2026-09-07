@@ -7,8 +7,9 @@ from typing import Any
 
 from clink.models import ResolvedCLIClient
 from clink.parsers.base import ParsedCLIResponse
+from clink.parsers.gemini import UNSUPPORTED_CLIENT_MESSAGE, mentions_unsupported_client
 
-from .base import AgentOutput, BaseCLIAgent
+from .base import AgentOutput, BaseCLIAgent, CLIAgentError
 
 
 class GeminiAgent(BaseCLIAgent):
@@ -30,6 +31,16 @@ class GeminiAgent(BaseCLIAgent):
         combined = "\n".join(part for part in (stderr, stdout) if part)
         if not combined:
             return None
+
+        # An auth-tier rejection is terminal: no retry or recovered payload helps, so report
+        # the cause instead of a generic non-zero exit.
+        if mentions_unsupported_client(combined):
+            raise CLIAgentError(
+                UNSUPPORTED_CLIENT_MESSAGE,
+                returncode=returncode,
+                stdout=stdout,
+                stderr=stderr,
+            )
 
         brace_index = combined.find("{")
         if brace_index == -1:

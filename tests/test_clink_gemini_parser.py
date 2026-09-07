@@ -2,7 +2,7 @@
 
 import pytest
 
-from clink.parsers.gemini import GeminiJSONParser, ParserError
+from clink.parsers.gemini import GeminiJSONParser, GeminiUnsupportedClientError, ParserError
 
 
 def _build_rate_limit_stdout() -> str:
@@ -46,3 +46,61 @@ def test_gemini_parser_still_errors_when_no_fallback_available():
 
     with pytest.raises(ParserError):
         parser.parse(stdout, stderr="")
+
+
+def _build_unsupported_client_stderr() -> str:
+    """Approximate the Gemini CLI's rejection of an unsupported account tier."""
+
+    return (
+        "ApiError: Request failed with status 403. "
+        '{"error":{"code":403,"status":"PERMISSION_DENIED","message":'
+        '"UNSUPPORTED_CLIENT: This client is no longer supported for your account tier. '
+        'Please migrate to the Antigravity suite: https://antigravity.google"}}'
+    )
+
+
+def test_gemini_parser_reports_unsupported_client_from_stderr():
+    parser = GeminiJSONParser()
+
+    with pytest.raises(GeminiUnsupportedClientError) as excinfo:
+        parser.parse(stdout="", stderr=_build_unsupported_client_stderr())
+
+    message = str(excinfo.value)
+    assert "UNSUPPORTED_CLIENT" in message
+    assert "antigravity.google" in message
+    assert "GEMINI_API_KEY" in message
+    assert "Gemini Code Assist" in message
+
+
+def test_gemini_parser_reports_unsupported_client_from_non_json_stdout():
+    parser = GeminiJSONParser()
+
+    with pytest.raises(GeminiUnsupportedClientError):
+        parser.parse(stdout=_build_unsupported_client_stderr(), stderr="")
+
+
+def test_gemini_parser_reports_unsupported_client_from_json_error_payload():
+    parser = GeminiJSONParser()
+    stdout = '{"error": {"code": "UNSUPPORTED_CLIENT", "message": "migrate to the Antigravity suite"}}'
+
+    with pytest.raises(GeminiUnsupportedClientError):
+        parser.parse(stdout=stdout, stderr="")
+
+
+def test_gemini_parser_still_parses_a_valid_response():
+    parser = GeminiJSONParser()
+    stdout = '{"response": "All good.", "stats": {"models": {"gemini-3-pro": {"tokens": {"total": 12}}}}}'
+
+    parsed = parser.parse(stdout=stdout, stderr="")
+
+    assert parsed.content == "All good."
+    assert parsed.metadata["model_used"] == "gemini-3-pro"
+
+
+def test_gemini_parser_does_not_flag_a_response_that_merely_mentions_the_code():
+    parser = GeminiJSONParser()
+    stdout = '{"response": "The CLI fails with UNSUPPORTED_CLIENT on free-tier accounts."}'
+
+    parsed = parser.parse(stdout=stdout, stderr="")
+
+    assert "UNSUPPORTED_CLIENT" in parsed.content
