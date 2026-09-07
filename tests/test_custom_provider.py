@@ -309,13 +309,24 @@ class TestConfigureProvidersFunction:
             assert ProviderType.CUSTOM in available
 
     def test_configure_providers_no_valid_keys(self):
-        """Test configure_providers raises error when no valid API keys."""
-        from server import configure_providers
+        """No API key records the condition instead of raising (issue #116).
+
+        Startup must survive so the server can report the missing configuration
+        over MCP; ``tests/test_unconfigured_provider_reporting.py`` covers the
+        reporting half.
+        """
+        import server
 
         with patch.dict(
             os.environ,
             {"GEMINI_API_KEY": "", "OPENAI_API_KEY": "", "OPENROUTER_API_KEY": "", "CUSTOM_API_URL": ""},
             clear=True,
         ):
-            with pytest.raises(ValueError, match="At least one API configuration is required"):
-                configure_providers()
+            try:
+                server.configure_providers()
+                message = server.get_provider_configuration_error()
+            finally:
+                server._provider_configuration_error = None
+
+        assert message is not None
+        assert "At least one API configuration is required" in message

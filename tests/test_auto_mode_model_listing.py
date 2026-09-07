@@ -5,6 +5,7 @@ import importlib
 import json
 
 import pytest
+from mcp.types import CallToolResult
 
 import utils.env as env_config
 import utils.model_restrictions as model_restrictions
@@ -14,7 +15,19 @@ from providers.openrouter import OpenRouterProvider
 from providers.registry import ModelProviderRegistry
 from providers.shared import ProviderType
 from providers.xai import XAIModelProvider
-from tools.shared.exceptions import ToolExecutionError
+
+
+def _error_result_payload(result) -> str:
+    """Pull the payload out of an MCP tool execution error result.
+
+    ``handle_call_tool`` converts ``ToolExecutionError`` into a
+    ``CallToolResult`` with ``isError=True`` rather than letting it propagate,
+    so these assertions read the result instead of an exception.
+    """
+
+    assert isinstance(result, CallToolResult), f"Expected an error result, got {type(result).__name__}"
+    assert result.isError is True
+    return result.content[0].text
 
 
 def _extract_available_models(message: str) -> list[str]:
@@ -124,18 +137,17 @@ def test_error_listing_respects_env_restrictions(monkeypatch, reset_registry):
     model_restrictions._restriction_service = None
     server.configure_providers()
 
-    with pytest.raises(ToolExecutionError) as exc_info:
-        asyncio.run(
-            server.handle_call_tool(
-                "chat",
-                {
-                    "model": "gpt5mini",
-                    "prompt": "Tell me about your strengths",
-                },
-            )
+    result = asyncio.run(
+        server.handle_call_tool(
+            "chat",
+            {
+                "model": "gpt5mini",
+                "prompt": "Tell me about your strengths",
+            },
         )
+    )
 
-    payload = json.loads(exc_info.value.payload)
+    payload = json.loads(_error_result_payload(result))
     assert payload["status"] == "error"
 
     available_models = _extract_available_models(payload["content"])
@@ -209,18 +221,17 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
     model_restrictions._restriction_service = None
     server.configure_providers()
 
-    with pytest.raises(ToolExecutionError) as exc_info:
-        asyncio.run(
-            server.handle_call_tool(
-                "chat",
-                {
-                    "model": "dummymodel",
-                    "prompt": "Hi there",
-                },
-            )
+    result = asyncio.run(
+        server.handle_call_tool(
+            "chat",
+            {
+                "model": "dummymodel",
+                "prompt": "Hi there",
+            },
         )
+    )
 
-    payload = json.loads(exc_info.value.payload)
+    payload = json.loads(_error_result_payload(result))
     assert payload["status"] == "error"
 
     available_models = _extract_available_models(payload["content"])
