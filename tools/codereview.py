@@ -86,8 +86,6 @@ class CodeReviewRequest(WorkflowRequest):
     issues_found: list[dict] = Field(
         default_factory=list, description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["issues_found"]
     )
-    # Deprecated confidence field kept for backward compatibility only
-    confidence: str | None = Field("low", exclude=True)
     review_validation_type: Literal["external", "internal"] | None = Field(
         "external", description=CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS.get("review_validation_type", "")
     )
@@ -195,11 +193,6 @@ class CodeReviewTool(WorkflowTool):
                 "items": {"type": "string"},
                 "description": CODEREVIEW_WORKFLOW_FIELD_DESCRIPTIONS["relevant_files"],
             },
-            "confidence": {
-                "type": "string",
-                "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
-                "description": "Ignored: codereview does not read confidence; review_validation_type steers validation.",
-            },
             "review_validation_type": {
                 "type": "string",
                 "enum": ["external", "internal"],
@@ -245,6 +238,9 @@ class CodeReviewTool(WorkflowTool):
             model_field_schema=self.get_model_field_schema(),
             auto_mode=self.is_effective_auto_mode(),
             tool_name=self.get_name(),
+            # prepare_step_data overwrites confidence with a dummy "high" and the skip
+            # gate keys on review_validation_type, so nothing reads a caller's value.
+            excluded_workflow_fields=["confidence"],
         )
 
     def get_required_actions(

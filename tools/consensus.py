@@ -253,11 +253,6 @@ of the evidence, even when it strongly points in one direction.""",
                 "items": {"type": "string"},
                 "description": CONSENSUS_WORKFLOW_FIELD_DESCRIPTIONS["images"],
             },
-            "use_assistant_model": {
-                "type": "boolean",
-                "default": True,
-                "description": "Ignored: consensus runs no expert analysis.",
-            },
         }
 
         # Provide guidance on available models similar to single-model tools
@@ -295,6 +290,7 @@ of the evidence, even when it strongly points in one direction.""",
             "issues_found",  # Not used in consensus workflow
             "hypothesis",  # Not used in consensus workflow
             "confidence",  # Not used in consensus workflow
+            "use_assistant_model",  # requires_expert_analysis() is False, so nothing reads it
         ]
 
         excluded_common_fields = [

@@ -205,11 +205,6 @@ class TracerTool(WorkflowTool):
                 "items": {"type": "string"},
                 "description": TRACER_WORKFLOW_FIELD_DESCRIPTIONS["images"],
             },
-            "use_assistant_model": {
-                "type": "boolean",
-                "default": True,
-                "description": "Ignored: tracer runs no expert analysis.",
-            },
         }
 
     def get_input_schema(self) -> dict[str, Any]:
@@ -220,6 +215,7 @@ class TracerTool(WorkflowTool):
         excluded_workflow_fields = [
             "issues_found",  # Tracing doesn't track issues
             "hypothesis",  # Tracing doesn't use hypothesis
+            "use_assistant_model",  # requires_expert_analysis() is False, so nothing reads it
         ]
 
         # Exclude common fields that tracing doesn't need
@@ -229,11 +225,14 @@ class TracerTool(WorkflowTool):
             "absolute_file_paths",  # Tracing uses relevant_files instead
         ]
 
+        # requires_model() is False for tracer, so `model` stays accepted for backward
+        # compatibility but is never required: auto mode must not force a caller to pick
+        # a model for a tool that never calls one.
         return WorkflowSchemaBuilder.build_schema(
             tool_specific_fields=self.get_tool_fields(),
             required_fields=["target_description", "trace_mode"],  # Step 1 requires these
             model_field_schema=self.get_model_field_schema(),
-            auto_mode=self.is_effective_auto_mode(),
+            auto_mode=self.is_effective_auto_mode() if self.requires_model() else False,
             tool_name=self.get_name(),
             excluded_workflow_fields=excluded_workflow_fields,
             excluded_common_fields=excluded_common_fields,
