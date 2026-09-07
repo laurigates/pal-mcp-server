@@ -16,11 +16,12 @@ was running and unconfigured. These tests pin the replacement contract:
 import json
 
 import pytest
-from mcp.types import CallToolRequest, CallToolRequestParams, CallToolResult, TextContent
+from mcp.types import CallToolRequestParams, CallToolResult, TextContent
 
 import server
 import utils.model_restrictions as model_restrictions
 from providers.registry import REGISTERED_PROVIDER_CLASSES, ModelProviderRegistry
+from tests.mcp_call_helpers import call_tool, list_tools
 from tools import VersionTool
 from tools.shared.exceptions import ToolExecutionError
 
@@ -64,7 +65,7 @@ def test_configure_providers_records_instead_of_raising(unconfigured_providers):
 @pytest.mark.asyncio
 async def test_tools_list_is_unchanged_when_unconfigured(unconfigured_providers):
     """Step 2: the full tool surface stays discoverable."""
-    tools = await server.handle_list_tools()
+    tools = await list_tools()
 
     names = {tool.name for tool in tools}
     assert names == set(server.TOOLS.keys())
@@ -74,10 +75,10 @@ async def test_tools_list_is_unchanged_when_unconfigured(unconfigured_providers)
 @pytest.mark.asyncio
 async def test_provider_requiring_tool_returns_error_result(unconfigured_providers):
     """Step 3: a provider-requiring call is a tool execution error, not a crash."""
-    result = await server.handle_call_tool("chat", {"prompt": "hello", "model": "gemini-2.5-flash"})
+    result = await call_tool("chat", {"prompt": "hello", "model": "gemini-2.5-flash"})
 
     assert isinstance(result, CallToolResult)
-    assert result.isError is True
+    assert result.is_error is True
 
     payload = json.loads(result.content[0].text)
     assert payload["status"] == "error"
@@ -88,36 +89,44 @@ async def test_provider_requiring_tool_returns_error_result(unconfigured_provide
 
 @pytest.mark.asyncio
 async def test_error_result_reaches_the_client_over_the_wire(unconfigured_providers):
-    """The same call through the SDK's registered handler carries ``isError``."""
-    handler = server.server.request_handlers[CallToolRequest]
-    request = CallToolRequest(
-        params=CallToolRequestParams(
-            name="chat",
-            arguments={
-                "prompt": "hello",
-                "model": "gemini-2.5-flash",
-                # Required by chat's inputSchema; the SDK validates before dispatch.
-                "working_directory_absolute_path": "/tmp",
-            },
-        )
+    """The same call, reached through what the SDK will actually dispatch to.
+
+    Going through the registered entry rather than importing the function keeps
+    this honest: it fails if ``tools/call`` is ever wired to something else, or
+    left unwired. v2 replaced the ``request_handlers`` mapping with
+    ``get_request_handler(method)``, and dispatches on the method string.
+    """
+    entry = server.server.get_request_handler("tools/call")
+    assert entry is not None, "tools/call is not registered on the server"
+    assert entry.params_type is CallToolRequestParams
+
+    params = CallToolRequestParams(
+        name="chat",
+        arguments={
+            "prompt": "hello",
+            "model": "gemini-2.5-flash",
+            # Required by chat's input schema; the SDK validates before dispatch.
+            "working_directory_absolute_path": "/tmp",
+        },
     )
 
-    server_result = await handler(request)
+    result = await entry.handler(None, params)
 
-    assert server_result.root.isError is True
-    assert "At least one API configuration is required" in server_result.root.content[0].text
+    assert result.is_error is True
+    assert "At least one API configuration is required" in result.content[0].text
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool_name", ["version", "listmodels"])
 async def test_provider_free_tools_still_work_when_unconfigured(unconfigured_providers, tool_name):
     """Step 4: the diagnostic path stays open."""
-    result = await server.handle_call_tool(tool_name, {})
+    result = await call_tool(tool_name, {})
 
-    assert isinstance(result, list), f"Expected a success result, got {type(result).__name__}"
-    assert result, f"{tool_name} returned no content"
-    assert isinstance(result[0], TextContent)
-    assert result[0].text.strip()
+    # v2 returns a CallToolResult on the success path too, rather than a bare list.
+    assert result.is_error is not True, f"{tool_name} came back as an error: {result.content}"
+    assert result.content, f"{tool_name} returned no content"
+    assert isinstance(result.content[0], TextContent)
+    assert result.content[0].text.strip()
 
 
 @pytest.mark.asyncio
@@ -139,17 +148,69 @@ async def test_tool_execution_error_is_converted_at_the_dispatch_boundary(monkey
     # provider, which keeps this test about the boundary and nothing else.
     monkeypatch.setattr(VersionTool, "execute", boom)
 
-    result = await server.handle_call_tool("version", {})
+    result = await call_tool("version", {})
 
     assert isinstance(result, CallToolResult)
-    assert result.isError is True
+    assert result.is_error is True
     payload = json.loads(result.content[0].text)
     assert payload["content"] == "deliberate failure"
 
 
 @pytest.mark.asyncio
-async def test_successful_call_is_not_marked_as_an_error(unconfigured_providers):
-    """The boundary must not turn ordinary results into error results."""
-    result = await server.handle_call_tool("version", {})
+async def test_non_tool_execution_exceptions_also_become_error_results(monkeypatch):
+    """An exception that is *not* a ToolExecutionError still reaches the client.
 
-    assert not isinstance(result, CallToolResult)
+    The 1.x SDK wrapped every handler exception, so code outside the 16
+    ``raise ToolExecutionError`` sites relied on it without saying so. v2 wraps
+    nothing, and a bare exception becomes a JSON-RPC protocol error whose
+    message the client cannot act on. Without the boundary's general clause this
+    returns a protocol error instead of a result.
+    """
+
+    async def boom(self, arguments):
+        raise RuntimeError("something nobody wrapped")
+
+    monkeypatch.setattr(VersionTool, "execute", boom)
+
+    result = await call_tool("version", {})
+
+    assert isinstance(result, CallToolResult)
+    assert result.is_error is True
+    assert "something nobody wrapped" in result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_expired_continuation_id_is_reported_as_a_result_not_a_protocol_error():
+    """The concrete case that regressed: a stale continuation_id.
+
+    ``reconstruct_thread_context`` raises a plain ``ValueError`` telling the
+    caller to start a new thread. That message is a documented recovery path, so
+    it has to arrive as tool output the agent can read — the cross-tool
+    simulator scenario fails otherwise.
+    """
+    result = await call_tool(
+        "version",
+        {"continuation_id": "00000000-0000-4000-8000-000000000000"},
+    )
+
+    assert isinstance(result, CallToolResult)
+    assert result.is_error is True
+    text = result.content[0].text
+    assert "was not found or has expired" in text
+    assert "continuation_id" in text
+
+
+@pytest.mark.asyncio
+async def test_successful_call_is_not_marked_as_an_error(unconfigured_providers):
+    """The boundary must not turn ordinary results into error results.
+
+    Under 1.x this could be asserted by type — the success path returned a bare
+    list and only the error path built a ``CallToolResult``. v2 returns a
+    ``CallToolResult`` either way, so the flag is what separates them, and it is
+    what the client reads.
+    """
+    result = await call_tool("version", {})
+
+    assert isinstance(result, CallToolResult)
+    assert result.is_error is not True
+    assert result.content and result.content[0].text.strip()

@@ -319,7 +319,7 @@ async def test_live_stdio_client_receives_progress_notifications(tmp_path):
             await session.initialize()
             result = await session.call_tool("version", {}, progress_callback=on_progress)
 
-    assert not result.isError, result.content
+    assert not result.is_error, result.content
 
     assert received, "server sent no progress notifications to a client that supplied a progressToken"
     messages = [m for _, _, m in received]

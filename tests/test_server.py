@@ -5,7 +5,7 @@ Tests for the main server functionality
 import pytest
 from mcp.types import CallToolResult
 
-from server import handle_call_tool
+from tests.mcp_call_helpers import call_tool
 
 
 class TestServerTools:
@@ -14,9 +14,9 @@ class TestServerTools:
     @pytest.mark.asyncio
     async def test_handle_call_tool_unknown(self):
         """Test calling an unknown tool"""
-        result = await handle_call_tool("unknown_tool", {})
-        assert len(result) == 1
-        assert "Unknown tool: unknown_tool" in result[0].text
+        result = await call_tool("unknown_tool", {})
+        assert len(result.content) == 1
+        assert "Unknown tool: unknown_tool" in result.content[0].text
 
     @pytest.mark.asyncio
     async def test_handle_chat(self):
@@ -63,20 +63,22 @@ class TestServerTools:
                 )
 
             try:
-                result = await handle_call_tool("chat", {"prompt": "Hello Gemini", "model": "o3-mini"})
+                result = await call_tool("chat", {"prompt": "Hello Gemini", "model": "o3-mini"})
 
-                if isinstance(result, CallToolResult):
+                # v2 returns a CallToolResult either way, so the flag is what
+                # distinguishes the two outcomes rather than the result's type.
+                assert isinstance(result, CallToolResult)
+                if result.is_error:
                     # Expected: the API call fails with the fake key, and since
                     # issue #116 that failure arrives as a tool execution error
                     # result rather than as an exception.
-                    assert result.isError is True
                     assert_real_provider_error(result.content[0].text)
                 else:
-                    assert len(result) == 1
+                    assert len(result.content) == 1
                     # Parse JSON response
                     import json
 
-                    response_data = json.loads(result[0].text)
+                    response_data = json.loads(result.content[0].text)
                     assert "status" in response_data
 
             except Exception as e:
@@ -107,10 +109,10 @@ class TestServerTools:
             # Thread lookup fails for an unknown ID, but the session ID is
             # published before reconstruction - that is what is under test.
             with contextlib.suppress(Exception):
-                await handle_call_tool("version", {"continuation_id": "8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77"})
+                await call_tool("version", {"continuation_id": "8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77"})
             assert get_session_id() == "8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77"
 
-            await handle_call_tool("version", {})
+            await call_tool("version", {})
             assert get_session_id() == process_id
         finally:
             set_session_id(None)
@@ -118,10 +120,11 @@ class TestServerTools:
     @pytest.mark.asyncio
     async def test_handle_version(self):
         """Test getting version info"""
-        result = await handle_call_tool("version", {})
-        assert len(result) == 1
+        result = await call_tool("version", {})
+        assert result.is_error is not True
+        assert len(result.content) == 1
 
-        response = result[0].text
+        response = result.content[0].text
         # Parse the JSON response
         import json
 

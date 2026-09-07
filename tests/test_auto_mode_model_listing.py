@@ -15,18 +15,19 @@ from providers.openrouter import OpenRouterProvider
 from providers.registry import ModelProviderRegistry
 from providers.shared import ProviderType
 from providers.xai import XAIModelProvider
+from tests.mcp_call_helpers import call_tool
 
 
 def _error_result_payload(result) -> str:
     """Pull the payload out of an MCP tool execution error result.
 
     ``handle_call_tool`` converts ``ToolExecutionError`` into a
-    ``CallToolResult`` with ``isError=True`` rather than letting it propagate,
+    ``CallToolResult`` with ``is_error=True`` rather than letting it propagate,
     so these assertions read the result instead of an exception.
     """
 
     assert isinstance(result, CallToolResult), f"Expected an error result, got {type(result).__name__}"
-    assert result.isError is True
+    assert result.is_error is True
     return result.content[0].text
 
 
@@ -138,7 +139,7 @@ def test_error_listing_respects_env_restrictions(monkeypatch, reset_registry):
     server.configure_providers()
 
     result = asyncio.run(
-        server.handle_call_tool(
+        call_tool(
             "chat",
             {
                 "model": "gpt5mini",
@@ -222,7 +223,7 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
     server.configure_providers()
 
     result = asyncio.run(
-        server.handle_call_tool(
+        call_tool(
             "chat",
             {
                 "model": "dummymodel",
