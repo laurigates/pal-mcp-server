@@ -196,11 +196,6 @@ class PrecommitTool(WorkflowTool):
                 "items": {"type": "string"},
                 "description": PRECOMMIT_WORKFLOW_FIELD_DESCRIPTIONS["relevant_files"],
             },
-            "confidence": {
-                "type": "string",
-                "enum": ["exploring", "low", "medium", "high", "very_high", "almost_certain", "certain"],
-                "description": "Ignored: precommit does not read confidence; precommit_type steers validation.",
-            },
             "precommit_type": {
                 "type": "string",
                 "enum": ["external", "internal"],
@@ -254,6 +249,9 @@ class PrecommitTool(WorkflowTool):
             model_field_schema=self.get_model_field_schema(),
             auto_mode=self.is_effective_auto_mode(),
             tool_name=self.get_name(),
+            # prepare_step_data overwrites confidence with a dummy "high" and the skip
+            # gate keys on precommit_type, so nothing reads a caller's value.
+            excluded_workflow_fields=["confidence"],
         )
 
     def get_required_actions(

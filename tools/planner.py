@@ -198,11 +198,6 @@ class PlannerTool(WorkflowTool):
                 "type": "boolean",
                 "description": PLANNER_FIELD_DESCRIPTIONS["more_steps_needed"],
             },
-            "use_assistant_model": {
-                "type": "boolean",
-                "default": True,
-                "description": "Ignored: planner runs no expert analysis.",
-            },
         }
 
         # Define excluded fields for planner workflow
@@ -214,6 +209,7 @@ class PlannerTool(WorkflowTool):
             "issues_found",  # Planning doesn't find issues
             "confidence",  # Planning uses different confidence model
             "hypothesis",  # Planning doesn't use hypothesis
+            "use_assistant_model",  # requires_expert_analysis() is False, so nothing reads it
         ]
 
         excluded_common_fields = [
@@ -224,11 +220,14 @@ class PlannerTool(WorkflowTool):
         ]
 
         # Build schema with proper field exclusion (following consensus pattern)
+        # requires_model() is False for planner, so `model` stays accepted for
+        # backward compatibility but is never required: auto mode must not force a
+        # caller to pick a model for a tool that never calls one.
         return WorkflowSchemaBuilder.build_schema(
             tool_specific_fields=planner_field_overrides,
             required_fields=[],  # No additional required fields beyond workflow defaults
             model_field_schema=self.get_model_field_schema(),
-            auto_mode=self.is_effective_auto_mode(),
+            auto_mode=self.is_effective_auto_mode() if self.requires_model() else False,
             tool_name=self.get_name(),
             excluded_workflow_fields=excluded_workflow_fields,
             excluded_common_fields=excluded_common_fields,

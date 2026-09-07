@@ -175,11 +175,6 @@ class DocgenTool(WorkflowTool):
                 "minimum": 0,
                 "description": DOCGEN_FIELD_DESCRIPTIONS["total_files_to_document"],
             },
-            "use_assistant_model": {
-                "type": "boolean",
-                "default": True,
-                "description": "Ignored: docgen runs no expert analysis.",
-            },
         }
 
     def get_required_fields(self) -> list[str]:
@@ -202,6 +197,7 @@ class DocgenTool(WorkflowTool):
             "confidence",  # Documentation doesn't use confidence levels
             "hypothesis",  # Documentation doesn't use hypothesis
             "files_checked",  # Documentation uses doc_files and doc_methods instead for better tracking
+            "use_assistant_model",  # requires_expert_analysis() is False, so nothing reads it
         ]
 
         # Exclude common fields that documentation generation doesn't need
