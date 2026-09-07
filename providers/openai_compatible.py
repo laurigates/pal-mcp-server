@@ -371,7 +371,13 @@ class OpenAICompatibleProvider(ModelProvider):
             if self.get_provider_type() != ProviderType.OPENROUTER:
                 completion_params["store"] = True
             if max_output_tokens:
-                completion_params["max_completion_tokens"] = max_output_tokens
+                # The Responses API spells this max_output_tokens; max_completion_tokens
+                # is the Chat Completions name and is rejected outright by
+                # client.responses.create. Confirmed against the installed SDK
+                # signature. This branch had never run: no caller passed
+                # max_output_tokens until issue #114 wired the four call sites, so
+                # the wrong key sat here unexercised.
+                completion_params["max_output_tokens"] = max_output_tokens
             return {
                 "endpoint": "responses",
                 "model": resolved_model,

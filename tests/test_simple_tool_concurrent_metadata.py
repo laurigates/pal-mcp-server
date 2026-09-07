@@ -44,6 +44,10 @@ def _model_context(model_name: str, provider: _FakeProvider):
         allow_code_generation=False,
         supports_images=False,
         temperature_constraint=None,
+        # The tool reads the output ceiling off capabilities (issue #114). A stub
+        # standing in for ModelCapabilities has to answer it; returning None keeps
+        # these tests about model/provider identity rather than token limits.
+        get_effective_max_output_tokens=lambda: None,
     )
     return SimpleNamespace(
         model_name=model_name,

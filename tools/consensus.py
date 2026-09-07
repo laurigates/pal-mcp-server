@@ -665,6 +665,19 @@ of the evidence, even when it strongly points in one direction.""",
             for warning in temp_warnings:
                 logger.warning(warning)
 
+            # Bound the reply by our registry's ceiling for this model (issue #114).
+            # Read it from the provider resolved above rather than through
+            # model_context: ModelContext.capabilities performs its own registry
+            # lookup and raises for a name it cannot resolve, which would abort the
+            # whole consultation. validate_and_correct_temperature already degrades
+            # rather than raising on that same model, and this matches it — an
+            # unresolvable ceiling costs the ceiling, not the call.
+            try:
+                max_output_tokens = provider.get_capabilities(model_name).get_effective_max_output_tokens()
+            except Exception as exc:
+                logger.warning(f"Could not read the output ceiling for {model_name}, sending none: {exc}")
+                max_output_tokens = None
+
             # Call the model with validated temperature. Each consensus step
             # consults exactly one model, so name it and where it sits in the
             # roster — otherwise a three-model consensus is three silent minutes.
@@ -679,6 +692,11 @@ of the evidence, even when it strongly points in one direction.""",
                     temperature=validated_temperature,
                     thinking_mode="medium",
                     images=request.images if request.images else None,
+                    # The sharpest case in issue #114: consensus fans out to
+                    # several models, so without this each one's reply length is
+                    # set by its own provider's default rather than by our
+                    # registry — the roster is bounded inconsistently.
+                    max_output_tokens=max_output_tokens,
                 )
             await progress.update(f"consensus · {model_name} replied · {summarize_usage(response.usage)} · {position}")
 
