@@ -1,0 +1,83 @@
+=== COVERAGE ===
+OpenRouter: configured=38 catalog=430 source=openrouter
+Gemini: configured=9 catalog=39 source=modelsdev
+OpenAI: configured=17 catalog=48 source=modelsdev
+xAI: configured=4 catalog=12 source=modelsdev
+OpenCode Zen (go): configured=19 catalog=35 source=modelsdev
+DIAL: configured=9 catalog=0 source=unverifiable (enterprise aggregator, no public keyless catalog)
+Custom: configured=1 catalog=0 source=unverifiable (user-supplied local endpoints (Ollama, vLLM))
+Azure: configured=0 catalog=0 source=unverifiable (per-deployment names chosen by the operator)
+
+=== DEPRECATED (0) ===
+
+=== STALE METADATA (1) ===
+openrouter_models.json: meta-llama/llama-3.3-70b-instruct -- max_output_tokens: configured 115,200 vs catalog 16,384
+
+=== ALIAS COLLISIONS (0) ===
+
+=== STALE PROVIDER REFERENCES (0) ===
+
+=== SCHEMA (0) ===
+
+=== CANDIDATE ADDITIONS (51) ===
+openrouter_models.json: openai/gpt-6-astra -- live in catalog (released/created 1788552838), not configured [review]
+openrouter_models.json: openai/gpt-6-astra-pro -- live in catalog (released/created 1788552835), not configured [review]
+openrouter_models.json: qwen/qwen3.8-max-0902 -- live in catalog (released/created 1788469704), not configured [review]
+openrouter_models.json: meta/muse-spark-1.3-contributor -- live in catalog (released/created 1788381519), not configured [review]
+openrouter_models.json: meta/muse-spark-1.3 -- live in catalog (released/created 1788378359), not configured [review]
+openrouter_models.json: google/gemini-3.8-flash -- live in catalog (released/created 1788362056), not configured [review]
+openrouter_models.json: anthropic/claude-fable-5.1 -- live in catalog (released/created 1788285838), not configured [review]
+openrouter_models.json: inception/mercury-2.5-preview -- live in catalog (released/created 1788209864), not configured [review]
+openrouter_models.json: ibm-granite/granite-4.2-8b -- live in catalog (released/created 1788206780), not configured [review]
+openrouter_models.json: tencent/hy4-preview -- live in catalog (released/created 1787897375), not configured [review]
+openrouter_models.json: inclusionai/ling-3.0-flash-fin -- live in catalog (released/created 1787846290), not configured [review]
+openrouter_models.json: qwen/qwen3.8-flash -- live in catalog (released/created 1787773060), not configured [review]
+gemini_models.json: gemini-3.8-flash -- live in catalog (released/created 2026-09-02), not configured [review]
+gemini_models.json: gemini-flash-latest -- live in catalog (released/created 2026-08-13), not configured [review]
+gemini_models.json: gemini-flash-lite-latest -- live in catalog (released/created 2026-07-21), not configured [review]
+gemini_models.json: deep-research-max-preview-04-2026 -- live in catalog (released/created 2026-04-21), not configured [review]
+gemini_models.json: deep-research-preview-04-2026 -- live in catalog (released/created 2026-04-21), not configured [review]
+gemini_models.json: gemma-4-26b-a4b-it -- live in catalog (released/created 2026-04-02), not configured [review]
+gemini_models.json: gemma-4-31b-it -- live in catalog (released/created 2026-04-02), not configured [review]
+gemini_models.json: lyria-3-clip-preview -- live in catalog (released/created 2026-03-25), not configured [review]
+gemini_models.json: lyria-3-pro-preview -- live in catalog (released/created 2026-03-25), not configured [review]
+gemini_models.json: gemini-3.1-flash-lite-preview -- live in catalog (released/created 2026-03-03), not configured [review]
+gemini_models.json: gemini-3.1-pro-preview-customtools -- live in catalog (released/created 2026-02-19), not configured [review]
+gemini_models.json: gemini-2.5-flash-lite -- live in catalog (released/created 2025-06-17), not configured [review]
+openai_models.json: gpt-6-astra -- live in catalog (released/created 2026-09-04), not configured [review]
+openai_models.json: gpt-5.6 -- live in catalog (released/created 2026-07-09), not configured [review]
+openai_models.json: gpt-5.4-nano -- live in catalog (released/created 2026-03-17), not configured [review]
+openai_models.json: gpt-5.4-mini -- live in catalog (released/created 2026-03-17), not configured [review]
+openai_models.json: gpt-5.4 -- live in catalog (released/created 2026-03-05), not configured [review]
+openai_models.json: gpt-5.4-pro -- live in catalog (released/created 2026-03-05), not configured [review]
+openai_models.json: gpt-5.3-chat-latest -- live in catalog (released/created 2026-03-03), not configured [review]
+openai_models.json: gpt-5.2-chat-latest -- live in catalog (released/created 2025-12-11), not configured [review]
+openai_models.json: gpt-5.1 -- live in catalog (released/created 2025-11-13), not configured [review]
+openai_models.json: gpt-5-pro -- live in catalog (released/created 2025-10-06), not configured [review]
+openai_models.json: gpt-4.1-nano -- live in catalog (released/created 2025-04-14), not configured [review]
+openai_models.json: gpt-4.1-mini -- live in catalog (released/created 2025-04-14), not configured [review]
+xai_models.json: grok-4.20-0309-reasoning -- live in catalog (released/created 2026-03-09), not configured [review]
+xai_models.json: grok-4.20-multi-agent-0309 -- live in catalog (released/created 2026-03-09), not configured [review]
+xai_models.json: grok-4.20-0309-non-reasoning -- live in catalog (released/created 2026-03-09), not configured [review]
+opencode_go_models.json: omen-alpha -- live in catalog (released/created 2026-09-04), not configured [review]
+opencode_go_models.json: muse-spark-1.3-contributor -- live in catalog (released/created 2026-09-02), not configured [review]
+opencode_go_models.json: hy4-preview -- live in catalog (released/created 2026-08-28), not configured [review]
+opencode_go_models.json: glm-5.3-flash -- live in catalog (released/created 2026-08-26), not configured [review]
+opencode_go_models.json: qwen3.8-flash -- live in catalog (released/created 2026-08-26), not configured [review]
+opencode_go_models.json: deepseek-v4-flash-vision-exp -- live in catalog (released/created 2026-08-21), not configured [review]
+opencode_go_models.json: ox-alpha-free -- live in catalog (released/created 2026-08-21), not configured [review]
+opencode_go_models.json: glm-5.3 -- live in catalog (released/created 2026-08-14), not configured [review]
+opencode_go_models.json: grok-4.6 -- live in catalog (released/created 2026-08-12), not configured [review]
+opencode_go_models.json: muse-spark-1.2-contributor -- live in catalog (released/created 2026-08-05), not configured [review]
+opencode_go_models.json: qwen3.8-max -- live in catalog (released/created 2026-08-03), not configured [review]
+opencode_go_models.json: gpt-5.6-luna -- live in catalog (released/created 2026-07-09), not configured [review]
+
+=== SUMMARY ===
+DEPRECATED=0
+STALE=1
+ALIAS_COLLISION=0
+ORPHAN_REF=0
+SCHEMA=0
+MISSING=51
+ACTIONABLE=1
+STATUS=DRIFT
