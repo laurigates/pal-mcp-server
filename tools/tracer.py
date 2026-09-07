@@ -144,6 +144,10 @@ class TracerTool(WorkflowTool):
     both precision tracing (execution flow) and dependencies tracing (structural relationships).
     """
 
+    # Persisted in the thread so a continuation step restores this thread's trace
+    # mode and target rather than whatever the process last held (issue #100).
+    PERSISTED_STATE_ATTRS = ("trace_config",)
+
     def __init__(self):
         super().__init__()
         self.initial_request = None

@@ -132,6 +132,10 @@ class RefactorTool(WorkflowTool):
     opportunities, and organization improvements.
     """
 
+    # Persisted in the thread so a continuation step restores this thread's refactor
+    # configuration rather than whatever the process last held (issue #100).
+    PERSISTED_STATE_ATTRS = ("refactor_config",)
+
     def __init__(self):
         super().__init__()
         self.initial_request = None

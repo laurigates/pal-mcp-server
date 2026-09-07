@@ -127,6 +127,10 @@ class PrecommitTool(WorkflowTool):
     multi-repository analysis, security review, performance validation, and integration testing.
     """
 
+    # Persisted in the thread so a continuation step restores this thread's git
+    # configuration rather than whatever the process last held (issue #100).
+    PERSISTED_STATE_ATTRS = ("git_config",)
+
     def __init__(self):
         super().__init__()
         self.initial_request = None

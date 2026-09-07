@@ -75,18 +75,22 @@ class BaseWorkflowMixin(ABC):
         """
         Clear the per-call workflow state.
 
-        Tool instances are module-level singletons (server.py builds TOOLS once
-        and dispatches every call to the same object), so anything left on
-        ``self`` by one call is visible to the next. execute_workflow calls this
-        first on every call; a continuation then rebuilds the state from the
-        stored thread, and a fresh call starts empty (issue #97). Tool-specific
-        step-1 config (review_config and its siblings) is not cleared here; #100
-        tracks persisting and clearing it.
+        server.py now dispatches each call to its own tool instance (issue #99),
+        so this is no longer the only thing standing between two concurrent
+        calls. It still runs first on every execute_workflow call, because a
+        tool object can be reused directly — tests do it, and so does any caller
+        that holds an instance — and because a continuation rebuilds its state
+        from the stored thread immediately afterwards (issue #97).
+
+        Tool-specific step-1 config is cleared here too, via restore_tool_state
+        with an empty dict: "restore nothing" and "reset to step-1 defaults" are
+        the same operation, so tools implement one hook rather than two (#100).
         """
         self.work_history: list[dict[str, Any]] = []
         self.consolidated_findings: ConsolidatedFindings = ConsolidatedFindings()
         self.initial_request: str | None = None
         self.initial_issue: str | None = None
+        self.restore_tool_state({})
 
     # ================================================================================
     # Abstract Methods - Required Implementation by BaseTool or Subclasses
@@ -713,28 +717,26 @@ class BaseWorkflowMixin(ABC):
 
             # Restore workflow state on continuation
             if continuation_id:
-                from utils.conversation_memory import get_thread
-
-                thread = get_thread(continuation_id)
-                if thread and thread.turns:
-                    # Find the most recent assistant turn from this tool with workflow state
-                    for turn in reversed(thread.turns):
-                        if turn.role == "assistant" and turn.tool_name == self.get_name() and turn.model_metadata:
-                            state = turn.model_metadata
-                            if isinstance(state, dict) and "work_history" in state:
-                                self.work_history = state.get("work_history", [])
-                                self.initial_request = state.get("initial_request")
-                                # Rebuild consolidated findings from restored history
-                                self._reprocess_consolidated_findings()
-                                # Refill the tool-specific initial-issue slot (debug reads
-                                # initial_issue, planner/tracer their own names) from the
-                                # thread, the same way a fresh step 1 fills it.
-                                if self.initial_request is not None:
-                                    self.store_initial_issue(self.initial_request)
-                                logger.debug(
-                                    f"[{self.get_name()}] Restored workflow state with {len(self.work_history)} history items"
-                                )
-                                break  # State restored, exit loop
+                state = self.load_persisted_workflow_state(continuation_id)
+                if state is not None:
+                    self.work_history = state.get("work_history", [])
+                    self.initial_request = state.get("initial_request")
+                    # Rebuild consolidated findings from restored history
+                    self._reprocess_consolidated_findings()
+                    # Refill the tool-specific initial-issue slot (debug reads
+                    # initial_issue, planner/tracer their own names) from the
+                    # thread, the same way a fresh step 1 fills it.
+                    if self.initial_request is not None:
+                        self.store_initial_issue(self.initial_request)
+                    # Refill the tool's step-1 config from the thread. Before
+                    # #100 this survived only as instance state, so it was
+                    # lost on restart and wrong whenever another call had run
+                    # in between; now that each call gets its own instance
+                    # (#99) there is no carry-over left to mask its absence.
+                    self.restore_tool_state(state.get("tool_state") or {})
+                    logger.debug(
+                        f"[{self.get_name()}] Restored workflow state with {len(self.work_history)} history items"
+                    )
 
             # Every step 1 records its own request as the initial one. That covers a
             # fresh workflow, a cross-tool continuation (chat/analyze into debug)
@@ -1038,6 +1040,77 @@ class BaseWorkflowMixin(ABC):
         except AttributeError:
             return fallback_step
 
+    # ================================================================================
+    # Tool-specific step-1 config (issue #100)
+    #
+    # Several tools read configuration on step 1 and use it on every later step
+    # and in the expert prompt: codereview's review_config, analyze's
+    # analysis_config, precommit's git_config, refactor's refactor_config,
+    # tracer's trace_config, thinkdeep's stored_request_params, planner's
+    # branches. That config used to live only on the tool instance, so a
+    # continuation step depended on the same process still holding the same
+    # object — which a server restart, or an interleaved call, broke silently:
+    # the expert prompt would carry another caller's review configuration, or
+    # none at all.
+    #
+    # These two hooks put that config in the thread instead. The pair is
+    # deliberately symmetric, and restore_tool_state({}) doubles as the reset
+    # (see _reset_workflow_state), so a tool that adds config declares it once.
+    # ================================================================================
+
+    #: Instance attributes holding this tool's step-1 config. Each must be a
+    #: JSON-serialisable dict whose empty value is the step-1 default, which is
+    #: true of every one today (review_config, analysis_config, git_config,
+    #: refactor_config, trace_config, stored_request_params, branches). A tool
+    #: that adds config declares it here and gets persistence, restoration and
+    #: reset at once; a tool whose state is not a dict overrides the two hooks
+    #: below instead.
+    PERSISTED_STATE_ATTRS: tuple[str, ...] = ()
+
+    def get_persisted_tool_state(self) -> dict[str, Any]:
+        """Return the tool-specific state to persist alongside work_history.
+
+        Must be JSON-serialisable: it goes into the thread turn's
+        ``model_metadata``.
+        """
+        return {name: getattr(self, name, None) or {} for name in self.PERSISTED_STATE_ATTRS}
+
+    def restore_tool_state(self, state: dict[str, Any]) -> None:
+        """Apply state previously returned by get_persisted_tool_state.
+
+        Called with the stored dict when a continuation resumes, and with an
+        empty dict to reset. An override must therefore treat ``{}`` as "return
+        to the values a fresh step 1 would start from" rather than as "leave
+        whatever is already there".
+        """
+        for name in self.PERSISTED_STATE_ATTRS:
+            setattr(self, name, state.get(name) or {})
+
+    def load_persisted_workflow_state(self, continuation_id: str) -> dict[str, Any] | None:
+        """Return the newest workflow state this tool stored on the given thread.
+
+        A thread can interleave turns from several tools, so the search is
+        filtered by tool name and by the presence of ``work_history`` — a turn
+        from a simple tool carries different metadata. Returns None when the
+        thread holds nothing this tool wrote, which is the cross-tool
+        continuation case (chat into debug) and is not an error.
+
+        Split out because consensus overrides execute_workflow entirely and
+        needs the same lookup; see ConsensusTool.execute_workflow.
+        """
+        from utils.conversation_memory import get_thread
+
+        thread = get_thread(continuation_id)
+        if not thread or not thread.turns:
+            return None
+
+        for turn in reversed(thread.turns):
+            if turn.role == "assistant" and turn.tool_name == self.get_name() and turn.model_metadata:
+                state = turn.model_metadata
+                if isinstance(state, dict) and "work_history" in state:
+                    return state
+        return None
+
     # Default implementations for inheritance hooks
 
     def prepare_work_summary(self) -> str:
@@ -1169,7 +1242,15 @@ class BaseWorkflowMixin(ABC):
         clean_content = self._extract_clean_workflow_content_for_history(response_data)
 
         # Serialize workflow state for persistence across stateless tool calls
-        workflow_state = {"work_history": self.work_history, "initial_request": getattr(self, "initial_request", None)}
+        # tool_state carries the step-1 config the tool will need on its next step
+        # (issue #100). It is stored per turn, so the continuation restores the
+        # configuration of the thread it belongs to rather than whatever the
+        # process happened to be holding.
+        workflow_state = {
+            "work_history": self.work_history,
+            "initial_request": getattr(self, "initial_request", None),
+            "tool_state": self.get_persisted_tool_state(),
+        }
 
         try:
             add_turn(

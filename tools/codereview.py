@@ -127,6 +127,10 @@ class CodeReviewTool(WorkflowTool):
     including security audits, performance analysis, architectural review, and maintainability assessment.
     """
 
+    # Persisted in the thread so a continuation step restores this thread's review
+    # configuration rather than whatever the process last held (issue #100).
+    PERSISTED_STATE_ATTRS = ("review_config",)
+
     def __init__(self):
         super().__init__()
         self.initial_request = None

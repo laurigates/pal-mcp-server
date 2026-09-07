@@ -124,6 +124,10 @@ class AnalyzeTool(WorkflowTool):
     including architectural review, performance analysis, security assessment, and maintainability evaluation.
     """
 
+    # Persisted in the thread so a continuation step restores this thread's analysis
+    # configuration rather than whatever the process last held (issue #100).
+    PERSISTED_STATE_ATTRS = ("analysis_config",)
+
     def __init__(self):
         super().__init__()
         self.initial_request = None

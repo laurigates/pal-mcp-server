@@ -1,11 +1,17 @@
 """
 Per-call state isolation for workflow tools (issue #97).
 
-server.py builds TOOLS once and dispatches every call to the same instance, so
-anything a call leaves on ``self`` is visible to the next call. A call with no
-continuation_id must therefore start from empty workflow state, and a call
+A call with no continuation_id must start from empty workflow state, and a call
 with a continuation_id must rebuild its state from the stored thread rather
-than from whatever the instance happened to do last.
+than from whatever the instance happened to do last. These tests reuse one tool
+object deliberately, which is what makes them meaningful: they pin the reset and
+restore behaviour of execute_workflow itself.
+
+That invariant is now defence in depth rather than the only guard. Since #99,
+server.py gives each dispatched call its own tool instance, so the shared-object
+premise this file was written against no longer holds at the MCP boundary — see
+test_workflow_concurrent_state_isolation.py, which drives handle_call_tool for
+exactly that reason.
 """
 
 import json
