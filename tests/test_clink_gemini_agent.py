@@ -79,3 +79,22 @@ async def test_gemini_agent_propagates_unrecoverable_error(monkeypatch, gemini_a
 
     with pytest.raises(CLIAgentError):
         await _run_agent_with_process(monkeypatch, agent, role, process)
+
+
+@pytest.mark.asyncio
+async def test_gemini_agent_reports_unsupported_client(monkeypatch, gemini_agent):
+    agent, role = gemini_agent
+    stderr = (
+        b"ApiError: Request failed with status 403. "
+        b'{"error":{"code":403,"status":"PERMISSION_DENIED","message":'
+        b'"UNSUPPORTED_CLIENT: migrate to the Antigravity suite: https://antigravity.google"}}'
+    )
+    process = DummyProcess(stderr=stderr, returncode=1)
+
+    with pytest.raises(CLIAgentError) as excinfo:
+        await _run_agent_with_process(monkeypatch, agent, role, process)
+
+    message = str(excinfo.value)
+    assert "UNSUPPORTED_CLIENT" in message
+    assert "antigravity.google" in message
+    assert "GEMINI_API_KEY" in message
