@@ -167,6 +167,13 @@ clink detects the rejection and reports it: a request that fails this way return
 
 **Adding new CLIs**: Drop a JSON config into `conf/cli_clients/`, create role prompts in `systemprompts/clink/`, and register a parser/agent if the CLI outputs a new format.
 
+### What a relayed CLI can see
+
+Each relay is confined to what its own vendor needs:
+
+- **Environment.** The subprocess environment is an allowlist — process basics (`PATH`, `HOME`, `SHELL`), locale, terminal, proxy/TLS and Node settings — plus the target vendor's own variables (`ANTHROPIC_*`/`CLAUDE_*`, `OPENAI_*`/`CODEX_*`, `GEMINI_*`/`GOOGLE_*`). It is no longer a copy of the server's environment, so relaying to one vendor's CLI does not hand it another's API key. `HOME` is kept deliberately: it is where these CLIs store the subscription credentials they authenticate with. The `env` block in a client's JSON still injects or overrides anything else you need.
+- **Working directory.** With no `working_dir` set, the CLI runs in an empty per-run scratch directory that is deleted afterwards, rather than inheriting whatever tree the server was launched in. Pass files through `absolute_file_paths` — absolute paths resolve from any cwd — or set `working_dir` in the client's JSON when a relay target is meant to work inside a repository.
+
 ## When to Use Clink vs Other Tools
 
 - **Use `clink`** for: Leveraging external CLI capabilities (Gemini's web search, 1M context), specialized CLI features, cross-CLI collaboration

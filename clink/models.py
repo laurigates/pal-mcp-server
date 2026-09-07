@@ -82,6 +82,13 @@ class ResolvedCLIClient(BaseModel):
     internal_args: list[str] = Field(default_factory=list)
     config_args: list[str] = Field(default_factory=list)
     env: dict[str, str] = Field(default_factory=dict)
+    env_passthrough: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Environment-variable name prefixes belonging to this CLI's own vendor, "
+            "passed through from the server environment on top of the shared base allowlist."
+        ),
+    )
     timeout_seconds: int
     parser: str
     runner: str | None = None
