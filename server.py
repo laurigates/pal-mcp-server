@@ -32,6 +32,7 @@ from mcp.server import Server  # noqa: E402
 from mcp.server.models import InitializationOptions  # noqa: E402
 from mcp.server.stdio import stdio_server  # noqa: E402
 from mcp.types import (  # noqa: E402
+    CallToolResult,
     GetPromptResult,
     Prompt,
     PromptMessage,
@@ -385,6 +386,31 @@ PROMPT_TEMPLATES = {
 }
 
 
+#: Set by :func:`configure_providers` when no provider API keys are present.
+#: ``None`` means at least one provider was registered. When it holds a string,
+#: that string is the operator-facing remedy naming the environment variables to
+#: set, and it is returned from ``tools/call`` as a tool execution error instead
+#: of being raised at startup (issue #116).
+_provider_configuration_error: str | None = None
+
+
+def get_provider_configuration_error() -> str | None:
+    """Return the recorded "no providers configured" message, or ``None``."""
+    return _provider_configuration_error
+
+
+def _missing_provider_configuration_message() -> str:
+    """Build the operator-facing remedy listing every provider's gating env vars."""
+    from providers.registry import REGISTERED_PROVIDER_CLASSES
+
+    options = "\n".join(
+        f"- {', '.join(provider_cls.gating_env_vars())} for {provider_cls.help_summary()}"
+        for provider_cls in REGISTERED_PROVIDER_CLASSES
+        if provider_cls.gating_env_vars()
+    )
+    return "At least one API configuration is required. Please set either:\n" + options
+
+
 def configure_providers():
     """
     Configure and validate AI providers based on available API keys.
@@ -394,10 +420,19 @@ def configure_providers():
     required environment variables return an instance which is registered;
     others return ``None`` and are skipped.
 
+    Having *no* provider configured is a routine first-run state, not an
+    invariant violation, so it is recorded in
+    :data:`_provider_configuration_error` and reported over MCP at ``tools/call``
+    time rather than raised here. The server still starts, ``tools/list`` still
+    returns the full surface, and the provider-free tools (``version``,
+    ``listmodels``) still run, which is what makes the condition diagnosable
+    from the client.
+
     Raises:
-        ValueError: If no valid providers can be constructed, or if auto-mode
-            is enabled but every available model is filtered out by restrictions.
+        ValueError: If auto-mode is enabled and providers *are* configured but
+            every available model is filtered out by restrictions.
     """
+    global _provider_configuration_error
     from providers import ModelProviderRegistry
     from providers.registry import REGISTERED_PROVIDER_CLASSES
     from utils.model_restrictions import get_restriction_service
@@ -431,16 +466,17 @@ def configure_providers():
     if registered_providers:
         logger.info(f"Registered providers: {', '.join(registered_providers)}")
 
-    # Require at least one valid provider
+    # No provider configured is a reportable state, not a startup failure.
     if not valid_providers:
-        options = "\n".join(
-            f"- {', '.join(provider_cls.gating_env_vars())} for {provider_cls.help_summary()}"
-            for provider_cls in REGISTERED_PROVIDER_CLASSES
-            if provider_cls.gating_env_vars()
+        _provider_configuration_error = _missing_provider_configuration_message()
+        logger.error(
+            "No AI providers are configured. The server will start and stay discoverable, "
+            "but any tool needing a model will return an error result until a key is set.\n%s",
+            _provider_configuration_error,
         )
-        raise ValueError("At least one API configuration is required. Please set either:\n" + options)
-
-    logger.info(f"Available providers: {', '.join(valid_providers)}")
+    else:
+        _provider_configuration_error = None
+        logger.info(f"Available providers: {', '.join(valid_providers)}")
 
     # Register cleanup function for providers
     def cleanup_providers():
@@ -496,7 +532,9 @@ def configure_providers():
     # Check if auto mode has any models available after restrictions
     from config import IS_AUTO_MODE
 
-    if IS_AUTO_MODE:
+    # Only meaningful when providers exist: with none registered the empty model
+    # set is explained by the missing keys recorded above, not by restrictions.
+    if IS_AUTO_MODE and valid_providers:
         available_models = ModelProviderRegistry.get_available_models(respect_restrictions=True)
         if not available_models:
             active_allowlists = [
@@ -582,8 +620,42 @@ async def handle_list_tools() -> list[Tool]:
     return tools
 
 
+def _tool_execution_error_result(payload: str) -> CallToolResult:
+    """Build an explicit MCP tool execution error result.
+
+    The MCP spec splits failures into protocol errors (JSON-RPC) and *tool
+    execution* errors, the latter reported inside the result with
+    ``isError: true``. Everything raised as :class:`ToolExecutionError` is the
+    second kind, so it is converted here rather than allowed to escape the
+    handler.
+    """
+    return CallToolResult(content=[TextContent(type="text", text=payload)], isError=True)
+
+
 @server.call_tool()
-async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] | CallToolResult:
+    """MCP ``tools/call`` entry point and the server's tool-error boundary.
+
+    Delegates to :func:`_dispatch_tool_call` and converts any
+    :class:`ToolExecutionError` it raises into an explicit ``isError=True``
+    result. There are 16 ``raise ToolExecutionError`` sites across the tool
+    tree; catching them once here is what makes every one of them arrive at the
+    client as an error result rather than as an exception.
+
+    The v1 SDK also performs this conversion for uncaught exceptions, so under
+    v1 the catch is belt-and-braces. It stops being redundant under the v2 SDK
+    (issue #117), which no longer turns handler exceptions into
+    ``CallToolResult(isError=True)`` — hence building it here, against a server
+    that runs, before the API changes underneath it.
+    """
+    try:
+        return await _dispatch_tool_call(name, arguments)
+    except ToolExecutionError as exc:
+        logger.info(f"Tool '{name}' returned an error result")
+        return _tool_execution_error_result(exc.payload)
+
+
+async def _dispatch_tool_call(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """
     Handle incoming tool execution requests from MCP clients.
 
@@ -740,6 +812,19 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
             logger.debug(f"Tool {name} doesn't require model resolution - skipping model validation")
             # Execute tool directly without model context
             return await tool.execute(arguments)
+
+        # Past this point the tool needs a provider. If startup found none, say so
+        # here — the message names the environment variables to set, and reaching
+        # the client as a tool result is what the startup crash used to prevent.
+        if _provider_configuration_error:
+            raise ToolExecutionError(
+                ToolOutput(
+                    status="error",
+                    content=_provider_configuration_error,
+                    content_type="text",
+                    metadata={"tool_name": name, "condition": "no_providers_configured"},
+                ).model_dump_json()
+            )
 
         # Handle auto mode at MCP boundary - resolve to specific model
         if model_name.lower() == "auto":

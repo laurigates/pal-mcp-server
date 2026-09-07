@@ -259,10 +259,12 @@ def test_no_provider_error_names_every_provider(monkeypatch):
         for var in provider_cls.credential_env_vars():
             monkeypatch.delenv(var, raising=False)
 
-    with pytest.raises(ValueError) as exc_info:
-        server.configure_providers()
+    # Recorded rather than raised since #116, so the server can report it over MCP.
+    monkeypatch.setattr(server, "_provider_configuration_error", None, raising=False)
+    server.configure_providers()
 
-    message = str(exc_info.value)
+    message = server.get_provider_configuration_error()
+    assert message is not None
     assert message.startswith("At least one API configuration is required. Please set either:")
     for provider_cls in REGISTERED_PROVIDER_CLASSES:
         for var in provider_cls.gating_env_vars():

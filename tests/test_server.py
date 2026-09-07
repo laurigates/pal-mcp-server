@@ -3,6 +3,7 @@ Tests for the main server functionality
 """
 
 import pytest
+from mcp.types import CallToolResult
 
 from server import handle_call_tool
 
@@ -50,20 +51,7 @@ class TestServerTools:
             ModelProviderRegistry._instance = None
 
             # Test with real provider resolution
-            try:
-                result = await handle_call_tool("chat", {"prompt": "Hello Gemini", "model": "o3-mini"})
-
-                # If we get here, check the response format
-                assert len(result) == 1
-                # Parse JSON response
-                import json
-
-                response_data = json.loads(result[0].text)
-                assert "status" in response_data
-
-            except Exception as e:
-                # Expected: API call will fail with fake key
-                error_msg = str(e)
+            def assert_real_provider_error(error_msg):
                 # Should NOT be a mock-related error
                 assert "MagicMock" not in error_msg
                 assert "'<' not supported between instances" not in error_msg
@@ -73,6 +61,26 @@ class TestServerTools:
                     phrase in error_msg
                     for phrase in ["API", "key", "authentication", "provider", "network", "connection"]
                 )
+
+            try:
+                result = await handle_call_tool("chat", {"prompt": "Hello Gemini", "model": "o3-mini"})
+
+                if isinstance(result, CallToolResult):
+                    # Expected: the API call fails with the fake key, and since
+                    # issue #116 that failure arrives as a tool execution error
+                    # result rather than as an exception.
+                    assert result.isError is True
+                    assert_real_provider_error(result.content[0].text)
+                else:
+                    assert len(result) == 1
+                    # Parse JSON response
+                    import json
+
+                    response_data = json.loads(result[0].text)
+                    assert "status" in response_data
+
+            except Exception as e:
+                assert_real_provider_error(str(e))
 
         finally:
             # Restore environment
