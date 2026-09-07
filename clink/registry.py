@@ -163,6 +163,7 @@ class ClinkRegistry:
             internal_args=internal_args,
             config_args=config_args,
             env=env,
+            env_passthrough=list(internal_defaults.env_passthrough),
             timeout_seconds=int(timeout_seconds),
             parser=parser_name,
             runner=runner_name,

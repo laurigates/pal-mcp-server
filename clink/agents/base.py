@@ -13,7 +13,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from clink.constants import DEFAULT_STREAM_LIMIT
+from clink.constants import (
+    BASE_ENV_ALLOWLIST,
+    BASE_ENV_PREFIX_ALLOWLIST,
+    DEFAULT_STREAM_LIMIT,
+)
 from clink.models import ResolvedCLIClient, ResolvedCLIRole
 from clink.parsers import BaseParser, ParsedCLIResponse, ParserError, get_parser
 from utils.progress import format_duration, get_progress_reporter
@@ -62,6 +66,49 @@ class BaseCLIAgent:
         files: Sequence[str],
         images: Sequence[str],
     ) -> AgentOutput:
+        """Run the configured CLI in an explicit working directory.
+
+        With no `working_dir` configured the subprocess used to inherit the
+        server's own cwd, so a repo-aware CLI silently saw whatever tree the MCP
+        server happened to be launched in (issue #119). The default is now an
+        empty per-run scratch directory.
+
+        That is a real default rather than a placeholder: the `clink` tool passes
+        files as *absolute* paths (`absolute_file_paths`), which resolve from any
+        cwd, so nothing the caller asked for depends on the inherited tree. A
+        relay target that genuinely needs to sit inside a repository gets one by
+        setting `working_dir` in `conf/cli_clients/*.json`.
+        """
+        if self.client.working_dir:
+            return await self._run_in_directory(
+                str(self.client.working_dir),
+                role=role,
+                prompt=prompt,
+                system_prompt=system_prompt,
+                files=files,
+                images=images,
+            )
+
+        with tempfile.TemporaryDirectory(prefix="clink-workspace-") as scratch_dir:
+            return await self._run_in_directory(
+                scratch_dir,
+                role=role,
+                prompt=prompt,
+                system_prompt=system_prompt,
+                files=files,
+                images=images,
+            )
+
+    async def _run_in_directory(
+        self,
+        cwd: str,
+        *,
+        role: ResolvedCLIRole,
+        prompt: str,
+        system_prompt: str | None,
+        files: Sequence[str],
+        images: Sequence[str],
+    ) -> AgentOutput:
         # Files and images are already embedded into the prompt by the tool; they are
         # accepted here only to keep parity with SimpleTool callers.
         _ = (files, images)
@@ -81,7 +128,6 @@ class BaseCLIAgent:
 
         sanitized_command = list(command)
 
-        cwd = str(self.client.working_dir) if self.client.working_dir else None
         limit = DEFAULT_STREAM_LIMIT
 
         stdout_text = ""
@@ -105,8 +151,7 @@ class BaseCLIAgent:
             sanitized_command = list(command_with_output_flag)
 
         self._logger.debug("Executing CLI command: %s", " ".join(sanitized_command))
-        if cwd:
-            self._logger.debug("Working directory: %s", cwd)
+        self._logger.debug("Working directory: %s", cwd)
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -212,7 +257,28 @@ class BaseCLIAgent:
         return base
 
     def _build_environment(self) -> dict[str, str]:
-        env = os.environ.copy()
+        """Build the subprocess environment from an allowlist rather than a copy.
+
+        `os.environ.copy()` handed a relayed CLI every provider credential the
+        server holds — relaying to `codex` passed it GEMINI_API_KEY, XAI_API_KEY,
+        DIAL_API_KEY and the rest (issue #119). Only three groups get through now:
+
+        1. `BASE_ENV_ALLOWLIST` / `BASE_ENV_PREFIX_ALLOWLIST` — what any CLI needs
+           to run and reach the network. `HOME` is in there deliberately: it is
+           where `claude`/`codex`/`gemini` keep their own subscription credentials,
+           so a synthetic HOME would break the auth these relays rely on.
+        2. `client.env_passthrough` — the prefixes of the target vendor's own
+           variables, so each CLI still sees its own API key and nothing else.
+        3. `client.env` — the explicit per-client block from
+           `conf/cli_clients/*.json`, unchanged, and applied last so an operator
+           can still override or inject anything.
+        """
+        allowed_prefixes = BASE_ENV_PREFIX_ALLOWLIST + tuple(self.client.env_passthrough)
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key in BASE_ENV_ALLOWLIST or key.startswith(allowed_prefixes)
+        }
         env.update(self.client.env)
         return env
 
