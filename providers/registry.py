@@ -124,6 +124,13 @@ class ModelProviderRegistry:
                 # Factory function - call it with api_key parameter
                 provider = provider_class(api_key=api_key)
             else:
+                # Re-read the key through the declaring class's
+                # API_KEY_PLACEHOLDER guard. _get_api_key_for_provider is
+                # deliberately raw (the empty-key path depends on it), so a
+                # template value would otherwise reach the endpoint as a
+                # bearer credential and read as "key is set" below.
+                declaring_cls = PROVIDER_CLASS_BY_TYPE[ProviderType.CUSTOM]
+                api_key = declaring_cls.api_key_from_env()
                 # Regular class - need to handle URL requirement
                 custom_url = get_env("CUSTOM_API_URL", "") or ""
                 if not custom_url:

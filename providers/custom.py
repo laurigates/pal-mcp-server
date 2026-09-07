@@ -35,6 +35,11 @@ class CustomProvider(OpenAICompatibleProvider):
     DISPLAY_NAME = "Custom/Local API"
     HELP_SUMMARY = "local models (Ollama, vLLM, etc.)"
     API_KEY_ENV = "CUSTOM_API_KEY"
+    #: The value ``.env.example`` ships for ``CUSTOM_API_KEY``. Declaring it
+    #: puts this provider under the same class-level guard as the other seven
+    #: (``ModelProvider.api_key_from_env``), so a template key is read as "no
+    #: key" rather than sent to the endpoint as a bearer credential.
+    API_KEY_PLACEHOLDER = "your_custom_api_key_here"
     #: Named rather than reached as REQUIRED_ENV[0]: consumers need "the base
     #: URL variable", not "whichever required variable happens to be first".
     BASE_URL_ENV: ClassVar[str] = "CUSTOM_API_URL"
@@ -50,7 +55,8 @@ class CustomProvider(OpenAICompatibleProvider):
 
         Requires ``CUSTOM_API_URL`` to point at the OpenAI-compatible
         endpoint. ``CUSTOM_API_KEY`` is optional - some endpoints (Ollama)
-        accept unauthenticated requests, so an empty key is honoured.
+        accept unauthenticated requests, so an empty key is honoured, as is
+        a key left at the ``API_KEY_PLACEHOLDER`` value.
 
         Returns:
             A configured provider instance, or ``None`` when
@@ -59,7 +65,7 @@ class CustomProvider(OpenAICompatibleProvider):
         base_url = get_env("CUSTOM_API_URL", "") or ""
         if not base_url:
             return None
-        api_key = get_env("CUSTOM_API_KEY", "") or ""
+        api_key = cls.api_key_from_env() or ""
         try:
             return cls(api_key=api_key, base_url=base_url)
         except Exception as exc:
@@ -79,7 +85,8 @@ class CustomProvider(OpenAICompatibleProvider):
         Args:
             api_key: API key for the custom endpoint. Can be empty string for
                     providers that don't require authentication (like Ollama).
-                    Falls back to CUSTOM_API_KEY environment variable if not provided.
+                    Falls back to CUSTOM_API_KEY environment variable if not provided,
+                    which is read through the API_KEY_PLACEHOLDER guard.
             base_url: Base URL for the custom API endpoint (e.g., 'http://localhost:11434/v1').
                      Falls back to CUSTOM_API_URL environment variable if not provided.
             **kwargs: Additional configuration passed to parent OpenAI-compatible provider
@@ -91,7 +98,7 @@ class CustomProvider(OpenAICompatibleProvider):
         if not base_url:
             base_url = get_env("CUSTOM_API_URL", "") or ""
         if not api_key:
-            api_key = get_env("CUSTOM_API_KEY", "") or ""
+            api_key = type(self).api_key_from_env() or ""
 
         if not base_url:
             raise ValueError(
@@ -101,6 +108,14 @@ class CustomProvider(OpenAICompatibleProvider):
         # For Ollama and other providers that don't require authentication,
         # set a dummy API key to avoid OpenAI client header issues
         if not api_key:
+            if get_env(self.API_KEY_ENV) == self.API_KEY_PLACEHOLDER:
+                # Say so rather than failing silently on the first call: an
+                # authenticated endpoint will 401 and the user needs to know
+                # the template value was ignored, not sent.
+                logging.warning(
+                    "%s is still set to the .env.example placeholder; treating the endpoint as unauthenticated",
+                    self.API_KEY_ENV,
+                )
             api_key = "dummy-key-for-unauthenticated-endpoint"
             logging.debug("Using dummy API key for unauthenticated custom endpoint")
 

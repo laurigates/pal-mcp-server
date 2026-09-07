@@ -206,3 +206,94 @@ def test_custom_from_env_with_url_and_key_returns_instance():
         instance = CustomProvider.from_env()
     assert instance is not None
     assert instance.get_provider_type() is ProviderType.CUSTOM
+    assert instance.api_key == "real-key"
+
+
+# --------------------------------------------------------------------------
+# Issue #115 - the scaffolded CUSTOM_API_KEY must not become a credential
+# --------------------------------------------------------------------------
+
+_CUSTOM_PLACEHOLDER = "your_custom_api_key_here"
+_UNAUTHENTICATED_KEY = "dummy-key-for-unauthenticated-endpoint"
+
+
+def test_custom_placeholder_key_is_not_sent_as_a_credential():
+    """A ``CUSTOM_API_KEY`` left at the ``.env.example`` value reads as absent.
+
+    The URL is this provider's gate, so the endpoint still registers - that is
+    the Ollama case, and dropping it would hide a correctly configured local
+    endpoint behind a leftover template line. What must not happen is the
+    template string travelling to the endpoint as a bearer token.
+    """
+    env = {
+        "CUSTOM_API_URL": "http://localhost:11434/v1",
+        "CUSTOM_API_KEY": _CUSTOM_PLACEHOLDER,
+    }
+    with patch.dict(os.environ, env, clear=False):
+        assert CustomProvider.api_key_from_env() is None
+        instance = CustomProvider.from_env()
+
+    assert instance is not None
+    assert instance.api_key == _UNAUTHENTICATED_KEY
+    assert _CUSTOM_PLACEHOLDER not in instance.api_key
+
+
+def test_custom_placeholder_literal_matches_the_declaration():
+    """The literal these tests set is the one the guard compares against.
+
+    Asserted rather than read off the class so the cases below keep their
+    teeth: derived from ``API_KEY_PLACEHOLDER`` they would still pass with the
+    declaration removed.
+    """
+    assert CustomProvider.API_KEY_PLACEHOLDER == _CUSTOM_PLACEHOLDER
+
+
+def _custom_provider_via_registry():
+    """Register ``CustomProvider`` and build it the way the server does.
+
+    Registry state is restored by the autouse ``_isolated_provider_registry``
+    fixture, so nothing here has to unwind it.
+    """
+    from providers.registry import ModelProviderRegistry
+
+    ModelProviderRegistry.register_provider(ProviderType.CUSTOM, CustomProvider)
+    return ModelProviderRegistry.get_provider(ProviderType.CUSTOM, force_new=True)
+
+
+def test_custom_placeholder_key_alone_leaves_the_provider_unregistered():
+    """Without a URL, a template key must not look like a configured provider.
+
+    ``ModelProviderRegistry.get_provider`` reads ``CUSTOM_API_KEY`` through
+    ``_get_api_key_for_provider``, which is deliberately raw, so the
+    placeholder used to satisfy its ``if api_key`` branch and the operator was
+    warned their key was set - about a value they had never edited.
+    """
+    with patch.dict(os.environ, {"CUSTOM_API_KEY": _CUSTOM_PLACEHOLDER}, clear=True):
+        assert CustomProvider.from_env() is None
+        assert _custom_provider_via_registry() is None
+
+
+def test_custom_real_key_still_reaches_the_provider_through_the_registry():
+    """Positive control: the guard must reject only the template string."""
+    env = {
+        "CUSTOM_API_URL": "http://localhost:11434/v1",
+        "CUSTOM_API_KEY": "sk-a-real-looking-key",
+    }
+    with patch.dict(os.environ, env, clear=True):
+        instance = _custom_provider_via_registry()
+
+    assert instance is not None
+    assert instance.api_key == "sk-a-real-looking-key"
+
+
+def test_custom_placeholder_key_does_not_authenticate_through_the_registry():
+    """The registry path must apply the same guard ``from_env`` does."""
+    env = {
+        "CUSTOM_API_URL": "http://localhost:11434/v1",
+        "CUSTOM_API_KEY": _CUSTOM_PLACEHOLDER,
+    }
+    with patch.dict(os.environ, env, clear=True):
+        instance = _custom_provider_via_registry()
+
+    assert instance is not None
+    assert instance.api_key == _UNAUTHENTICATED_KEY
