@@ -56,7 +56,7 @@ The curated defaults in `conf/openrouter_models.json` include popular entries su
 | `sonnet`, `sonnet5` | `anthropic/claude-sonnet-5` | Balanced Claude with 1M context and adaptive thinking |
 | `haiku` | `anthropic/claude-haiku-4.5` | Fast Claude option with vision |
 | `pro`, `gemini` | `google/gemini-3.1-pro-preview` | Frontier Gemini with extended thinking |
-| `flash`, `gemini-flash` | `google/gemini-3.7-flash` | Ultra-fast multimodal Gemini |
+| `flash`, `gemini-flash` | `google/gemini-3.8-flash` | Ultra-fast multimodal Gemini |
 | `mistral`, `mistral-large` | `mistralai/mistral-large-2512` | Frontier Mistral (Large 3) with vision |
 | `llama`, `llama3` | `meta-llama/llama-3.3-70b-instruct` | Large open-weight text model |
 | `deepseek-r1` | `deepseek/deepseek-r1-0528` | DeepSeek reasoning model |

@@ -19,7 +19,7 @@ class TestSupportedModelsAliases:
             assert isinstance(config.aliases, list), f"{model_name} aliases must be a list"
 
         # Test specific aliases
-        assert "flash" in provider.MODEL_CAPABILITIES["gemini-3.7-flash"].aliases
+        assert "flash" in provider.MODEL_CAPABILITIES["gemini-3.8-flash"].aliases
         assert "flash3.5" in provider.MODEL_CAPABILITIES["gemini-3.5-flash"].aliases
         assert "pro" in provider.MODEL_CAPABILITIES["gemini-3.1-pro-preview"].aliases
         assert "flash3" in provider.MODEL_CAPABILITIES["gemini-3-flash-preview"].aliases
@@ -28,13 +28,13 @@ class TestSupportedModelsAliases:
         assert "flashlite3" in provider.MODEL_CAPABILITIES["gemini-3.1-flash-lite"].aliases
 
         # Test alias resolution
-        assert provider._resolve_model_name("flash") == "gemini-3.7-flash"
+        assert provider._resolve_model_name("flash") == "gemini-3.8-flash"
         assert provider._resolve_model_name("pro") == "gemini-3.1-pro-preview"
         assert provider._resolve_model_name("flash3") == "gemini-3-flash-preview"
         assert provider._resolve_model_name("flashlite") == "gemini-3.5-flash-lite"
 
         # Test case insensitive resolution
-        assert provider._resolve_model_name("Flash") == "gemini-3.7-flash"
+        assert provider._resolve_model_name("Flash") == "gemini-3.8-flash"
         assert provider._resolve_model_name("PRO") == "gemini-3.1-pro-preview"
 
     def test_openai_provider_aliases(self):

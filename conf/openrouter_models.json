@@ -173,10 +173,26 @@
       "intelligence_score": 14
     },
     {
-      "model_name": "google/gemini-3.7-flash",
+      "model_name": "google/gemini-3.8-flash",
       "aliases": [
         "flash",
         "gemini-flash",
+        "flash3.8"
+      ],
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "allow_code_generation": true,
+      "description": "Google's Gemini 3.8 Flash via OpenRouter - most intelligent Flash tier for long-horizon software engineering, autonomous agents and complex workflows",
+      "intelligence_score": 16
+    },
+    {
+      "model_name": "google/gemini-3.7-flash",
+      "aliases": [
         "flash3.7"
       ],
       "context_window": 1048576,
