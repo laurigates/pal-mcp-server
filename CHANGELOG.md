@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [11.1.0](https://github.com/laurigates/pal-mcp-server/compare/v11.0.0...v11.1.0) (2026-09-08)
+
+
+### Features
+
+* **models:** add gemini-3.8-flash and move the flash alias to it ([#133](https://github.com/laurigates/pal-mcp-server/issues/133)) ([c4b62b7](https://github.com/laurigates/pal-mcp-server/commit/c4b62b78702a9969684902e574cc7d4f2fa65ae8))
+
 ## [11.0.0](https://github.com/laurigates/pal-mcp-server/compare/v10.6.0...v11.0.0) (2026-09-07)
 
 
