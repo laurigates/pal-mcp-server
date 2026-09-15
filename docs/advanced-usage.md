@@ -110,7 +110,17 @@ OPENAI_ALLOWED_MODELS=o3,o4-mini
 
 ### Thinking Modes & Token Budgets
 
-These only apply to models that support customizing token usage for extended thinking, such as Gemini 3.0 Pro.
+These only apply to models that support customizing token usage for extended thinking.
+
+**Gemini 3.x** takes a `thinking_level` instead of a token budget (Google deprecated budgets for 3.x). Modes map onto it as follows; `max` and `high` both request the model's top level:
+
+| Mode | Gemini 3.x `thinking_level` |
+|------|-----------------------------|
+| `minimal`, `low` | `low` (`minimal` isn't accepted by every 3.x model) |
+| `medium` | `medium` |
+| `high`, `max` | `high` |
+
+Older models (Gemini 2.5) still take a token budget:
 
 | Mode | Token Budget | Use Case | Cost Impact |
 |------|-------------|----------|-------------|
