@@ -36,7 +36,7 @@ JULES_API_KEY_ENV = "JULES_API_KEY"
 JULES_API_KEY_PLACEHOLDER = "your_jules_api_key_here"
 JULES_REQUEST_TIMEOUT = 60.0
 
-VALID_ACTIONS = ("list_sources", "create", "status", "message", "approve")
+VALID_ACTIONS = ("list_sources", "create", "status", "message", "approve", "archive", "unarchive")
 AUTOMATION_MODES = ("AUTO_CREATE_PR", "AUTOMATION_MODE_UNSPECIFIED")
 DEFAULT_AUTOMATION_MODE = "AUTO_CREATE_PR"
 
@@ -71,7 +71,8 @@ class JulesRequest(BaseModel):
     )
     session_id: str | None = Field(
         default=None,
-        description="Session id for status/message/approve. Accepts either the raw id or 'sessions/{id}'.",
+        description="Session id for status/message/approve/archive/unarchive. Accepts either the raw id or "
+        "'sessions/{id}'.",
     )
     title: str | None = Field(
         default=None,
@@ -132,7 +133,8 @@ class JulesTool(SimpleTool):
                 "enum": list(VALID_ACTIONS),
                 "description": (
                     "list_sources: discover repos; create: start a session; status: poll state, activities, PR; "
-                    "message: steer a running session; approve: approve the pending plan."
+                    "message: steer a running session; approve: approve the pending plan; "
+                    "archive: hide a session from the default list view; unarchive: restore it."
                 ),
             },
             "prompt": {
@@ -149,7 +151,7 @@ class JulesTool(SimpleTool):
             },
             "session_id": {
                 "type": "string",
-                "description": "Session id for status/message/approve; raw or 'sessions/{id}'.",
+                "description": "Session id for status/message/approve/archive/unarchive; raw or 'sessions/{id}'.",
             },
             "title": {
                 "type": "string",
@@ -377,6 +379,30 @@ class JulesTool(SimpleTool):
             metadata={"action": "approve", "session_id": sid},
         )
 
+    async def _do_archive(self, client: httpx.AsyncClient, request: JulesRequest) -> ToolOutput:
+        if not request.session_id:
+            self._raise_tool_error("action=archive requires 'session_id'.")
+        sid = self._normalize_session_id(request.session_id)
+        await self._request(client, "POST", f"/sessions/{sid}:archive")
+        return ToolOutput(
+            status="success",
+            content_type="json",
+            content=self._json({"session_id": sid, "archived": True}),
+            metadata={"action": "archive", "session_id": sid},
+        )
+
+    async def _do_unarchive(self, client: httpx.AsyncClient, request: JulesRequest) -> ToolOutput:
+        if not request.session_id:
+            self._raise_tool_error("action=unarchive requires 'session_id'.")
+        sid = self._normalize_session_id(request.session_id)
+        await self._request(client, "POST", f"/sessions/{sid}:unarchive")
+        return ToolOutput(
+            status="success",
+            content_type="json",
+            content=self._json({"session_id": sid, "archived": False}),
+            metadata={"action": "unarchive", "session_id": sid},
+        )
+
     @staticmethod
     def _json(value: Any) -> str:
         return json.dumps(value, indent=2, ensure_ascii=False)
@@ -403,6 +429,8 @@ class JulesTool(SimpleTool):
             "status": lambda c: self._do_status(c, request),
             "message": lambda c: self._do_message(c, request),
             "approve": lambda c: self._do_approve(c, request),
+            "archive": lambda c: self._do_archive(c, request),
+            "unarchive": lambda c: self._do_unarchive(c, request),
         }
 
         reporter = get_progress_reporter()

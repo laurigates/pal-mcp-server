@@ -36,6 +36,12 @@ account's task quota (e.g. 15 tasks/day on the free tier).
 | `status` | `session_id` | Poll `state`, recent `activities`, and `outputs` (the PR URL). Optional `page_size`. |
 | `message` | `session_id`, `prompt` | Send steering feedback to a running session. |
 | `approve` | `session_id` | Approve a pending plan (when created with `require_plan_approval=true`). |
+| `archive` | `session_id` | Hide a session from the default list view. Reversible; does not delete anything. |
+| `unarchive` | `session_id` | Restore a previously archived session to the default list view. |
+
+Note: there is intentionally no `delete` action. `archive`/`unarchive` are reversible
+list-visibility toggles; deleting a session server-side has no undo, which is a
+different risk class from what this tool does elsewhere, so it isn't exposed here.
 
 ## Typical workflow
 

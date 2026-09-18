@@ -26,9 +26,16 @@ WORKFLOW
 5. `action="approve"` with `session_id` — approve the generated plan when you
    created the session with `require_plan_approval=true` and it is waiting at
    `AWAITING_PLAN_APPROVAL`.
+6. `action="archive"` with `session_id` — hide a finished or abandoned session
+   from the default session list once you're done with it. This does not delete
+   it or its branch/PR; it only removes it from view.
+7. `action="unarchive"` with `session_id` — restore a previously archived session
+   to the default list, e.g. if you need to resume polling or messaging it.
 
 GUIDANCE
 - Surface the resulting pull request URL to the user once the session completes.
 - Jules sessions consume the account's task quota; create sessions deliberately.
+- Archiving is reversible bookkeeping, not cleanup with teeth — there is no
+  delete action here; treat archive/unarchive as a lifecycle toggle only.
 - The Jules API is in alpha — report errors verbatim rather than retrying blindly.
 """.strip()
