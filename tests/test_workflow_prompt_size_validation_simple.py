@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from config import MCP_PROMPT_SIZE_LIMIT
+import config
 from tools.debug import DebugIssueTool
 from tools.shared.exceptions import ToolExecutionError
 
@@ -57,7 +57,7 @@ async def test_workflow_tool_accepts_normal_step_content() -> None:
 async def test_workflow_tool_rejects_oversized_step_with_guidance() -> None:
     """Large step content should trigger the size safeguard with helpful guidance."""
 
-    oversized_step = "Investigate this issue: " + ("A" * (MCP_PROMPT_SIZE_LIMIT + 1000))
+    oversized_step = "Investigate this issue: " + ("A" * (config.MCP_PROMPT_SIZE_LIMIT + 1000))
     tool = DebugIssueTool()
     arguments = build_debug_arguments(step=oversized_step)
 
@@ -67,7 +67,7 @@ async def test_workflow_tool_rejects_oversized_step_with_guidance() -> None:
     output_payload = json.loads(exc_info.value.payload)
 
     assert output_payload["status"] == "resend_prompt"
-    assert output_payload["metadata"]["prompt_size"] > MCP_PROMPT_SIZE_LIMIT
+    assert output_payload["metadata"]["prompt_size"] > config.MCP_PROMPT_SIZE_LIMIT
 
     guidance = output_payload["content"].lower()
     assert "shorter instructions" in guidance
