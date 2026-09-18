@@ -12,6 +12,30 @@ if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
 
+class ModelRegistryConfigError(RuntimeError):
+    """A provider's checked-in model registry file exists but is broken.
+
+    Raised from a provider's model-registry-loading path (e.g. malformed JSON
+    or a schema violation in ``conf/*_models.json``) and re-raised verbatim by
+    :func:`server.configure_providers`. This is a distinct condition from a
+    provider simply being *unconfigured* (missing API key or absent optional
+    dependency, which stays a warning-and-continue reported through the
+    issue #116 "no providers configured" path): a checked-in config file that
+    fails to parse is a shipping defect the operator cannot fix by setting an
+    API key, so it must fail startup instead of making the provider silently
+    vanish (issue #130).
+
+    ``from_env()`` implementations that load a JSON model registry should let
+    this propagate rather than swallow it into a generic warning.
+    """
+
+    def __init__(self, config_path: str, reason: str) -> None:
+        #: Path to the offending registry file, surfaced in the message so the
+        #: operator knows exactly which checked-in config to fix.
+        self.config_path = config_path
+        super().__init__(f"{reason}: {config_path}")
+
+
 class ModelProviderRegistry:
     """Central catalogue of provider implementations used by the MCP server.
 

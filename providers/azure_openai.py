@@ -52,6 +52,12 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
             A configured provider instance, or ``None`` when configuration
             is incomplete or no Azure models are configured.
         """
+        # Imported lazily: providers.registry finishes building
+        # REGISTERED_PROVIDER_CLASSES (which imports this module) before
+        # providers.azure_openai would otherwise finish importing, so a
+        # module-level import here is circular.
+        from providers.registry import ModelRegistryConfigError
+
         api_key = cls.api_key_from_env()
         if api_key is None:
             return None
@@ -61,14 +67,40 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
             return None
         try:
             registry = AzureModelRegistry()
-            if not registry.list_models():
-                logger.warning(
-                    "Azure OpenAI models configuration is empty. "
-                    "Populate conf/azure_models.json or set AZURE_MODELS_CONFIG_PATH."
-                )
-                return None
+        except ModelRegistryConfigError:
+            # Configured but broken (bad conf/azure_models.json), not
+            # absent -- must fail startup instead of being swallowed as "not
+            # configured" (issue #130). See providers/registry.py.
+            raise
+        except ValueError as exc:
+            # A schema violation (bad field, duplicate alias) surfaces as a
+            # plain ValueError tagged by providers/registries/base.py with
+            # the offending file; re-raise it as ModelRegistryConfigError.
+            # Untagged ValueErrors (e.g. from a test double standing in for
+            # AzureModelRegistry) fall through to the same warning-and-skip
+            # behaviour as any other construction failure.
+            registry_error = getattr(exc, "registry_config_error", None)
+            if registry_error is not None:
+                raise ModelRegistryConfigError(*registry_error) from exc
+            logger.warning("Failed to load Azure OpenAI models: %s", exc)
+            return None
         except Exception as exc:
             logger.warning("Failed to load Azure OpenAI models: %s", exc)
+            return None
+
+        # A malformed-but-present file can also degrade quietly to an empty
+        # registry instead of raising (see _load_config_data); escalate that
+        # too. Looked up defensively since a test double standing in for
+        # AzureModelRegistry won't have this method.
+        raise_if_config_error = getattr(registry, "raise_if_config_error", None)
+        if raise_if_config_error is not None:
+            raise_if_config_error()
+
+        if not registry.list_models():
+            logger.warning(
+                "Azure OpenAI models configuration is empty. "
+                "Populate conf/azure_models.json or set AZURE_MODELS_CONFIG_PATH."
+            )
             return None
         api_version = get_env("AZURE_OPENAI_API_VERSION")
         try:
@@ -77,6 +109,8 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
                 azure_endpoint=azure_endpoint,
                 api_version=api_version,
             )
+        except ModelRegistryConfigError:
+            raise
         except Exception as exc:
             logger.warning("Failed to instantiate Azure OpenAI provider: %s", exc)
             return None

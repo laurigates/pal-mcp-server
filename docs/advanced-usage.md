@@ -33,10 +33,9 @@ Regardless of your default configuration, you can specify models per request:
 
 | Model | Provider | Context | Strengths | Auto Mode Usage |
 |-------|----------|---------|-----------|------------------|
-| **`pro`** (Gemini 3.0 Pro) | Google | 1M tokens | Extended thinking (up to 32K tokens), deep analysis | Complex architecture, security reviews, deep debugging |
-| **`flash`** (Gemini 2.5 Flash) | Google | 1M tokens | Ultra-fast responses with thinking | Quick checks, formatting, simple analysis |
-| **`flash-2.0`** (Gemini 2.0 Flash) | Google | 1M tokens | Latest fast model with audio/video support | Quick analysis with multimodal input |
-| **`flashlite`** (Gemini 2.0 Flash Lite) | Google | 1M tokens | Lightweight text-only model | Fast text processing without vision |
+| **`pro`** (resolves to `gemini-3.1-pro-preview`) | Google | 1M tokens | Extended thinking — see [Thinking Modes](#thinking-modes), deep analysis | Complex architecture, security reviews, deep debugging |
+| **`flash`** (resolves to `gemini-3.8-flash`) | Google | 1M tokens | Fast responses with extended thinking — see [Thinking Modes](#thinking-modes) | Quick checks, formatting, simple analysis |
+| **`flashlite`** (resolves to `gemini-3.5-flash-lite`) | Google | 1M tokens | Lightweight model, supports extended thinking — see [Thinking Modes](#thinking-modes) | Fast, high-volume text/image processing |
 | **`o3`** | OpenAI | 200K tokens | Strong logical reasoning | Debugging logic errors, systematic analysis |
 | **`o3-mini`** | OpenAI | 200K tokens | Balanced speed/quality | Moderate complexity tasks |
 | **`o4-mini`** | OpenAI | 200K tokens | Latest reasoning model | Optimized for shorter contexts |
@@ -61,11 +60,10 @@ Regardless of your default configuration, you can specify models per request:
 cloud models (expensive/powerful) AND local models (free/private) in the same conversation.
 
 **Model Capabilities:**
-- **Gemini Models**: Support thinking modes (minimal to max), web search, 1M context
-  - **Pro 3.0**: Deep analysis with max 32K thinking tokens
-  - **Flash 2.5**: Ultra-fast with thinking support (24K thinking tokens)
-  - **Flash 2.0**: Latest fast model with audio/video input (24K thinking tokens)
-  - **Flash Lite 2.0**: Text-only lightweight model (no thinking support)
+- **Gemini Models**: Support thinking modes, web search, 1M context — see [Thinking Modes](#thinking-modes) for per-generation budgets/levels
+  - **`pro`** (resolves to `gemini-3.1-pro-preview`): Deep analysis, extended thinking
+  - **`flash`** (resolves to `gemini-3.8-flash`): Fast responses, extended thinking, multimodal input
+  - **`flashlite`** (resolves to `gemini-3.5-flash-lite`): Lightweight model, extended thinking support
 - **O3/O4 Models**: Excellent reasoning, systematic analysis, 200K context
 - **GPT-4.1**: Extended context window (1M tokens), general capabilities
 - **GPT-5.2 Series**: Latest flagship reasoning models, 400K context
@@ -116,9 +114,12 @@ These only apply to models that support customizing token usage for extended thi
 
 | Mode | Gemini 3.x `thinking_level` |
 |------|-----------------------------|
-| `minimal`, `low` | `low` (`minimal` isn't accepted by every 3.x model) |
+| `minimal` | `minimal` |
+| `low` | `low` |
 | `medium` | `medium` |
 | `high`, `max` | `high` |
+
+Not every 3.x model accepts every level. `conf/gemini_models.json` can record a model's `supported_thinking_levels`; when it does, a requested level the model doesn't accept is clamped to the nearest one it does — preferring the next lower level, then falling back to the next higher level if there's no lower option — instead of the API call failing with `INVALID_ARGUMENT`. A model that records `minimal` as supported receives `MINIMAL` rather than being rounded up to `low`. Models with no recorded `supported_thinking_levels` keep the original behavior: `low`/`medium`/`high` are sent as requested, and `minimal` always rounds up to `low`.
 
 Older models (Gemini 2.5) still take a token budget:
 
@@ -152,7 +153,7 @@ Older models (Gemini 2.5) still take a token budget:
 - Finding subtle bugs or edge cases
 - Working on performance optimizations
 
-**Token Cost Examples:**
+**Token Cost Examples (Gemini 2.5 and other token-budget models — Gemini 3.x uses `thinking_level` instead of raw budgets, see above):**
 - `minimal` (128 tokens) vs `max` (32,768 tokens) = 256x difference in thinking tokens
 - For a simple formatting check, using `minimal` instead of the default `medium` saves ~8,000 thinking tokens
 - For critical security reviews, the extra tokens in `high` or `max` mode are a worthwhile investment
@@ -359,7 +360,7 @@ To help choose the right tool for your needs:
 The PAL MCP server supports vision-capable models for analyzing images, diagrams, screenshots, and visual content. Vision support works seamlessly with all tools and conversation threading.
 
 **Supported Models:**
-- **Gemini 3.0 Pro & Flash**: Excellent for diagrams, architecture analysis, UI mockups (up to 20MB total)
+- **Gemini models**: Excellent for diagrams, architecture analysis, UI mockups — **`pro`** (resolves to `gemini-3.1-pro-preview`) allows up to 32MB total; **`flash`** (resolves to `gemini-3.8-flash`) and **`flashlite`** (resolves to `gemini-3.5-flash-lite`) allow up to 20MB total
 - **OpenAI O3/O4 series**: Strong for visual debugging, error screenshots (up to 20MB total)
 - **Claude models via OpenRouter**: Good for code screenshots, visual analysis (up to 5MB total)
 - **Custom models**: Support varies by model, with 40MB maximum enforced for abuse prevention

@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from config import MCP_PROMPT_SIZE_LIMIT
+import config
 from tools.chat import ChatTool
 from tools.codereview import CodeReviewTool
 from tools.shared.exceptions import ToolExecutionError
@@ -35,7 +35,7 @@ class TestLargePromptHandling:
     @pytest.fixture
     def large_prompt(self):
         """Create a prompt larger than MCP_PROMPT_SIZE_LIMIT characters."""
-        return "x" * (MCP_PROMPT_SIZE_LIMIT + 1000)
+        return "x" * (config.MCP_PROMPT_SIZE_LIMIT + 1000)
 
     @pytest.fixture
     def normal_prompt(self):
@@ -66,10 +66,10 @@ class TestLargePromptHandling:
 
         output = json.loads(exc_info.value.payload)
         assert output["status"] == "resend_prompt"
-        assert f"{MCP_PROMPT_SIZE_LIMIT:,} characters" in output["content"]
+        assert f"{config.MCP_PROMPT_SIZE_LIMIT:,} characters" in output["content"]
         # The prompt size should match the user input since we check at MCP transport boundary before adding internal content
         assert output["metadata"]["prompt_size"] == len(large_prompt)
-        assert output["metadata"]["limit"] == MCP_PROMPT_SIZE_LIMIT
+        assert output["metadata"]["limit"] == config.MCP_PROMPT_SIZE_LIMIT
 
     @pytest.mark.asyncio
     async def test_chat_normal_prompt_works(self, normal_prompt):
@@ -320,7 +320,7 @@ class TestLargePromptHandling:
     async def test_boundary_case_exactly_at_limit(self):
         """Test prompt exactly at MCP_PROMPT_SIZE_LIMIT characters (should pass with the fix)."""
         tool = ChatTool()
-        exact_prompt = "x" * MCP_PROMPT_SIZE_LIMIT
+        exact_prompt = "x" * config.MCP_PROMPT_SIZE_LIMIT
 
         # Mock the model provider to avoid real API calls
         with patch.object(tool, "get_model_provider") as mock_get_provider:
@@ -354,7 +354,7 @@ class TestLargePromptHandling:
     async def test_boundary_case_just_over_limit(self):
         """Test prompt just over MCP_PROMPT_SIZE_LIMIT characters (should trigger file request)."""
         tool = ChatTool()
-        over_prompt = "x" * (MCP_PROMPT_SIZE_LIMIT + 1)
+        over_prompt = "x" * (config.MCP_PROMPT_SIZE_LIMIT + 1)
 
         temp_dir = tempfile.mkdtemp()
         try:
@@ -453,7 +453,7 @@ class TestLargePromptHandling:
         tool = ChatTool()
 
         # Create a file significantly larger than MCP_PROMPT_SIZE_LIMIT characters
-        large_content = "A" * (MCP_PROMPT_SIZE_LIMIT * 5)
+        large_content = "A" * (config.MCP_PROMPT_SIZE_LIMIT * 5)
         large_file = tmp_path / "huge_context.txt"
         large_file.write_text(large_content)
 
@@ -510,7 +510,7 @@ class TestLargePromptHandling:
         small_user_prompt = "What is the weather like?"
 
         # Mock a huge conversation history that would exceed MCP limits if incorrectly checked
-        huge_history = "x" * (MCP_PROMPT_SIZE_LIMIT * 2)  # 100K chars = way over 50K limit
+        huge_history = "x" * (config.MCP_PROMPT_SIZE_LIMIT * 2)  # 100K chars = way over 50K limit
 
         temp_dir = tempfile.mkdtemp()
         original_prepare_prompt = tool.prepare_prompt
@@ -541,7 +541,7 @@ class TestLargePromptHandling:
                 async def mock_prepare_prompt(request):
                     normal_prompt = await original_prepare_prompt(request)
                     huge_internal_prompt = f"{normal_prompt}\n\n=== HUGE INTERNAL CONTEXT ===\n{huge_history}"
-                    assert len(huge_internal_prompt) > MCP_PROMPT_SIZE_LIMIT
+                    assert len(huge_internal_prompt) > config.MCP_PROMPT_SIZE_LIMIT
                     return huge_internal_prompt
 
                 tool.prepare_prompt = mock_prepare_prompt
@@ -557,7 +557,7 @@ class TestLargePromptHandling:
                 call_kwargs = mock_provider.generate_content.call_args[1]
                 actual_prompt = call_kwargs.get("prompt")
 
-                assert len(actual_prompt) > MCP_PROMPT_SIZE_LIMIT
+                assert len(actual_prompt) > config.MCP_PROMPT_SIZE_LIMIT
                 assert huge_history in actual_prompt
                 assert small_user_prompt in actual_prompt
         finally:
@@ -574,7 +574,7 @@ class TestLargePromptHandling:
         tool = ChatTool()
 
         # Test case 1: Large user input should fail at MCP boundary
-        large_user_input = "x" * (MCP_PROMPT_SIZE_LIMIT + 1000)
+        large_user_input = "x" * (config.MCP_PROMPT_SIZE_LIMIT + 1000)
         temp_dir = tempfile.mkdtemp()
         try:
             try:
@@ -628,14 +628,14 @@ class TestLargePromptHandling:
         base_text = "=== CONVERSATION HISTORY ===\n"
         repeat_text = "Previous message content\n"
         # Add buffer to ensure we exceed the limit
-        target_size = MCP_PROMPT_SIZE_LIMIT + 1000
+        target_size = config.MCP_PROMPT_SIZE_LIMIT + 1000
         available_space = target_size - len(base_text)
         repetitions_needed = (available_space // len(repeat_text)) + 1
 
         huge_conversation_history = base_text + (repeat_text * repetitions_needed)
 
         # Ensure the history exceeds MCP limits
-        assert len(huge_conversation_history) > MCP_PROMPT_SIZE_LIMIT
+        assert len(huge_conversation_history) > config.MCP_PROMPT_SIZE_LIMIT
 
         temp_dir = tempfile.mkdtemp()
 
@@ -715,7 +715,7 @@ class TestLargePromptHandling:
                 assert huge_conversation_history in final_prompt
                 assert small_continuation_prompt in final_prompt
                 # And it should be huge (proving we don't limit internal processing)
-                assert len(final_prompt) > MCP_PROMPT_SIZE_LIMIT
+                assert len(final_prompt) > config.MCP_PROMPT_SIZE_LIMIT
 
             finally:
                 # Restore original execute method

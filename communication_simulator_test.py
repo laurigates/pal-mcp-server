@@ -159,7 +159,14 @@ class CommunicationSimulator:
 
         def run_test():
             test_instance = test_class(verbose=self.verbose)
-            result = test_instance.run_test()
+            # One server process per test: calls within a test share the
+            # conversation store a continuation_id lives in, while each test
+            # still starts from a clean one. Spawning per call -- what this
+            # harness used to do -- made cross-call continuation impossible by
+            # construction (issue #132). The process is started lazily, so
+            # tests that only call tools in-process pay nothing for this.
+            with test_instance.server_session():
+                result = test_instance.run_test()
             # Update results
             test_name = test_instance.test_name
             self.test_results[test_name] = result

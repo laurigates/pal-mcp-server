@@ -28,27 +28,28 @@ class CrossToolContinuationTest(ConversationBaseTest):
             # Setup test environment for conversation testing
             self.setUp()
 
-            success_count = 0
-            total_scenarios = 3
+            scenarios = [
+                ("chat -> thinkdeep -> codereview", self._test_chat_thinkdeep_codereview),
+                ("analyze -> debug -> thinkdeep", self._test_analyze_debug_thinkdeep),
+                ("multi-file cross-tool", self._test_multi_file_continuation),
+            ]
 
-            # Scenario 1: chat -> thinkdeep -> codereview
-            if self._test_chat_thinkdeep_codereview():
-                success_count += 1
+            # Every scenario threads a continuation_id from one tool call to the
+            # next, so they all have to reach the same server process.
+            results = {}
+            for name, scenario in scenarios:
+                with self.server_session():
+                    results[name] = scenario()
 
-            # Scenario 2: analyze -> debug -> thinkdeep
-            if self._test_analyze_debug_thinkdeep():
-                success_count += 1
+            for name, passed in results.items():
+                self.logger.info(f"  {'✅' if passed else '❌'} {name}")
 
-            # Scenario 3: Multi-file cross-tool continuation
-            if self._test_multi_file_continuation():
-                success_count += 1
+            passed_count = sum(results.values())
+            self.logger.info(f"  Cross-tool continuation: {passed_count}/{len(scenarios)} scenarios passed")
 
-            self.logger.info(
-                f"  ✅ Cross-tool continuation scenarios completed: {success_count}/{total_scenarios} scenarios passed"
-            )
-
-            # Consider successful if at least one scenario worked
-            return success_count > 0
+            # Every scenario must pass. Accepting `passed_count > 0` is what let
+            # two of these three fail behind a green line (issue #132).
+            return passed_count == len(scenarios)
 
         except Exception as e:
             self.logger.error(f"Cross-tool continuation test failed: {e}")

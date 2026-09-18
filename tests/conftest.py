@@ -117,7 +117,13 @@ def pytest_configure(config):
 
     # Seed the test-time defaults *before* collection so module-level
     # ``from config import DEFAULT_MODEL`` imports see the right value.
-    os.environ.setdefault("DEFAULT_MODEL", "gemini-2.5-flash")
+    # This must be a plain assignment, not ``setdefault``: by the time this
+    # runs, ``utils.env``'s module-level ``reload_env()`` (see this file's
+    # top-level import below) has already called ``load_dotenv()`` and
+    # populated ``os.environ`` from any local .env, so ``setdefault`` here
+    # would silently lose to a developer's ``DEFAULT_MODEL`` and reintroduce
+    # issue #138.
+    os.environ["DEFAULT_MODEL"] = "gemini-2.5-flash"
 
     # Force reload of config so any earlier-imported modules pick up the env var.
     import importlib

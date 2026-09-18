@@ -437,13 +437,25 @@ def configure_providers():
     ``listmodels``) still run, which is what makes the condition diagnosable
     from the client.
 
+    That "not configured" treatment is deliberately narrow: a provider whose
+    ``from_env()`` raises :class:`~providers.registry.ModelRegistryConfigError`
+    is *not* absent, it has a broken checked-in ``conf/*_models.json`` (bad
+    JSON or a schema violation), which is a shipping defect the operator
+    cannot fix by setting an API key. That error is re-raised here so startup
+    fails loudly, naming the offending file, instead of the provider silently
+    vanishing and the #116 remedy pointing the operator at the wrong fix
+    (issue #130). Every other exception from ``from_env()`` still means "this
+    provider isn't usable right now" and is logged and skipped as before.
+
     Raises:
+        ModelRegistryConfigError: If a provider's checked-in model registry
+            file exists but fails to parse or validate.
         ValueError: If auto-mode is enabled and providers *are* configured but
             every available model is filtered out by restrictions.
     """
     global _provider_configuration_error
     from providers import ModelProviderRegistry
-    from providers.registry import REGISTERED_PROVIDER_CLASSES
+    from providers.registry import REGISTERED_PROVIDER_CLASSES, ModelRegistryConfigError
     from utils.model_restrictions import get_restriction_service
 
     # Log environment variable status for debugging. Derived from the provider
@@ -459,6 +471,11 @@ def configure_providers():
     for provider_cls in REGISTERED_PROVIDER_CLASSES:
         try:
             provider = provider_cls.from_env()
+        except ModelRegistryConfigError as exc:
+            # Configured but broken, not absent -- see the docstring above.
+            # Fail startup instead of treating this provider as unconfigured.
+            logger.error("Provider %s has a broken model registry configuration: %s", provider_cls.__name__, exc)
+            raise
         except Exception as exc:
             logger.warning("Provider %s failed to initialize from environment: %s", provider_cls.__name__, exc)
             continue

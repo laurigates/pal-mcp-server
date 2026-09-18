@@ -44,6 +44,8 @@ def test_schema_and_flags():
         "status",
         "message",
         "approve",
+        "archive",
+        "unarchive",
     }
 
 
@@ -229,6 +231,81 @@ async def test_message_and_approve_hit_custom_verbs(monkeypatch):
     await tool.execute({"action": "approve", "session_id": "abc"})
     assert any(p.endswith("/sessions/abc:sendMessage") for p in seen)
     assert any(p.endswith("/sessions/abc:approvePlan") for p in seen)
+
+
+@pytest.mark.asyncio
+async def test_archive_hits_archive_verb(monkeypatch):
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.method, request.url.path))
+        return httpx.Response(200, json={})
+
+    tool = _mock_tool(monkeypatch, handler)
+    payload = _payload(await tool.execute({"action": "archive", "session_id": "sessions/abc"}))
+    assert payload["status"] == "success"
+    result = json.loads(payload["content"])
+    assert result == {"session_id": "abc", "archived": True}
+    assert ("POST", "/v1alpha/sessions/abc:archive") in seen
+
+
+@pytest.mark.asyncio
+async def test_unarchive_hits_unarchive_verb(monkeypatch):
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.method, request.url.path))
+        return httpx.Response(200, json={})
+
+    tool = _mock_tool(monkeypatch, handler)
+    payload = _payload(await tool.execute({"action": "unarchive", "session_id": "sessions/abc"}))
+    assert payload["status"] == "success"
+    result = json.loads(payload["content"])
+    assert result == {"session_id": "abc", "archived": False}
+    assert ("POST", "/v1alpha/sessions/abc:unarchive") in seen
+
+
+@pytest.mark.asyncio
+async def test_archive_and_unarchive_require_session_id(monkeypatch):
+    tool = _mock_tool(monkeypatch, lambda request: httpx.Response(200, json={}))
+    with pytest.raises(ToolExecutionError):
+        await tool.execute({"action": "archive"})
+    with pytest.raises(ToolExecutionError):
+        await tool.execute({"action": "unarchive"})
+
+
+@pytest.mark.asyncio
+async def test_all_declared_schema_actions_are_dispatchable(monkeypatch):
+    """Every action in get_input_schema()'s enum must actually dispatch, not just VALID_ACTIONS.
+
+    This is the acceptance test for #89: it exercises archive/unarchive through the
+    schema the server validates client calls against, rather than calling the
+    ``_do_*`` handlers directly. If an action were added to VALID_ACTIONS but left
+    out of the dispatch dict in execute() (or vice versa), this test would fail with
+    a KeyError instead of a clean assertion.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={})
+
+    tool = _mock_tool(monkeypatch, handler)
+    schema = tool.get_input_schema()
+    declared_actions = set(schema["properties"]["action"]["enum"])
+
+    base_args = {
+        "list_sources": {},
+        "create": {"prompt": "do it", "source": "sources/github/o/r"},
+        "status": {"session_id": "abc"},
+        "message": {"session_id": "abc", "prompt": "steer"},
+        "approve": {"session_id": "abc"},
+        "archive": {"session_id": "abc"},
+        "unarchive": {"session_id": "abc"},
+    }
+    assert declared_actions == set(base_args)  # keep this test honest as actions are added
+
+    for action in declared_actions:
+        payload = _payload(await tool.execute({"action": action, **base_args[action]}))
+        assert payload["status"] == "success", f"action={action} did not dispatch successfully"
 
 
 @pytest.mark.asyncio

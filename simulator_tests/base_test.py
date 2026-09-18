@@ -10,8 +10,214 @@ import logging
 import os
 import subprocess
 import threading
+from collections import deque
+from contextlib import contextmanager
 
 from .log_utils import LogUtils
+
+
+class MCPServerSession:
+    """One long-lived ``server.py`` subprocess speaking MCP over stdio.
+
+    Conversation threads live in an in-memory, process-local singleton
+    (``utils/storage_backend.py``), so a ``continuation_id`` minted by one tool
+    call is only resolvable by a later call that reaches the *same* process.
+    This harness used to spawn a server per call, which made every cross-call
+    continuation scenario unresolvable by construction rather than by
+    regression -- the failure those scenarios reported was the harness's, not
+    the server's (issue #132).
+
+    Keeping the process alive across a scenario's calls fixes that without a
+    persistent storage backend, and without giving up the stdio boundary that
+    makes this suite a wire-level check in the first place.
+
+    The session is single-threaded by design: one request is in flight at a
+    time, and each call reads until it sees its own id.
+    """
+
+    # The handshake occupies id 1; tool calls start after it.
+    _FIRST_TOOL_CALL_ID = 2
+
+    def __init__(self, python_path: str, logger: logging.Logger, timeout: int = 3600):
+        self.python_path = python_path
+        self.logger = logger
+        self.timeout = timeout
+        self._proc: subprocess.Popen | None = None
+        self._next_id = self._FIRST_TOOL_CALL_ID
+        # Bounded so a chatty server cannot grow this without limit over a long
+        # session; only the tail is ever useful for diagnosing a failure.
+        self._stderr_tail: deque[str] = deque(maxlen=200)
+        self._stderr_thread: threading.Thread | None = None
+        self._dead_reason: str | None = None
+
+    # -- lifecycle ---------------------------------------------------------
+
+    def ensure_started(self) -> None:
+        """Start on first use, so a session that is never called costs nothing."""
+        if self._proc is None:
+            self.start()
+
+    def start(self) -> None:
+        """Spawn the server and complete the MCP handshake once."""
+        self._proc = subprocess.Popen(
+            [self.python_path, "server.py"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+
+        # stderr must be drained continuously: over a multi-call session a full
+        # pipe buffer would block the server mid-response, which looks exactly
+        # like a hang. The one-shot-per-call design never ran long enough to hit
+        # this, so the drain thread is new with the persistent session.
+        self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
+        self._stderr_thread.start()
+
+        handshake = [
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {"tools": {}},
+                    "clientInfo": {"name": "communication-simulator", "version": "1.0.0"},
+                },
+            },
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+        ]
+        self._write("\n".join(json.dumps(m, ensure_ascii=False) for m in handshake) + "\n")
+        if self._read_until_id(1) is None:
+            raise RuntimeError(f"MCP handshake failed: {self._dead_reason or 'no initialize response'}")
+        self.logger.debug("MCP server session ready (pid %s)", self._proc.pid)
+
+    def close(self) -> None:
+        """Shut the server down, closing stdin first so it exits on EOF."""
+        proc, self._proc = self._proc, None
+        if proc is None:
+            return
+        try:
+            if proc.stdin and not proc.stdin.closed:
+                proc.stdin.close()
+        except OSError:
+            pass
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+        for stream in (proc.stdout, proc.stderr):
+            try:
+                if stream:
+                    stream.close()
+            except OSError:
+                pass
+        if self._stderr_thread:
+            self._stderr_thread.join(timeout=5)
+        self.logger.debug("MCP server session closed")
+
+    def __enter__(self) -> "MCPServerSession":
+        self.start()
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self.close()
+
+    @property
+    def is_alive(self) -> bool:
+        return self._proc is not None and self._proc.poll() is None
+
+    # -- requests ----------------------------------------------------------
+
+    def call_tool(self, tool_name: str, params: dict) -> str | None:
+        """Send one ``tools/call`` and return the raw JSON-RPC lines it produced.
+
+        Returns None if the session is dead or the call timed out; the reason is
+        logged and left on ``_dead_reason`` for the caller to report.
+        """
+        if not self.is_alive:
+            self.logger.error("MCP server session is not running (%s)", self._dead_reason or "never started")
+            return None
+
+        request_id = self._next_id
+        self._next_id += 1
+        request = {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": "tools/call",
+            "params": {"name": tool_name, "arguments": params},
+        }
+        self.logger.debug("Calling MCP tool %s (id %s)", tool_name, request_id)
+        self._write(json.dumps(request, ensure_ascii=False) + "\n")
+        return self._read_until_id(request_id)
+
+    def next_response_id(self) -> int:
+        """The id the next :meth:`call_tool` will use, for response parsing."""
+        return self._next_id
+
+    # -- plumbing ----------------------------------------------------------
+
+    def _write(self, payload: str) -> None:
+        self._proc.stdin.write(payload)
+        self._proc.stdin.flush()
+
+    def _read_until_id(self, expected_id: int) -> str | None:
+        """Read stdout until the reply to ``expected_id`` arrives.
+
+        ``readline()`` has no timeout of its own, so killing the process is what
+        unblocks it -- the watchdog owns the deadline. A timeout kills the whole
+        session because a half-consumed response stream cannot be resynchronised.
+        """
+        timed_out = threading.Event()
+
+        def _kill_on_timeout():
+            timed_out.set()
+            if self._proc:
+                self._proc.kill()
+
+        watchdog = threading.Timer(self.timeout, _kill_on_timeout)
+        watchdog.start()
+
+        lines: list[str] = []
+        try:
+            while True:
+                line = self._proc.stdout.readline()
+                if not line:
+                    break  # server exited or was killed
+                lines.append(line)
+                try:
+                    message = json.loads(line)
+                except json.JSONDecodeError:
+                    continue  # non-JSON chatter on stdout is not fatal
+                if message.get("id") == expected_id:
+                    return "".join(lines)
+        finally:
+            watchdog.cancel()
+
+        # Falling out of the loop means the stream ended before the reply did.
+        if timed_out.is_set():
+            self._dead_reason = f"timed out after {self.timeout}s"
+            self.logger.error("MCP tool call timed out after %ss", self.timeout)
+        else:
+            returncode = self._proc.poll() if self._proc else None
+            self._dead_reason = f"server exited with code {returncode}"
+            self.logger.error("MCP server exited (code %s) before replying to id %s", returncode, expected_id)
+        stderr_tail = "".join(self._stderr_tail).strip()
+        if stderr_tail:
+            self.logger.error("Stderr: %s", stderr_tail[-2000:])
+        return None
+
+    def _drain_stderr(self) -> None:
+        proc = self._proc
+        if not proc or not proc.stderr:
+            return
+        try:
+            for line in proc.stderr:
+                self._stderr_tail.append(line)
+        except (OSError, ValueError):
+            pass  # stream closed during shutdown
 
 
 class BaseSimulatorTest:
@@ -21,6 +227,9 @@ class BaseSimulatorTest:
         self.verbose = verbose
         self.test_files = {}
         self.test_dir = None
+        # Set by server_session(); when present, call_mcp_tool reuses that
+        # process instead of spawning a fresh one per call.
+        self._server_session: MCPServerSession | None = None
 
         # Configure logging first
         log_level = logging.DEBUG if verbose else logging.INFO
@@ -124,134 +333,70 @@ class Calculator:
         self.test_files = {"python": os.path.abspath(test_py), "config": os.path.abspath(test_config)}
         self.logger.debug(f"Created test files with absolute paths: {list(self.test_files.values())}")
 
-    def call_mcp_tool(self, tool_name: str, params: dict) -> tuple[str | None, str | None]:
-        """Call an MCP tool via standalone server"""
+    def apply_client_defaults(self, tool_name: str, params: dict) -> dict:
+        """Fill in arguments a real MCP client always supplies.
+
+        ``chat`` requires ``working_directory_absolute_path`` (tools/chat.py),
+        which every client has on hand and no simulator scenario was passing --
+        so every ``chat`` call in the suite came back as a pydantic validation
+        error rather than reaching a provider (issue #132).
+
+        Defaulting it here rather than at ~70 call sites keeps the scenarios
+        about what they are testing. It is deliberately narrow: only arguments a
+        client is expected to supply on the caller's behalf belong here, so a
+        genuinely new required field still fails loudly instead of being
+        papered over.
+        """
+        if tool_name != "chat" or "working_directory_absolute_path" in params:
+            return params
+        return {**params, "working_directory_absolute_path": self.test_dir or os.getcwd()}
+
+    @contextmanager
+    def server_session(self, timeout: int = 3600):
+        """Hold one server process open across every ``call_mcp_tool`` in the block.
+
+        Required by any scenario that passes a ``continuation_id`` from one tool
+        call to the next: threads live in the server's process memory, so the
+        second call has to reach the same process as the first (issue #132).
+        Calls made outside a session still get a fresh one-shot server each,
+        which is what tests with no continuation want.
+        """
+        session = MCPServerSession(self.python_path, self.logger, timeout=timeout)
+        previous, self._server_session = self._server_session, session
         try:
-            # Prepare the MCP initialization and tool call sequence
-            init_request = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"tools": {}},
-                    "clientInfo": {"name": "communication-simulator", "version": "1.0.0"},
-                },
-            }
+            yield session
+        finally:
+            self._server_session = previous
+            session.close()
 
-            # Send initialized notification
-            initialized_notification = {"jsonrpc": "2.0", "method": "notifications/initialized"}
+    def call_mcp_tool(self, tool_name: str, params: dict) -> tuple[str | None, str | None]:
+        """Call an MCP tool over stdio, reusing the active session if there is one."""
+        try:
+            params = self.apply_client_defaults(tool_name, params)
+            session = self._server_session
+            if session is not None:
+                session.ensure_started()
+                expected_id = session.next_response_id()
+                stdout = session.call_tool(tool_name, params)
+            else:
+                # No active session: one server for this one call, as before.
+                with MCPServerSession(self.python_path, self.logger) as one_shot:
+                    expected_id = one_shot.next_response_id()
+                    stdout = one_shot.call_tool(tool_name, params)
 
-            # Prepare the tool call request
-            tool_request = {
-                "jsonrpc": "2.0",
-                "id": 2,
-                "method": "tools/call",
-                "params": {"name": tool_name, "arguments": params},
-            }  # Combine all messages
-            messages = [
-                json.dumps(init_request, ensure_ascii=False),
-                json.dumps(initialized_notification, ensure_ascii=False),
-                json.dumps(tool_request, ensure_ascii=False),
-            ]
-
-            # Join with newlines as MCP expects
-            input_data = "\n".join(messages) + "\n"
-
-            # Call the standalone MCP server directly
-            server_cmd = [self.python_path, "server.py"]
-
-            self.logger.debug(f"Calling MCP tool {tool_name} with proper initialization")
-
-            stdout = self._exchange_over_stdio(server_cmd, input_data, expected_id=2)
             if stdout is None:
                 return None, None
 
-            # Parse the response - look for the tool call response
-            response_data = self._parse_mcp_response(stdout, expected_id=2)
+            response_data = self._parse_mcp_response(stdout, expected_id=expected_id)
             if not response_data:
                 return None, None
 
-            # Extract continuation_id if present
             continuation_id = self._extract_continuation_id(response_data)
-
             return response_data, continuation_id
 
         except Exception as e:
             self.logger.error(f"MCP tool call failed: {e}")
             return None, None
-
-    def _exchange_over_stdio(self, server_cmd: list[str], input_data: str, expected_id: int, timeout: int = 3600):
-        """Send the JSON-RPC batch and read until the reply to ``expected_id`` arrives.
-
-        stdin must stay open until then. The stdio server treats EOF as shutdown, so
-        writing the batch and closing (what subprocess.run does) cancels any handler
-        that is still awaiting — the server exits 0 having answered only `initialize`.
-        Tools that return without I/O beat the race; every tool that calls a provider
-        loses it, which is why the whole suite failed a few hundred ms in.
-        """
-        proc = subprocess.Popen(
-            server_cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-
-        # readline() blocks with no timeout of its own; killing the process is what
-        # unblocks it, so the watchdog owns the deadline.
-        timed_out = threading.Event()
-
-        def _kill_on_timeout():
-            timed_out.set()
-            proc.kill()
-
-        watchdog = threading.Timer(timeout, _kill_on_timeout)
-        watchdog.start()
-
-        lines: list[str] = []
-        try:
-            proc.stdin.write(input_data)
-            proc.stdin.flush()
-
-            while True:
-                line = proc.stdout.readline()
-                if not line:
-                    break  # server exited or was killed
-                lines.append(line)
-                try:
-                    message = json.loads(line)
-                except json.JSONDecodeError:
-                    continue  # non-JSON chatter on stdout is not fatal
-                if message.get("id") == expected_id:
-                    break
-        finally:
-            watchdog.cancel()
-            try:
-                if proc.stdin and not proc.stdin.closed:
-                    proc.stdin.close()
-            except OSError:
-                pass
-            try:
-                proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
-            stderr = proc.stderr.read() if proc.stderr else ""
-            proc.stderr.close() if proc.stderr else None
-            proc.stdout.close() if proc.stdout else None
-
-        if timed_out.is_set():
-            self.logger.error(f"MCP tool call timed out after {timeout}s")
-            return None
-
-        if proc.returncode not in (0, None):
-            self.logger.error(f"Standalone server failed with return code {proc.returncode}")
-            if stderr:
-                self.logger.error(f"Stderr: {stderr.strip()[-2000:]}")
-
-        return "".join(lines)
 
     def _parse_mcp_response(self, stdout: str, expected_id: int = 2) -> str | None:
         """Parse MCP JSON-RPC response from stdout"""
