@@ -54,8 +54,29 @@ class RegistryBackedProviderMixin:
             return
 
         try:
-            registry = cls.REGISTRY_CLASS()
+            # load_or_raise() behaves exactly like REGISTRY_CLASS() except
+            # that a broken (not merely absent) conf/*_models.json raises
+            # ModelRegistryConfigError instead of degrading to an empty
+            # registry or a generic ValueError -- see issue #130 and
+            # providers/registries/base.py.
+            registry = cls.REGISTRY_CLASS.load_or_raise()
         except Exception as exc:  # pragma: no cover - registry failures shouldn't break the provider
+            # ModelRegistryConfigError is imported lazily and only on this
+            # (rare) failure path: several providers built on this mixin call
+            # _ensure_registry() eagerly at module-import time (see the
+            # bottom of e.g. providers/gemini.py), which runs before
+            # providers.registry has finished building
+            # REGISTERED_PROVIDER_CLASSES (which imports every provider
+            # module, including this one) -- an unconditional module-level or
+            # top-of-function import here would be circular on every import
+            # of the providers package, not just this error path.
+            from providers.registry import ModelRegistryConfigError
+
+            if isinstance(exc, ModelRegistryConfigError):
+                # Configured but broken, not absent -- must fail startup
+                # rather than be swallowed into an empty MODEL_CAPABILITIES
+                # below.
+                raise
             cls._registry_logger().warning("Unable to load %s registry: %s", cls.__name__, exc)
             cls._registry = None
             cls.MODEL_CAPABILITIES = {}

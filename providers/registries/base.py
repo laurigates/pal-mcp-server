@@ -8,9 +8,9 @@ import logging
 from collections.abc import Iterable
 from dataclasses import fields
 from pathlib import Path
+from typing import TypeVar
 
 from utils.env import get_env
-from utils.file_utils import read_json_file
 
 from ..shared import ModelCapabilities, ProviderType, TemperatureConstraint
 
@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 CAPABILITY_FIELD_NAMES = {field.name for field in fields(ModelCapabilities)}
+
+#: Bound for load_or_raise() below so it returns the concrete subclass
+#: (e.g. CustomEndpointModelRegistry) rather than the base class -- Self
+#: isn't used since it requires Python 3.11+ and this project supports 3.10.
+_RegistryT = TypeVar("_RegistryT", bound="CustomModelRegistryBase")
 
 
 class CustomModelRegistryBase:
@@ -56,11 +61,87 @@ class CustomModelRegistryBase:
         self.alias_map: dict[str, str] = {}
         self.model_map: dict[str, ModelCapabilities] = {}
         self._extras: dict[str, dict] = {}
+        #: Set when the backing file exists but fails to parse or validate --
+        #: as opposed to simply being absent, which stays ``None`` (see
+        #: ``_load_config_data`` and ``reload``). A ``(config_path, reason)``
+        #: pair rather than an exception instance so recording it never
+        #: requires importing ``providers.registry`` (circular, see
+        #: ``raise_if_config_error``). Populated but not acted on here: some
+        #: registries (e.g. ``OpenRouterModelRegistry``) intentionally keep
+        #: today's lenient degrade-to-empty behaviour, so this is opt-in --
+        #: callers that want issue #130's "configured but broken" treatment
+        #: use ``load_or_raise``/``raise_if_config_error`` instead of the bare
+        #: constructor.
+        self.config_error: tuple[str, str] | None = None
 
     def reload(self) -> None:
         data = self._load_config_data()
-        configs = [config for config in self._parse_models(data) if config is not None]
-        self._build_maps(configs)
+        try:
+            configs = [config for config in self._parse_models(data) if config is not None]
+            self._build_maps(configs)
+        except ValueError as exc:
+            # Schema violation (_convert_entry) or duplicate alias
+            # (_build_maps) -- record it like the JSON-syntax case below, but
+            # re-raise the *same* ValueError unchanged so every existing
+            # caller (including registries that don't opt into
+            # ModelRegistryConfigError) keeps seeing exactly what it sees
+            # today. Tag the exception itself so a caller that only has the
+            # exception in hand (construction raised before it got a
+            # registry instance back) can still recover the source path.
+            self.config_error = (self._config_source(), str(exc))
+            # setattr rather than exc.registry_config_error = ... so a type
+            # checker doesn't need ValueError to declare this attribute.
+            setattr(exc, "registry_config_error", self.config_error)  # noqa: B010
+            raise
+
+    def _config_source(self) -> str:
+        """Best-effort path to this registry's backing file, for error messages."""
+        if self.config_path is not None:
+            return str(self.config_path)
+        try:
+            resource = importlib.resources.files(self._resource_package).joinpath(self._default_filename)
+            return str(resource)
+        except Exception:
+            return self._default_filename
+
+    def raise_if_config_error(self) -> None:
+        """Escalate a recorded-but-swallowed parse failure to ``ModelRegistryConfigError``.
+
+        A no-op when nothing was recorded. Imported lazily: ``providers.registry``
+        finishes building ``REGISTERED_PROVIDER_CLASSES`` -- which imports every
+        provider module, which imports every ``providers.registries`` module --
+        before ``providers.registries.base`` would otherwise finish importing,
+        so a module-level import here is circular.
+        """
+        if self.config_error is None:
+            return
+        from providers.registry import ModelRegistryConfigError
+
+        config_path, reason = self.config_error
+        raise ModelRegistryConfigError(config_path, reason)
+
+    @classmethod
+    def load_or_raise(cls: type[_RegistryT], *args, **kwargs) -> _RegistryT:
+        """Construct this registry, raising ``ModelRegistryConfigError`` for a broken file.
+
+        Equivalent to calling the constructor directly except that a
+        malformed or schema-invalid backing file raises the dedicated,
+        file-naming exception (issue #130) instead of degrading to an empty
+        registry or a generic ``ValueError``. Any other failure (e.g. a
+        subclass constructor rejecting bad arguments) propagates unchanged.
+        """
+        try:
+            instance = cls(*args, **kwargs)
+        except ValueError as exc:
+            registry_error = getattr(exc, "registry_config_error", None)
+            if registry_error is None:
+                raise
+            from providers.registry import ModelRegistryConfigError
+
+            config_path, reason = registry_error
+            raise ModelRegistryConfigError(config_path, reason) from exc
+        instance.raise_if_config_error()
+        return instance
 
     def list_models(self) -> list[str]:
         return list(self.model_map.keys())
@@ -99,19 +180,30 @@ class CustomModelRegistryBase:
     # ------------------------------------------------------------------
     def _load_config_data(self) -> dict:
         if self._use_resources:
+            resource = importlib.resources.files(self._resource_package).joinpath(self._default_filename)
             try:
-                resource = importlib.resources.files(self._resource_package).joinpath(self._default_filename)
                 if hasattr(resource, "read_text"):
                     config_text = resource.read_text(encoding="utf-8")
                 else:  # pragma: no cover - legacy Python fallback
                     with resource.open("r", encoding="utf-8") as handle:
                         config_text = handle.read()
-                data = json.loads(config_text)
             except FileNotFoundError:
                 logger.debug("Packaged %s not found", self._default_filename)
                 return {"models": []}
             except Exception as exc:
                 logger.warning("Failed to read packaged %s: %s", self._default_filename, exc)
+                return {"models": []}
+
+            try:
+                data = json.loads(config_text)
+            except json.JSONDecodeError as exc:
+                # File is present but unparseable -- distinct from "absent"
+                # above. Recorded, not raised: some registries (see
+                # ``config_error``'s docstring) keep today's lenient degrade;
+                # ``load_or_raise``/``raise_if_config_error`` escalate this
+                # for the ones that opt in (issue #130).
+                logger.warning("Invalid JSON in packaged %s: %s", self._default_filename, exc)
+                self.config_error = (str(resource), f"Invalid JSON in model registry configuration ({exc})")
                 return {"models": []}
             return data or {"models": []}
 
@@ -130,7 +222,18 @@ class CustomModelRegistryBase:
             else:
                 return {"models": []}
 
-        data = read_json_file(str(self.config_path))
+        # Parsed directly here (rather than via utils.file_utils.read_json_file,
+        # which folds "malformed" and "absent" into the same None return) so
+        # that distinction survives for the caller. This keeps
+        # read_json_file's contract -- and its other caller,
+        # clink/registry.py -- untouched.
+        try:
+            with open(self.config_path, encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning("Invalid model registry configuration at %s: %s", self.config_path, exc)
+            self.config_error = (str(self.config_path), f"Invalid model registry configuration ({exc})")
+            return {"models": []}
         return data or {"models": []}
 
     @property

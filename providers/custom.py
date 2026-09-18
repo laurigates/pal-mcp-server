@@ -62,12 +62,23 @@ class CustomProvider(OpenAICompatibleProvider):
             A configured provider instance, or ``None`` when
             ``CUSTOM_API_URL`` is not set.
         """
+        # Imported lazily: providers.registry finishes building
+        # REGISTERED_PROVIDER_CLASSES (which imports this module) before
+        # providers.custom would otherwise finish importing, so a
+        # module-level import here is circular.
+        from providers.registry import ModelRegistryConfigError
+
         base_url = get_env("CUSTOM_API_URL", "") or ""
         if not base_url:
             return None
         api_key = cls.api_key_from_env() or ""
         try:
             return cls(api_key=api_key, base_url=base_url)
+        except ModelRegistryConfigError:
+            # Configured but broken (bad conf/custom_models.json), not
+            # absent -- must fail startup instead of being swallowed as "not
+            # configured" (issue #130). See providers/registry.py.
+            raise
         except Exception as exc:
             logging.warning("Failed to instantiate Custom provider: %s", exc)
             return None
@@ -127,7 +138,11 @@ class CustomProvider(OpenAICompatibleProvider):
 
         # Initialize model registry
         if CustomProvider._registry is None:
-            CustomProvider._registry = CustomEndpointModelRegistry()
+            # load_or_raise() behaves like the plain constructor except that
+            # a broken (not merely absent) conf/custom_models.json raises
+            # ModelRegistryConfigError instead of degrading to an empty
+            # registry or a generic ValueError (issue #130).
+            CustomProvider._registry = CustomEndpointModelRegistry.load_or_raise()
             # Log loaded models and aliases only on first load
             registry = CustomProvider._registry
             models = registry.list_models()
