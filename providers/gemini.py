@@ -2,6 +2,7 @@
 
 import base64
 import logging
+import re
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
@@ -19,6 +20,8 @@ from .registry_provider_mixin import RegistryBackedProviderMixin
 from .shared import ModelCapabilities, ModelResponse, ProviderType
 
 logger = logging.getLogger(__name__)
+
+_GEMINI_GENERATION = re.compile(r"^gemini-(\d+)")
 
 
 class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
@@ -40,6 +43,18 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         "medium": 0.33,
         "high": 0.67,
         "max": 1.0,
+    }
+
+    # Gemini 3.x deprecates numeric thinking_budget in favour of thinking_level, whose
+    # top value is "high" — a budget, even at "max", caps reasoning below that. Every
+    # 3.x model accepts low/medium/high, but minimal is refused by some (3.1 Pro,
+    # 3.8 Flash), so it rounds up to low rather than failing the call.
+    THINKING_LEVELS = {
+        "minimal": types.ThinkingLevel.LOW,
+        "low": types.ThinkingLevel.LOW,
+        "medium": types.ThinkingLevel.MEDIUM,
+        "high": types.ThinkingLevel.HIGH,
+        "max": types.ThinkingLevel.HIGH,
     }
 
     def __init__(self, api_key: str, **kwargs):
@@ -163,12 +178,10 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         )
         if max_output_tokens:
             generation_config.max_output_tokens = max_output_tokens
-        if capabilities.supports_extended_thinking and effective_thinking_mode in self.THINKING_BUDGETS:
-            model_config = capability_map.get(resolved_model_name)
-            if model_config and model_config.max_thinking_tokens > 0:
-                max_thinking_tokens = model_config.max_thinking_tokens
-                actual_thinking_budget = int(max_thinking_tokens * self.THINKING_BUDGETS[effective_thinking_mode])
-                generation_config.thinking_config = types.ThinkingConfig(thinking_budget=actual_thinking_budget)
+        if capabilities.supports_extended_thinking:
+            generation_config.thinking_config = self._thinking_config(
+                resolved_model_name, effective_thinking_mode, capability_map.get(resolved_model_name)
+            )
 
         return {
             "model": resolved_model_name,
@@ -177,6 +190,20 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             "effective_thinking_mode": effective_thinking_mode,
             "supports_extended_thinking": capabilities.supports_extended_thinking,
         }
+
+    def _thinking_config(
+        self, resolved_model_name: str, thinking_mode: str, model_config: ModelCapabilities | None
+    ) -> types.ThinkingConfig | None:
+        """Map a PAL thinking mode onto the control this model generation accepts."""
+        generation = _GEMINI_GENERATION.match(resolved_model_name)
+        if generation and int(generation.group(1)) >= 3:
+            thinking_level = self.THINKING_LEVELS.get(thinking_mode)
+            return types.ThinkingConfig(thinking_level=thinking_level) if thinking_level else None
+
+        fraction = self.THINKING_BUDGETS.get(thinking_mode)
+        if fraction is None or not model_config or model_config.max_thinking_tokens <= 0:
+            return None
+        return types.ThinkingConfig(thinking_budget=int(model_config.max_thinking_tokens * fraction))
 
     async def _call_api(self, request: dict[str, Any]) -> Any:
         return await self.client.aio.models.generate_content(
