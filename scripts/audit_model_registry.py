@@ -58,6 +58,7 @@ CAPABILITY_FIELDS = {
     "context_window",
     "max_output_tokens",
     "max_thinking_tokens",
+    "supported_thinking_levels",
     "supports_extended_thinking",
     "supports_system_prompts",
     "supports_streaming",

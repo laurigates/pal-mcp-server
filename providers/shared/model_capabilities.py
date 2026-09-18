@@ -43,6 +43,14 @@ class ModelCapabilities:
     max_output_tokens: int = 0
     max_thinking_tokens: int = 0
 
+    # Thinking levels (Gemini 3.x's thinking_level control) this model accepts,
+    # e.g. ["low", "medium", "high"]. ``None`` means "not recorded" -- callers
+    # must fall back to the provider's current low/medium/high assumption, not
+    # treat an empty/absent value as "accepts nothing". This keeps the field
+    # additive: existing registry entries need no change to keep today's
+    # behaviour.
+    supported_thinking_levels: list[str] | None = None
+
     # Capability flags
     supports_extended_thinking: bool = False
     supports_system_prompts: bool = True

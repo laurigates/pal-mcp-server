@@ -57,6 +57,24 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         "max": types.ThinkingLevel.HIGH,
     }
 
+    # Canonical thinking-level *name* each PAL thinking_mode ideally maps to,
+    # before any per-model clamping. Kept as plain strings (not the SDK enum)
+    # so they can be checked against a registry entry's
+    # ``supported_thinking_levels``, which records accepted levels the same way.
+    # Used only for models with a recorded set; models with none keep using
+    # THINKING_LEVELS above unchanged (issue #137).
+    THINKING_LEVEL_NAMES: ClassVar[dict[str, str]] = {
+        "minimal": "minimal",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "high",
+    }
+
+    # Ordering used to clamp a thinking level a model doesn't accept to the
+    # nearest one it does.
+    _THINKING_LEVEL_ORDER: ClassVar[tuple[str, ...]] = ("minimal", "low", "medium", "high")
+
     def __init__(self, api_key: str, **kwargs):
         """Initialize Gemini provider with API key and optional base URL."""
         self._ensure_registry()
@@ -197,6 +215,13 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         """Map a PAL thinking mode onto the control this model generation accepts."""
         generation = _GEMINI_GENERATION.match(resolved_model_name)
         if generation and int(generation.group(1)) >= 3:
+            supported_levels = model_config.supported_thinking_levels if model_config else None
+            if supported_levels:
+                level_name = self._clamp_thinking_level(thinking_mode, supported_levels)
+                if level_name is None:
+                    return None
+                return types.ThinkingConfig(thinking_level=getattr(types.ThinkingLevel, level_name.upper()))
+
             thinking_level = self.THINKING_LEVELS.get(thinking_mode)
             return types.ThinkingConfig(thinking_level=thinking_level) if thinking_level else None
 
@@ -204,6 +229,31 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         if fraction is None or not model_config or model_config.max_thinking_tokens <= 0:
             return None
         return types.ThinkingConfig(thinking_budget=int(model_config.max_thinking_tokens * fraction))
+
+    def _clamp_thinking_level(self, thinking_mode: str, supported_levels: list[str]) -> str | None:
+        """Clamp the level ``thinking_mode`` ideally wants to one this model accepts.
+
+        Falls back to the nearest lower accepted level (e.g. medium -> low),
+        then the nearest higher one if there is no lower option, so a model
+        that only records low/high never receives an INVALID_ARGUMENT for
+        thinking_mode=medium.
+        """
+        ideal = self.THINKING_LEVEL_NAMES.get(thinking_mode)
+        if ideal is None:
+            return None
+
+        accepted = {level.lower() for level in supported_levels}
+        if ideal in accepted:
+            return ideal
+
+        idx = self._THINKING_LEVEL_ORDER.index(ideal)
+        for i in range(idx - 1, -1, -1):
+            if self._THINKING_LEVEL_ORDER[i] in accepted:
+                return self._THINKING_LEVEL_ORDER[i]
+        for i in range(idx + 1, len(self._THINKING_LEVEL_ORDER)):
+            if self._THINKING_LEVEL_ORDER[i] in accepted:
+                return self._THINKING_LEVEL_ORDER[i]
+        return None
 
     async def _call_api(self, request: dict[str, Any]) -> Any:
         return await self.client.aio.models.generate_content(
