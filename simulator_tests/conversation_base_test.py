@@ -130,6 +130,9 @@ class ConversationBaseTest(BaseSimulatorTest):
             tool = self._tools[tool_name]
             self.logger.debug(f"Calling tool '{tool_name}' directly in-process")
 
+            # Same client-supplied arguments the stdio path fills in.
+            params = self.apply_client_defaults(tool_name, params)
+
             # Set up minimal model context if not provided
             if "model" not in params:
                 params["model"] = "flash"  # Use fast model for testing
