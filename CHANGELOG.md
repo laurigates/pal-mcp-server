@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## [11.2.0](https://github.com/laurigates/pal-mcp-server/compare/v11.1.0...v11.2.0) (2026-09-18)
+
+
+### Features
+
+* **providers:** send thinking_level to Gemini 3.x models ([#135](https://github.com/laurigates/pal-mcp-server/issues/135)) ([7c2ae4d](https://github.com/laurigates/pal-mcp-server/commit/7c2ae4d282d950f6e5fe7d56d65f8ff1695285e8))
+* resolve five open issues and unblock the simulator harness ([#140](https://github.com/laurigates/pal-mcp-server/issues/140)) ([be1e830](https://github.com/laurigates/pal-mcp-server/commit/be1e8308d9bd0980d6eddfa04a63b98da7447070))
+
 ## [11.1.0](https://github.com/laurigates/pal-mcp-server/compare/v11.0.0...v11.1.0) (2026-09-08)
 
 
