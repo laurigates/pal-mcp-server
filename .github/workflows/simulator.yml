@@ -1,0 +1,111 @@
+name: Simulator
+
+# The end-to-end check: real MCP traffic over stdio against a real provider.
+# It is the only suite that would show a wire-level regression (issue #117), and
+# for a long time it could not run in CI at all -- every scenario asked for
+# "flash", so CI would have needed a Gemini key, and a key is not something a
+# fork PR gets. The provider here is instead a local Ollama serving a 1B model:
+# free, no secrets, available to forks, and enough to exercise the protocol.
+#
+# What this does NOT check is answer quality. A 1B model's prose is beside the
+# point; the scenarios assert on threading, file handling and the wire, and they
+# would catch the same protocol break with any model behind them.
+
+on:
+  pull_request:
+    branches: [main]
+  # Same reasoning as test.yml: main is otherwise never built, so a tree broken
+  # at merge time would first show up on an unrelated PR.
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  simulator:
+    runs-on: ubuntu-latest
+    # A CPU-served 1B model is slow but bounded; the cap is there to kill a hung
+    # session rather than to be a realistic budget.
+    timeout-minutes: 45
+
+    env:
+      # Ollama's OpenAI-compatible endpoint. The trailing /v1 matters: the
+      # Custom provider passes this straight to the OpenAI client.
+      CUSTOM_API_URL: http://localhost:11434/v1
+      # Kept out of conf/ so scripts/audit_model_registry.py -- which audits
+      # conf/*_models.json against live provider catalogs -- never sees a model
+      # that exists only inside this job.
+      CUSTOM_MODELS_CONFIG_PATH: simulator_tests/conf/ci_custom_models.json
+      SIMULATOR_MODEL: ci-local
+      DEFAULT_MODEL: ci-local
+      OLLAMA_MODEL: llama3.2:1b
+      # Several scenarios validate behaviour by reading the server's own debug
+      # logs, so this is load-bearing, not diagnostics.
+      LOG_LEVEL: DEBUG
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          # Keep in step with [tool.uv] required-version in pyproject.toml, the
+          # other workflows, and the uv base image in Dockerfile.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.12.x"
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --group dev
+
+      - name: Cache the Ollama model
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.OLLAMA_MODEL }}
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Start Ollama
+        run: |
+          # The installer registers a systemd unit that runs as the `ollama`
+          # user, whose model directory is /usr/share/ollama/.ollama -- not the
+          # path cached above, and not writable by the runner. Stopping it means
+          # the server below is ours: same user, same HOME, same cache.
+          sudo systemctl stop ollama 2>/dev/null || true
+          nohup ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
+          # Poll rather than sleep: the server is usually up in about a second,
+          # and a fixed sleep would be either wasteful or flaky.
+          for _ in $(seq 60); do
+            if curl -sf http://localhost:11434/v1/models > /dev/null; then
+              echo "Ollama is serving"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Ollama did not start within 60s" >&2
+          cat "$RUNNER_TEMP/ollama.log" >&2
+          exit 1
+
+      - name: Pull the model
+        run: ollama pull "$OLLAMA_MODEL"
+
+      - name: Run the provider-agnostic simulator scenarios
+        # Not --verbose: it sets the root logger to DEBUG, which buries the
+        # scenario reporting under httpx/httpcore chatter. The same detail is in
+        # the logs uploaded below, where it is readable.
+        run: uv run python communication_simulator_test.py --ci
+
+      - name: Upload server logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-logs
+          path: |
+            logs/
+            ${{ runner.temp }}/ollama.log
+          if-no-files-found: warn
+          retention-days: 7
