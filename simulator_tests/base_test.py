@@ -15,6 +15,26 @@ from contextlib import contextmanager
 
 from .log_utils import LogUtils
 
+#: Model name the provider-agnostic scenarios ask for.
+#:
+#: Those scenarios need *a* fast model, not a particular one -- they assert on
+#: conversation threading and file handling, never on which provider answered.
+#: Hard-coding "flash" nonetheless tied them to Gemini, so a checkout with only
+#: the Custom provider configured could not run any of them: the call came back
+#: "Model 'flash' is not available with current API keys" before reaching the
+#: wire. Reading the name from the environment is what lets CI run them against
+#: a free local Ollama (issue #132); the default preserves existing behaviour.
+DEFAULT_SIMULATOR_MODEL = "flash"
+
+
+def get_simulator_model() -> str:
+    """Return the model provider-agnostic scenarios should ask for.
+
+    Read per call rather than captured at import so a test can set
+    ``SIMULATOR_MODEL`` without reimporting the module.
+    """
+    return os.environ.get("SIMULATOR_MODEL") or DEFAULT_SIMULATOR_MODEL
+
 
 class MCPServerSession:
     """One long-lived ``server.py`` subprocess speaking MCP over stdio.
@@ -222,6 +242,14 @@ class MCPServerSession:
 
 class BaseSimulatorTest:
     """Base class for all communication simulator tests"""
+
+    #: True when every model the scenario names comes from
+    #: :func:`get_simulator_model`, so the scenario asserts nothing about which
+    #: provider serves it. ``communication_simulator_test.py --ci`` runs exactly
+    #: these, because CI's only provider is a local Ollama. A scenario that
+    #: names "pro", "o3" or a specific Gemini model is provider-specific by
+    #: construction and stays out.
+    provider_agnostic: bool = False
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -545,6 +573,11 @@ class Calculator:
     def run_test(self) -> bool:
         """Run the test - to be implemented by subclasses"""
         raise NotImplementedError("Subclasses must implement run_test()")
+
+    @property
+    def simulator_model(self) -> str:
+        """Model this scenario asks for; see :func:`get_simulator_model`."""
+        return get_simulator_model()
 
     @property
     def test_name(self) -> str:

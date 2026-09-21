@@ -14,6 +14,8 @@ from .base_test import BaseSimulatorTest
 class ContentValidationTest(BaseSimulatorTest):
     """Test that tools don't duplicate file content in their responses"""
 
+    provider_agnostic = True
+
     @property
     def test_name(self) -> str:
         return "content_validation"
@@ -69,7 +71,7 @@ DATABASE_CONFIG = {
                 {
                     "prompt": "Analyze this configuration file briefly",
                     "absolute_file_paths": [validation_file],
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -89,7 +91,7 @@ DATABASE_CONFIG = {
                         "prompt": "Continue analyzing this configuration file",
                         "absolute_file_paths": [validation_file],  # Same file should be deduplicated
                         "continuation_id": thread_id,
-                        "model": "flash",
+                        "model": self.simulator_model,
                     },
                 )
 
@@ -110,7 +112,7 @@ DATABASE_CONFIG = {
                     "next_step_required": False,
                     "findings": "Starting code review of configuration file",
                     "relevant_files": [validation_file],
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 

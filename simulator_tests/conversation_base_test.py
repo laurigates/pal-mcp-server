@@ -135,7 +135,7 @@ class ConversationBaseTest(BaseSimulatorTest):
 
             # Set up minimal model context if not provided
             if "model" not in params:
-                params["model"] = "flash"  # Use fast model for testing
+                params["model"] = self.simulator_model  # Fast model, name from SIMULATOR_MODEL
 
             # Execute tool directly using asyncio
             loop = self._get_event_loop()
