@@ -1,0 +1,24 @@
+{
+  "_README": {
+    "description": "Custom-provider registry for the simulator's stub tier (simulator_tests/stub_provider.py).",
+    "why_not_conf": "conf/*_models.json is the shipped registry, audited against live provider catalogs by scripts/audit_model_registry.py. This model is served by a stub inside CI and exists nowhere else, so it stays out of that directory.",
+    "usage": "CUSTOM_MODELS_CONFIG_PATH=simulator_tests/conf/stub_models.json with CUSTOM_API_URL=http://localhost:11500/v1 and SIMULATOR_MODEL=ci-local."
+  },
+  "models": [
+    {
+      "model_name": "stub-model",
+      "aliases": [
+        "ci-local"
+      ],
+      "context_window": 131072,
+      "max_output_tokens": 8192,
+      "supports_extended_thinking": false,
+      "supports_json_mode": false,
+      "supports_function_calling": false,
+      "supports_images": false,
+      "max_image_size_mb": 0.0,
+      "description": "Canned replies from simulator_tests/stub_provider.py - no model runs",
+      "intelligence_score": 1
+    }
+  ]
+}

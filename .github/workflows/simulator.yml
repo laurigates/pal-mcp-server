@@ -1,15 +1,20 @@
 name: Simulator
 
-# The end-to-end check: real MCP traffic over stdio against a real provider.
-# It is the only suite that would show a wire-level regression (issue #117), and
-# for a long time it could not run in CI at all -- every scenario asked for
-# "flash", so CI would have needed a Gemini key, and a key is not something a
-# fork PR gets. The provider here is instead a local Ollama serving a 1B model:
-# free, no secrets, available to forks, and enough to exercise the protocol.
+# Real MCP traffic over stdio: the only suite that would show a wire-level
+# regression (issue #117). It runs in two tiers, because measurement (#143)
+# showed the model is ~97% of the runtime and 0% of the assertions -- the
+# scenarios check threading, file handling and the JSON-RPC boundary, and none
+# of them asserts on what a reply says:
 #
-# What this does NOT check is answer quality. A 1B model's prose is beside the
-# point; the scenarios assert on threading, file handling and the wire, and they
-# would catch the same protocol break with any model behind them.
+#   stub     21s     no model at all, runs on every PR
+#   ollama   12m     llama3.2:1b, ~25m in CI with a cold pull
+#
+#   (smollm2:135m does the same work in 2m42s if the ollama tier ever needs to
+#   be cheaper; llama3.2:1b is kept here for being a more ordinary chat model.)
+#
+# The split means the tier a contributor waits on costs seconds and pulls
+# nothing from the network, while the tier that talks to a real provider runs
+# where nobody's merge is blocked on it.
 
 on:
   pull_request:
@@ -18,13 +23,83 @@ on:
   # at merge time would first show up on an unrelated PR.
   push:
     branches: [main]
+  schedule:
+    # 03:17 UTC: off the hour, since the whole fleet fires at :00.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  simulator:
+  # The merge gate. Seconds, no secrets, no network, nothing to cache -- cheap
+  # enough to require on every PR, which the ollama tier is not.
+  stub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CUSTOM_API_URL: http://localhost:11500/v1
+      CUSTOM_MODELS_CONFIG_PATH: simulator_tests/conf/stub_models.json
+      SIMULATOR_MODEL: ci-local
+      DEFAULT_MODEL: ci-local
+      # Several scenarios validate behaviour by reading the server's own debug
+      # logs, so this is load-bearing, not diagnostics.
+      LOG_LEVEL: DEBUG
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          # Keep in step with [tool.uv] required-version in pyproject.toml, the
+          # other workflows, and the uv base image in Dockerfile.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.12.x"
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --group dev
+
+      - name: Start the stub provider
+        run: |
+          nohup uv run python -m simulator_tests.stub_provider --port 11500 \
+            > "$RUNNER_TEMP/stub.log" 2>&1 &
+          for _ in $(seq 30); do
+            if curl -sf "$CUSTOM_API_URL/models" > /dev/null; then
+              echo "Stub provider is serving"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Stub provider did not start within 30s" >&2
+          cat "$RUNNER_TEMP/stub.log" >&2
+          exit 1
+
+      - name: Run the provider-agnostic simulator scenarios
+        run: uv run python communication_simulator_test.py --ci
+
+      - name: Upload server logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-logs-stub
+          path: |
+            logs/
+            ${{ runner.temp }}/stub.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  # The honest one: a real OpenAI-compatible server, so the request PAL builds
+  # has to be acceptable to something we did not write. Not run on PRs, where
+  # its ~25 minutes would be merge latency -- except on a PR labelled
+  # `simulator-full`, for changes to the provider or transport layer.
+  ollama:
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'simulator-full')
     runs-on: ubuntu-latest
     # A CPU-served 1B model is slow but bounded; the cap is there to kill a hung
     # session rather than to be a realistic budget.
@@ -41,8 +116,6 @@ jobs:
       SIMULATOR_MODEL: ci-local
       DEFAULT_MODEL: ci-local
       OLLAMA_MODEL: llama3.2:1b
-      # Several scenarios validate behaviour by reading the server's own debug
-      # logs, so this is load-bearing, not diagnostics.
       LOG_LEVEL: DEBUG
 
     steps:
@@ -51,8 +124,6 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          # Keep in step with [tool.uv] required-version in pyproject.toml, the
-          # other workflows, and the uv base image in Dockerfile.
           # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.12.x"
           enable-cache: true
@@ -103,7 +174,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-logs
+          name: simulator-logs-ollama
           path: |
             logs/
             ${{ runner.temp }}/ollama.log

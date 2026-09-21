@@ -73,30 +73,57 @@ uv run python communication_simulator_test.py --list-tests
 uv run python communication_simulator_test.py --tests basic_conversation content_validation
 ```
 
-#### Running against a local model (what CI runs)
+#### Running without a Gemini key (what CI runs)
 
 Most scenarios ask for a Gemini model by name, so they need a Gemini key. The
 ones that don't — they ask for whatever `SIMULATOR_MODEL` names and assert only
 on threading, file handling and the wire — are marked `provider_agnostic` on
-their test class and selected by `--ci`:
+their test class and selected by `--ci`.
+
+`.github/workflows/simulator.yml` runs that set in two tiers, because the model
+turns out to be ~97% of the runtime and 0% of the assertions (issue #143):
+
+| tier | provider | runtime | when |
+| --- | --- | --- | --- |
+| `stub` | `simulator_tests/stub_provider.py` | ~20s | every PR and push to `main` |
+| `ollama` | Ollama `llama3.2:1b` | ~12m locally, ~25m in CI | `main`, nightly, manual, or a PR labelled `simulator-full` |
+
+**Stub tier** — no model, no network, no cache:
+
+```bash
+uv run python -m simulator_tests.stub_provider --port 11500 &
+
+export CUSTOM_API_URL=http://localhost:11500/v1
+export CUSTOM_MODELS_CONFIG_PATH=simulator_tests/conf/stub_models.json
+export SIMULATOR_MODEL=ci-local DEFAULT_MODEL=ci-local LOG_LEVEL=DEBUG
+
+uv run python communication_simulator_test.py --ci
+```
+
+The stub is strict on purpose — it refuses a path without `/v1`, an unknown
+model, a malformed `messages` array and a streaming request — because a stub
+that accepts anything tests nothing. `tests/test_stub_provider.py` pins each
+refusal. What it still catches: a tool's required argument going missing, a
+wrong base URL, a broken MCP handshake, continuation threading, file
+deduplication. What it cannot catch: the real server's parameter strictness,
+context-limit enforcement, timeout and error shapes — which is what the ollama
+tier is for.
+
+**Ollama tier** — a real OpenAI-compatible server:
 
 ```bash
 ollama serve
-ollama pull llama3.2:1b
+ollama pull llama3.2:1b   # smollm2:135m also passes, in a fifth of the time
 
 export CUSTOM_API_URL=http://localhost:11434/v1
 export CUSTOM_MODELS_CONFIG_PATH=simulator_tests/conf/ci_custom_models.json
-export SIMULATOR_MODEL=ci-local
-export DEFAULT_MODEL=ci-local
-export LOG_LEVEL=DEBUG
+export SIMULATOR_MODEL=ci-local DEFAULT_MODEL=ci-local LOG_LEVEL=DEBUG
 
 uv run python communication_simulator_test.py --ci --verbose
 ```
 
-`.github/workflows/simulator.yml` runs exactly this on every PR and on `main`,
-which is what makes the suite a gate rather than something to run by hand. A 1B
-model's answers are poor and that is fine: no scenario in this set asserts on
-the content of a reply.
+A small model's answers are poor and that is fine: no scenario in this set
+asserts on the content of a reply.
 
 Adding a scenario to the CI set is a declaration on the class, not an edit to
 the workflow:
