@@ -371,7 +371,7 @@ class ListModelsTool(BaseTool):
                 output_lines.append(f"**Error loading custom models**: {str(e)}")
         else:
             output_lines.append(f"**Status**: Not configured (set {custom_url_var})")
-            output_lines.append("**Example**: CUSTOM_API_URL=http://localhost:11434 (for Ollama)")
+            output_lines.append("**Example**: CUSTOM_API_URL=http://localhost:11434/v1 (for Ollama)")
 
         output_lines.append("")
 
