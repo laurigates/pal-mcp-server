@@ -1,0 +1,24 @@
+{
+  "_README": {
+    "description": "Custom-provider model registry for the simulator's CI run (.github/workflows/simulator.yml).",
+    "why_not_conf": "conf/*_models.json is the shipped registry, audited against live provider catalogs by scripts/audit_model_registry.py. This entry describes a model that exists only inside a CI job, so it is kept out of that directory to stay out of the audit.",
+    "usage": "CUSTOM_MODELS_CONFIG_PATH=simulator_tests/conf/ci_custom_models.json with CUSTOM_API_URL pointing at a local Ollama, and SIMULATOR_MODEL=ci-local."
+  },
+  "models": [
+    {
+      "model_name": "llama3.2:1b",
+      "aliases": [
+        "ci-local"
+      ],
+      "context_window": 131072,
+      "max_output_tokens": 8192,
+      "supports_extended_thinking": false,
+      "supports_json_mode": false,
+      "supports_function_calling": false,
+      "supports_images": false,
+      "max_image_size_mb": 0.0,
+      "description": "Llama 3.2 1B served by Ollama in CI - smallest model that answers over the wire",
+      "intelligence_score": 3
+    }
+  ]
+}
