@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## [11.3.0](https://github.com/laurigates/pal-mcp-server/compare/v11.2.0...v11.3.0) (2026-09-21)
+
+
+### Features
+
+* **simulator:** select the scenario model instead of hard-coding flash ([c99075f](https://github.com/laurigates/pal-mcp-server/commit/c99075fd59466e401abb70fc99208b11481f5458)), closes [#132](https://github.com/laurigates/pal-mcp-server/issues/132)
+
+
+### Bug Fixes
+
+* **providers:** point the Ollama example at the /v1 endpoint ([a2a5646](https://github.com/laurigates/pal-mcp-server/commit/a2a564659bb4a0cd35076cea43b4d12f9fc6cfcb))
+
 ## [11.2.0](https://github.com/laurigates/pal-mcp-server/compare/v11.1.0...v11.2.0) (2026-09-18)
 
 
