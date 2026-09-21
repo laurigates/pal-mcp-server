@@ -38,12 +38,15 @@ uv run pre-commit install
 ```bash
 uv run pytest tests/ -m "not integration"          # unit (default, no API keys)
 uv run pytest tests/ -m "integration"              # needs Ollama + CUSTOM_API_URL
-uv run python communication_simulator_test.py --quick   # live MCP end-to-end
+uv run python communication_simulator_test.py --quick   # live MCP end-to-end (needs a Gemini key)
+uv run python communication_simulator_test.py --ci      # the subset CI runs, any single provider
 ```
 
-Integration tests use the free `local-llama` model (`ollama serve && ollama pull llama3.2`, `export CUSTOM_API_URL=http://localhost:11434`), or run `./run_integration_tests.sh`.
+Integration tests use the free `local-llama` model — the model `conf/custom_models.json` gives that alias (`ollama serve && ollama pull <that model>`, `export CUSTOM_API_URL=http://localhost:11434/v1`), or run `./run_integration_tests.sh`. The `/v1` suffix is load-bearing: the Custom provider passes the URL to the OpenAI client unchanged, and Ollama serves its OpenAI-compatible API only under `/v1`.
 
 Simulator options: `--list-tests`, `--individual <name>`, `--verbose`. After code changes, restart your Claude session for the running MCP server to pick them up.
+
+`--ci` selects the scenarios marked `provider_agnostic` on their test class: they ask for whatever `SIMULATOR_MODEL` names instead of hard-coding `flash`, so they run against a free local Ollama with no key. `.github/workflows/simulator.yml` runs them on every PR and on `main` — that, not `--quick`, is what gates a release. A new scenario joins the CI set by declaring `provider_agnostic = True` and taking its model from `self.simulator_model`; `tests/test_simulator_ci_mode.py` rejects a model name written in literally. See `docs/testing.md` for the local invocation.
 
 ## Model registry
 

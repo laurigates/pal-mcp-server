@@ -73,6 +73,42 @@ uv run python communication_simulator_test.py --list-tests
 uv run python communication_simulator_test.py --tests basic_conversation content_validation
 ```
 
+#### Running against a local model (what CI runs)
+
+Most scenarios ask for a Gemini model by name, so they need a Gemini key. The
+ones that don't — they ask for whatever `SIMULATOR_MODEL` names and assert only
+on threading, file handling and the wire — are marked `provider_agnostic` on
+their test class and selected by `--ci`:
+
+```bash
+ollama serve
+ollama pull llama3.2:1b
+
+export CUSTOM_API_URL=http://localhost:11434/v1
+export CUSTOM_MODELS_CONFIG_PATH=simulator_tests/conf/ci_custom_models.json
+export SIMULATOR_MODEL=ci-local
+export DEFAULT_MODEL=ci-local
+export LOG_LEVEL=DEBUG
+
+uv run python communication_simulator_test.py --ci --verbose
+```
+
+`.github/workflows/simulator.yml` runs exactly this on every PR and on `main`,
+which is what makes the suite a gate rather than something to run by hand. A 1B
+model's answers are poor and that is fine: no scenario in this set asserts on
+the content of a reply.
+
+Adding a scenario to the CI set is a declaration on the class, not an edit to
+the workflow:
+
+```python
+class MyScenarioTest(BaseSimulatorTest):
+    provider_agnostic = True  # every model it names comes from self.simulator_model
+```
+
+`tests/test_simulator_ci_mode.py` fails such a class if it hard-codes a model
+name anywhere, since that is what would break CI's single-provider run.
+
 ### Integration Tests (free, local models)
 
 Integration tests use a local Ollama instance, so they're free to run unlimited times.
@@ -81,7 +117,7 @@ Integration tests use a local Ollama instance, so they're free to run unlimited 
 # Setup
 ollama serve
 ollama pull llama3.2
-export CUSTOM_API_URL="http://localhost:11434"
+export CUSTOM_API_URL="http://localhost:11434/v1"   # /v1: Ollama's OpenAI-compatible API lives there
 
 # Run
 ./run_integration_tests.sh
