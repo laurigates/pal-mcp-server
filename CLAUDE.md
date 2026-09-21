@@ -46,7 +46,9 @@ Integration tests use the free `local-llama` model — the model `conf/custom_mo
 
 Simulator options: `--list-tests`, `--individual <name>`, `--verbose`. After code changes, restart your Claude session for the running MCP server to pick them up.
 
-`--ci` selects the scenarios marked `provider_agnostic` on their test class: they ask for whatever `SIMULATOR_MODEL` names instead of hard-coding `flash`, so they run against a free local Ollama with no key. `.github/workflows/simulator.yml` runs them on every PR and on `main` — that, not `--quick`, is what gates a release. A new scenario joins the CI set by declaring `provider_agnostic = True` and taking its model from `self.simulator_model`; `tests/test_simulator_ci_mode.py` rejects a model name written in literally. See `docs/testing.md` for the local invocation.
+`--ci` selects the scenarios marked `provider_agnostic` on their test class: they ask for whatever `SIMULATOR_MODEL` names instead of hard-coding `flash`, so they run against any single provider with no key. A new scenario joins the set by declaring `provider_agnostic = True` and taking its model from `self.simulator_model`; `tests/test_simulator_ci_mode.py` rejects a model name written in literally.
+
+`.github/workflows/simulator.yml` runs that set in two tiers, since the model is ~97% of the runtime and 0% of the assertions ([#143](https://github.com/laurigates/pal-mcp-server/issues/143)): a **stub** tier (`simulator_tests/stub_provider.py`, ~20s, every PR) and an **ollama** tier (`llama3.2:1b`, ~25m, `main` + nightly + PRs labelled `simulator-full`). The stub is deliberately strict — wrong path, unknown model, malformed `messages` and streaming all get refused — because a stub that accepts anything tests nothing; relax it and CI stops catching what it refuses. See `docs/testing.md` for both invocations.
 
 ## Model registry
 
