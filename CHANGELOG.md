@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [11.4.0](https://github.com/laurigates/pal-mcp-server/compare/v11.3.0...v11.4.0) (2026-09-21)
+
+
+### Features
+
+* **simulator:** add a stub provider tier so the gate costs seconds ([#144](https://github.com/laurigates/pal-mcp-server/issues/144)) ([889116d](https://github.com/laurigates/pal-mcp-server/commit/889116d405411fe342cbb56873fc1d4e4cc60a11)), closes [#143](https://github.com/laurigates/pal-mcp-server/issues/143)
+
 ## [11.3.0](https://github.com/laurigates/pal-mcp-server/compare/v11.2.0...v11.3.0) (2026-09-21)
 
 
