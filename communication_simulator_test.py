@@ -38,6 +38,13 @@ Available tests:
     debug_validation            - Debug tool validation with actual bugs
     conversation_chain_validation - Conversation chain continuity validation
 
+CI Mode (provider-agnostic subset):
+    Use --ci to run only the tests that name no provider-specific model. They
+    ask for the model in SIMULATOR_MODEL (default: flash), so a run configured
+    with nothing but a local Ollama can execute them -- which is what
+    .github/workflows/simulator.yml does. Scenarios that assert on Gemini, O3
+    or OpenRouter routing are excluded by construction.
+
 Quick Test Mode (for time-limited testing):
     Use --quick to run the essential 6 tests that provide maximum coverage:
     - cross_tool_continuation (cross-tool conversation memory)
@@ -59,6 +66,10 @@ Examples:
 
     # Run quick test mode (essential 6 tests for time-limited testing)
     python communication_simulator_test.py --quick
+
+    # Run the provider-agnostic subset against a local model
+    CUSTOM_API_URL=http://localhost:11434/v1 SIMULATOR_MODEL=local-llama \
+        python communication_simulator_test.py --ci
 
     # Force setup standalone server environment before running tests
     python communication_simulator_test.py --setup
@@ -86,12 +97,14 @@ class CommunicationSimulator:
         selected_tests: list[str] = None,
         setup: bool = False,
         quick_mode: bool = False,
+        ci_mode: bool = False,
     ):
         self.verbose = verbose
         self.keep_logs = keep_logs
         self.selected_tests = selected_tests or []
         self.setup = setup
         self.quick_mode = quick_mode
+        self.ci_mode = ci_mode
         self.temp_dir = None
         self.server_process = None
 
@@ -118,18 +131,31 @@ class CommunicationSimulator:
             "per_tool_deduplication",  # File deduplication for individual tools
         ]
 
+        # Tests that name no provider-specific model, so they run against
+        # whatever single provider is configured -- CI has only a local Ollama.
+        # Derived from the test classes rather than listed here, so a new
+        # provider-agnostic scenario joins the CI set by declaring itself one.
+        self.ci_mode_tests = [name for name, test_class in self.test_registry.items() if test_class.provider_agnostic]
+
         # If quick mode is enabled, override selected_tests
         if self.quick_mode:
             self.selected_tests = self.quick_mode_tests
             self.logger.info(f"Quick mode enabled - running {len(self.quick_mode_tests)} essential tests")
+
+        if self.ci_mode:
+            self.selected_tests = self.ci_mode_tests
+            self.logger.info(f"CI mode enabled - running {len(self.ci_mode_tests)} provider-agnostic tests")
 
         # Available test methods mapping
         self.available_tests = {
             name: self._create_test_runner(test_class) for name, test_class in self.test_registry.items()
         }
 
-        # Test result tracking
-        self.test_results = dict.fromkeys(self.test_registry.keys(), False)
+        # Test result tracking, over the tests this run will actually execute.
+        # Seeding it from the whole registry made every subset run report
+        # FAILURE -- `--quick` counted 6 passes against ~35 registry entries and
+        # exited 1 no matter what the tests did (issue #132).
+        self.test_results = dict.fromkeys(self.selected_tests or self.test_registry.keys(), False)
 
     def _get_python_path(self) -> str:
         """Get the Python path for the virtual environment"""
@@ -269,7 +295,9 @@ class CommunicationSimulator:
             if not any(os.environ.get(var) for var in provider_env_vars):
                 self.logger.error("No provider is configured - the MCP server will exit on startup.")
                 self.logger.error(f"Set one of: {', '.join(provider_env_vars)}")
-                self.logger.error("For free local runs: start Ollama and export CUSTOM_API_URL=http://localhost:11434")
+                self.logger.error(
+                    "For free local runs: start Ollama and export CUSTOM_API_URL=http://localhost:11434/v1"
+                )
                 return False
 
             self.logger.info("Standalone server environment is ready")
@@ -292,12 +320,14 @@ class CommunicationSimulator:
             # Otherwise run all tests in order
             test_sequence = list(self.test_registry.keys())
 
-            for test_name in test_sequence:
-                if not self._run_single_test(test_name):
-                    return False
+            # Every test runs even after one fails: stopping at the first
+            # failure skipped the per-test summary entirely, so a red run said
+            # only that *something* broke (issue #132).
+            results = [self._run_single_test(test_name) for test_name in test_sequence]
 
-            self.logger.info("All tests passed")
-            return True
+            if all(results):
+                self.logger.info("All tests passed")
+            return all(results)
 
         except Exception as e:
             self.logger.error(f"Claude CLI simulation failed: {e}")
@@ -308,12 +338,12 @@ class CommunicationSimulator:
         try:
             self.logger.info(f"Running selected tests: {', '.join(self.selected_tests)}")
 
-            for test_name in self.selected_tests:
-                if not self._run_single_test(test_name):
-                    return False
+            # Run the whole selection; see simulate_claude_cli_session().
+            results = [self._run_single_test(test_name) for test_name in self.selected_tests]
 
-            self.logger.info("All selected tests passed")
-            return True
+            if all(results):
+                self.logger.info("All selected tests passed")
+            return all(results)
 
         except Exception as e:
             self.logger.error(f"Selected tests failed: {e}")
@@ -482,8 +512,16 @@ def parse_arguments():
     parser.add_argument("--tests", "-t", nargs="+", help="Specific tests to run (space-separated)")
     parser.add_argument("--list-tests", action="store_true", help="List available tests and exit")
     parser.add_argument("--individual", "-i", help="Run a single test individually")
-    parser.add_argument(
+    # One selection per run: --quick names a Gemini-dependent set and --ci the
+    # provider-agnostic one, so a run asking for both has no answer.
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument(
         "--quick", "-q", action="store_true", help="Run quick test mode (6 essential tests for time-limited testing)"
+    )
+    selection.add_argument(
+        "--ci",
+        action="store_true",
+        help="Run the provider-agnostic tests only (what CI runs against a local Ollama; see SIMULATOR_MODEL)",
     )
     parser.add_argument(
         "--setup", action="store_true", help="Force setup standalone server environment using run-server.sh"
@@ -567,6 +605,7 @@ def main():
         selected_tests=args.tests,
         setup=args.setup,
         quick_mode=args.quick,
+        ci_mode=args.ci,
     )
 
     # Determine execution mode and run

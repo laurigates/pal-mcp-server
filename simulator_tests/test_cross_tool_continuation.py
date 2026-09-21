@@ -12,6 +12,8 @@ from .conversation_base_test import ConversationBaseTest
 class CrossToolContinuationTest(ConversationBaseTest):
     """Test comprehensive cross-tool continuation scenarios"""
 
+    provider_agnostic = True
+
     @property
     def test_name(self) -> str:
         return "cross_tool_continuation"
@@ -68,7 +70,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                 {
                     "prompt": "Please use low thinking mode. Look at this Python code and tell me what you think about it",
                     "absolute_file_paths": [self.test_files["python"]],
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -87,7 +89,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                     "findings": "Building on previous chat analysis to examine performance issues",
                     "relevant_files": [self.test_files["python"]],  # Same file should be deduplicated
                     "continuation_id": chat_id,
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -106,7 +108,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                     "findings": "Continuing from previous chat and thinkdeep analysis for comprehensive review",
                     "relevant_files": [self.test_files["python"]],  # Same file should be deduplicated
                     "continuation_id": chat_id,
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -136,7 +138,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                     "next_step_required": False,
                     "findings": "Starting analysis of Python code for quality and performance issues",
                     "relevant_files": [self.test_files["python"]],
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -155,7 +157,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                     "findings": "Building on previous analysis to debug specific performance issue",
                     "relevant_files": [self.test_files["python"]],  # Same file should be deduplicated
                     "continuation_id": analyze_id,
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -174,7 +176,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                     "findings": "Building on analysis and debug findings to explore architectural implications",
                     "relevant_files": [self.test_files["python"]],  # Same file should be deduplicated
                     "continuation_id": analyze_id,
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -200,7 +202,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                 {
                     "prompt": "Please use low thinking mode. Analyze both the Python code and configuration file",
                     "absolute_file_paths": [self.test_files["python"], self.test_files["config"]],
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
@@ -219,7 +221,7 @@ class CrossToolContinuationTest(ConversationBaseTest):
                     "findings": "Continuing multi-file analysis with code review perspective",
                     "relevant_files": [self.test_files["python"], self.test_files["config"]],  # Same files
                     "continuation_id": multi_id,
-                    "model": "flash",
+                    "model": self.simulator_model,
                 },
             )
 
