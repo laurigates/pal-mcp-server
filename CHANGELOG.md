@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [11.5.0](https://github.com/laurigates/pal-mcp-server/compare/v11.4.0...v11.5.0) (2026-09-25)
+
+
+### Features
+
+* **models:** add GPT-6, Grok 4.7 and the new OpenCode Go generation ([#146](https://github.com/laurigates/pal-mcp-server/issues/146)) ([92e34a6](https://github.com/laurigates/pal-mcp-server/commit/92e34a6510189cb40d4832156ed9ea7765f726e1))
+
+
+### Bug Fixes
+
+* **ci:** add the renovate.json the Renovate workflow reads ([#153](https://github.com/laurigates/pal-mcp-server/issues/153)) ([6533388](https://github.com/laurigates/pal-mcp-server/commit/6533388c4030e77bccbe65c419c647bd73788bad))
+* **ci:** open the model-audit PR with the release-please App token ([#148](https://github.com/laurigates/pal-mcp-server/issues/148)) ([a664325](https://github.com/laurigates/pal-mcp-server/commit/a664325e98b34c620dc414d7ea72005f8087cf10))
+
 ## [11.4.0](https://github.com/laurigates/pal-mcp-server/compare/v11.3.0...v11.4.0) (2026-09-21)
 
 
