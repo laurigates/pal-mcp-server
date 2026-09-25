@@ -1,0 +1,561 @@
+{
+  "coverage": [
+    {
+      "config_file": "openrouter_models.json",
+      "label": "OpenRouter",
+      "source": "openrouter",
+      "configured": 39,
+      "error": null,
+      "reason": "",
+      "catalog": 460,
+      "candidates_total": 300,
+      "candidates_shown": 10
+    },
+    {
+      "config_file": "gemini_models.json",
+      "label": "Gemini",
+      "source": "modelsdev",
+      "configured": 10,
+      "error": null,
+      "reason": "",
+      "catalog": 39,
+      "candidates_total": 11,
+      "candidates_shown": 10
+    },
+    {
+      "config_file": "openai_models.json",
+      "label": "OpenAI",
+      "source": "modelsdev",
+      "configured": 17,
+      "error": null,
+      "reason": "",
+      "catalog": 50,
+      "candidates_total": 24,
+      "candidates_shown": 10
+    },
+    {
+      "config_file": "xai_models.json",
+      "label": "xAI",
+      "source": "modelsdev",
+      "configured": 4,
+      "error": null,
+      "reason": "",
+      "catalog": 12,
+      "candidates_total": 4,
+      "candidates_shown": 4
+    },
+    {
+      "config_file": "opencode_go_models.json",
+      "label": "OpenCode Zen (go)",
+      "source": "modelsdev",
+      "configured": 19,
+      "error": null,
+      "reason": "",
+      "catalog": 41,
+      "candidates_total": 22,
+      "candidates_shown": 10
+    },
+    {
+      "config_file": "dial_models.json",
+      "label": "DIAL",
+      "source": "unverifiable",
+      "configured": 9,
+      "error": null,
+      "reason": "enterprise aggregator, no public keyless catalog",
+      "catalog": 0
+    },
+    {
+      "config_file": "custom_models.json",
+      "label": "Custom",
+      "source": "unverifiable",
+      "configured": 1,
+      "error": null,
+      "reason": "user-supplied local endpoints (Ollama, vLLM)",
+      "catalog": 0
+    },
+    {
+      "config_file": "azure_models.json",
+      "label": "Azure",
+      "source": "unverifiable",
+      "configured": 0,
+      "error": null,
+      "reason": "per-deployment names chosen by the operator",
+      "catalog": 0
+    }
+  ],
+  "findings": [
+    {
+      "kind": "deprecated",
+      "config_file": "openrouter_models.json",
+      "model_name": "google/gemini-2.5-pro",
+      "detail": "catalog sets expiration_date=2026-10-20",
+      "confidence": "confirmed",
+      "aliases": [
+        "gemini-2.5",
+        "pro-2.5-openrouter"
+      ],
+      "expires": "2026-10-20"
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openrouter_models.json",
+      "model_name": "google/gemini-2.5-flash",
+      "detail": "catalog sets expiration_date=2026-10-20",
+      "confidence": "confirmed",
+      "aliases": [
+        "flash2.5-openrouter"
+      ],
+      "expires": "2026-10-20"
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "meta-llama/llama-3.3-70b-instruct",
+      "detail": "max_output_tokens: configured 115,200 vs catalog 16,384",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 115200,
+      "catalog": 16384
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "fireworks/ember-1",
+      "detail": "live in catalog (released/created 1790208461), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "released": 1790208461
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "z-ai/glm-5.3-prime",
+      "detail": "live in catalog (released/created 1790199651), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 131072,
+      "released": 1790199651
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "qwen/qwen3.8-max-prime",
+      "detail": "live in catalog (released/created 1790191228), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 131072,
+      "released": 1790191228
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "stealth/space-bunny-alpha",
+      "detail": "live in catalog (released/created 1790174884), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 524288,
+      "released": 1790174884
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "aion-labs/aion-3.5-mini",
+      "detail": "live in catalog (released/created 1790170962), not configured",
+      "confidence": "review",
+      "context_window": 262144,
+      "max_output_tokens": 32768,
+      "released": 1790170962
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "aion-labs/aion-3.5",
+      "detail": "live in catalog (released/created 1790170961), not configured",
+      "confidence": "review",
+      "context_window": 262144,
+      "max_output_tokens": 32768,
+      "released": 1790170961
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "upstage/solar-mini4",
+      "detail": "live in catalog (released/created 1790160358), not configured",
+      "confidence": "review",
+      "context_window": 524288,
+      "max_output_tokens": 131072,
+      "released": 1790160358
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "cohere/command-a-plus",
+      "detail": "live in catalog (released/created 1790102896), not configured",
+      "confidence": "review",
+      "context_window": 192000,
+      "max_output_tokens": 64000,
+      "released": 1790102896
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "openai/gpt-6-luna-pro",
+      "detail": "live in catalog (released/created 1790100791), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": 1790100791
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "openai/gpt-6-luna",
+      "detail": "live in catalog (released/created 1790100786), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": 1790100786
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "gemini-flash-latest",
+      "detail": "live in catalog (released/created 2026-08-13), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": "2026-08-13"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "gemini-flash-lite-latest",
+      "detail": "live in catalog (released/created 2026-07-21), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": "2026-07-21"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "deep-research-preview-04-2026",
+      "detail": "live in catalog (released/created 2026-04-21), not configured",
+      "confidence": "review",
+      "context_window": 131072,
+      "max_output_tokens": 65536,
+      "released": "2026-04-21"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "deep-research-max-preview-04-2026",
+      "detail": "live in catalog (released/created 2026-04-21), not configured",
+      "confidence": "review",
+      "context_window": 131072,
+      "max_output_tokens": 65536,
+      "released": "2026-04-21"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "gemma-4-31b-it",
+      "detail": "live in catalog (released/created 2026-04-02), not configured",
+      "confidence": "review",
+      "context_window": 262144,
+      "max_output_tokens": 32768,
+      "released": "2026-04-02"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "gemma-4-26b-a4b-it",
+      "detail": "live in catalog (released/created 2026-04-02), not configured",
+      "confidence": "review",
+      "context_window": 262144,
+      "max_output_tokens": 32768,
+      "released": "2026-04-02"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "lyria-3-pro-preview",
+      "detail": "live in catalog (released/created 2026-03-25), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": "2026-03-25"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "lyria-3-clip-preview",
+      "detail": "live in catalog (released/created 2026-03-25), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": "2026-03-25"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "gemini-3.1-flash-lite-preview",
+      "detail": "live in catalog (released/created 2026-03-03), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": "2026-03-03"
+    },
+    {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "gemini-3.1-pro-preview-customtools",
+      "detail": "live in catalog (released/created 2026-02-19), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": "2026-02-19"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-6-luna",
+      "detail": "live in catalog (released/created 2026-09-22), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-09-22"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-6-sol",
+      "detail": "live in catalog (released/created 2026-09-22), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-09-22"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-6-astra",
+      "detail": "live in catalog (released/created 2026-09-04), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-09-04"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.6",
+      "detail": "live in catalog (released/created 2026-07-09), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-07-09"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.4-nano",
+      "detail": "live in catalog (released/created 2026-03-17), not configured",
+      "confidence": "review",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "released": "2026-03-17"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.4-mini",
+      "detail": "live in catalog (released/created 2026-03-17), not configured",
+      "confidence": "review",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "released": "2026-03-17"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.4",
+      "detail": "live in catalog (released/created 2026-03-05), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-03-05"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.4-pro",
+      "detail": "live in catalog (released/created 2026-03-05), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-03-05"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.3-chat-latest",
+      "detail": "live in catalog (released/created 2026-03-03), not configured",
+      "confidence": "review",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "released": "2026-03-03"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.2-chat-latest",
+      "detail": "live in catalog (released/created 2025-12-11), not configured",
+      "confidence": "review",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "released": "2025-12-11"
+    },
+    {
+      "kind": "missing",
+      "config_file": "xai_models.json",
+      "model_name": "grok-4.7",
+      "detail": "live in catalog (released/created 2026-09-21), not configured",
+      "confidence": "review",
+      "context_window": 500000,
+      "max_output_tokens": 500000,
+      "released": "2026-09-21"
+    },
+    {
+      "kind": "missing",
+      "config_file": "xai_models.json",
+      "model_name": "grok-4.20-0309-reasoning",
+      "detail": "live in catalog (released/created 2026-03-09), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 30000,
+      "released": "2026-03-09"
+    },
+    {
+      "kind": "missing",
+      "config_file": "xai_models.json",
+      "model_name": "grok-4.20-0309-non-reasoning",
+      "detail": "live in catalog (released/created 2026-03-09), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 30000,
+      "released": "2026-03-09"
+    },
+    {
+      "kind": "missing",
+      "config_file": "xai_models.json",
+      "model_name": "grok-4.20-multi-agent-0309",
+      "detail": "live in catalog (released/created 2026-03-09), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 30000,
+      "released": "2026-03-09"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "space-bunny-free",
+      "detail": "live in catalog (released/created 2026-09-23), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 524288,
+      "released": "2026-09-23"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "mimo-v2.6-pro",
+      "detail": "live in catalog (released/created 2026-09-22), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "released": "2026-09-22"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "mimo-v2.6-flash",
+      "detail": "live in catalog (released/created 2026-09-22), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "released": "2026-09-22"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "gpt-6-luna",
+      "detail": "live in catalog (released/created 2026-09-22), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-09-22"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "grok-4.7",
+      "detail": "live in catalog (released/created 2026-09-21), not configured",
+      "confidence": "review",
+      "context_window": 500000,
+      "max_output_tokens": 500000,
+      "released": "2026-09-21"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "deepseek-v4.1-flash",
+      "detail": "live in catalog (released/created 2026-09-10), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 384000,
+      "released": "2026-09-10"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "omen-alpha",
+      "detail": "live in catalog (released/created 2026-09-04), not configured",
+      "confidence": "review",
+      "context_window": 500000,
+      "max_output_tokens": 128000,
+      "released": "2026-09-04"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "muse-spark-1.3-contributor",
+      "detail": "live in catalog (released/created 2026-09-02), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "released": "2026-09-02"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "hy4-preview",
+      "detail": "live in catalog (released/created 2026-08-28), not configured",
+      "confidence": "review",
+      "context_window": 1024000,
+      "max_output_tokens": 64000,
+      "released": "2026-08-28"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "glm-5.3-flash",
+      "detail": "live in catalog (released/created 2026-08-26), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
+      "max_output_tokens": 131072,
+      "released": "2026-08-26"
+    }
+  ]
+}
