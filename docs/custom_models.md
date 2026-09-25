@@ -87,13 +87,16 @@ Native catalogues (`conf/openai_models.json`, `conf/gemini_models.json`, `conf/x
 
 ### Latest OpenAI releases
 
-The GPT-5.6 family is the current flagship tier in `conf/openai_models.json`:
+The GPT-6 family is the current flagship tier in `conf/openai_models.json`, with GPT-5.6 one step behind:
 
 | Model | Highlights | Notes |
 |-------|------------|-------|
-| `gpt-5.6-sol` | Frontier reasoning tier, 1.05M context | Responses API; `allow_code_generation=true` |
+| `gpt-6-astra` | Most capable GPT-6 tier, 1.05M context | Responses API; aliased `astra`, `gpt6` |
+| `gpt-6-sol` | GPT-6 tier for complex coding and agentic work | Responses API; aliased `sol` |
+| `gpt-6-luna` | Cost-efficient GPT-6 tier | Aliased `luna` |
+| `gpt-5.6-sol` | Frontier GPT-5.6 tier, 1.05M context | Responses API; aliased `gpt5.6` |
 | `gpt-5.6-terra` | Balanced 5.6 tier | Aliased `terra` |
-| `gpt-5.6-luna` | Cost-efficient 5.6 tier | Aliased `luna` |
+| `gpt-5.6-luna` | Cost-efficient 5.6 tier | Aliased `gpt5.6-luna` |
 | `gpt-5.3-codex` | Agentic coding specialization | Responses API; aliased `codex` |
 | `gpt-5.3-codex-spark` | Cost-efficient Codex variant | Aliased `codex-spark`, `codex-mini` |
 

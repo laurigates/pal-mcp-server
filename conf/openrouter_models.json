@@ -288,7 +288,7 @@
       "supports_images": true,
       "max_image_size_mb": 20.0,
       "allow_code_generation": true,
-      "description": "Google's Gemini 2.5 Pro via OpenRouter with vision",
+      "description": "Google's Gemini 2.5 Pro via OpenRouter with vision (OpenRouter expires it 2026-10-20; use google/gemini-3.1-pro-preview)",
       "intelligence_score": 18
     },
     {
@@ -303,7 +303,7 @@
       "supports_function_calling": true,
       "supports_images": true,
       "max_image_size_mb": 15.0,
-      "description": "Google's Gemini 2.5 Flash via OpenRouter with vision",
+      "description": "Google's Gemini 2.5 Flash via OpenRouter with vision (OpenRouter expires it 2026-10-20; use google/gemini-3.8-flash)",
       "intelligence_score": 10
     },
     {
@@ -350,7 +350,7 @@
         "llama3-openrouter"
       ],
       "context_window": 131072,
-      "max_output_tokens": 115200,
+      "max_output_tokens": 16384,
       "supports_extended_thinking": false,
       "supports_json_mode": true,
       "supports_function_calling": true,

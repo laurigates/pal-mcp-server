@@ -17,7 +17,7 @@ def _chat_response():
     response.choices = [MagicMock()]
     response.choices[0].message.content = "ok"
     response.choices[0].finish_reason = "stop"
-    response.model = "glm-5.2"
+    response.model = "glm-5.3"
     response.id = "id"
     response.created = 1
     response.usage = MagicMock()
@@ -56,7 +56,7 @@ class TestOpenCodeGoProvider:
     def test_friendly_name(self):
         provider = OpenCodeGoProvider("test-key")
         assert provider.FRIENDLY_NAME == "OpenCode Go"
-        assert provider.get_capabilities("glm-5.2").friendly_name == "OpenCode Go (GLM-5.2)"
+        assert provider.get_capabilities("glm-5.3").friendly_name == "OpenCode Go (GLM-5.3)"
 
     # ------------------------------------------------------------------
     # from_env contract (reads OPENCODE_API_KEY)
@@ -81,7 +81,7 @@ class TestOpenCodeGoProvider:
     # ------------------------------------------------------------------
     def test_model_validation(self):
         provider = OpenCodeGoProvider("test-key")
-        assert provider.validate_model_name("glm-5.2") is True
+        assert provider.validate_model_name("glm-5.3") is True
         assert provider.validate_model_name("deepseek-v4-flash") is True
         assert provider.validate_model_name("kimi-k2.7-code") is True
         # aliases
@@ -95,18 +95,18 @@ class TestOpenCodeGoProvider:
 
     def test_resolve_alias(self):
         provider = OpenCodeGoProvider("test-key")
-        assert provider._resolve_model_name("glm") == "glm-5.2"
+        assert provider._resolve_model_name("glm") == "glm-5.3"
         assert provider._resolve_model_name("deepseek") == "deepseek-v4-pro"
         assert provider._resolve_model_name("kimi") == "kimi-k2.7-code"
         assert provider._resolve_model_name("minimax") == "minimax-m3"
         # canonical passthrough
-        assert provider._resolve_model_name("glm-5.2") == "glm-5.2"
+        assert provider._resolve_model_name("glm-5.3") == "glm-5.3"
 
     def test_capabilities_context_windows(self):
         provider = OpenCodeGoProvider("test-key")
 
-        glm = provider.get_capabilities("glm-5.2")
-        assert glm.model_name == "glm-5.2"
+        glm = provider.get_capabilities("glm-5.3")
+        assert glm.model_name == "glm-5.3"
         assert glm.provider == ProviderType.OPENCODE_GO
         assert glm.context_window == 1_000_000
         assert glm.supports_function_calling is True
@@ -119,8 +119,8 @@ class TestOpenCodeGoProvider:
         provider = OpenCodeGoProvider("test-key")
         # kimi-k2.7-code has attachment=true on models.dev
         assert provider.get_capabilities("kimi-k2.7-code").supports_images is True
-        # glm-5.2 has attachment=false
-        assert provider.get_capabilities("glm-5.2").supports_images is False
+        # glm-5.3 has attachment=false
+        assert provider.get_capabilities("glm-5.3").supports_images is False
 
     def test_unsupported_model_raises(self):
         provider = OpenCodeGoProvider("test-key")
@@ -130,14 +130,14 @@ class TestOpenCodeGoProvider:
     def test_catalogue_size(self):
         provider = OpenCodeGoProvider("test-key")
         caps = provider.get_all_model_capabilities()
-        # 19 curated models published by the OpenCode Go plan (models.dev)
-        assert len(caps) == 19
+        # 26 curated models published by the OpenCode Go plan (models.dev)
+        assert len(caps) == 26
         assert all(c.provider == ProviderType.OPENCODE_GO for c in caps.values())
 
     # ------------------------------------------------------------------
     # Restrictions
     # ------------------------------------------------------------------
-    @patch.dict(os.environ, {"OPENCODE_GO_ALLOWED_MODELS": "glm-5.2"}, clear=False)
+    @patch.dict(os.environ, {"OPENCODE_GO_ALLOWED_MODELS": "glm-5.3"}, clear=False)
     def test_model_restrictions(self):
         import utils.model_restrictions
         from providers.registry import ModelProviderRegistry
@@ -146,8 +146,8 @@ class TestOpenCodeGoProvider:
         ModelProviderRegistry.reset_for_testing()
 
         provider = OpenCodeGoProvider("test-key")
-        assert provider.validate_model_name("glm-5.2") is True
-        assert provider.validate_model_name("glm") is True  # alias of glm-5.2
+        assert provider.validate_model_name("glm-5.3") is True
+        assert provider.validate_model_name("glm") is True  # alias of glm-5.3
         assert provider.validate_model_name("deepseek-v4-pro") is False
 
     # ------------------------------------------------------------------
@@ -164,8 +164,8 @@ class TestOpenCodeGoProvider:
         result = await provider.generate_content(prompt="hi", model_name="glm", temperature=0.5)
 
         call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert call_kwargs["model"] == "glm-5.2"  # alias resolved before SDK call
-        assert result.model_name == "glm-5.2"
+        assert call_kwargs["model"] == "glm-5.3"  # alias resolved before SDK call
+        assert result.model_name == "glm-5.3"
 
     # ------------------------------------------------------------------
     # Session header (required by the gateway from 2026-09-06)

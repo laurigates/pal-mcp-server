@@ -98,7 +98,7 @@ class TestListModelsTool:
             content = response["content"]
 
             assert "OpenCode Go ✅" in content
-            assert "`glm` → `glm-5.2`" in content
+            assert "`glm` → `glm-5.3`" in content
             assert "**Configured Providers**: 1" in content
         finally:
             ModelProviderRegistry.reset_for_testing()

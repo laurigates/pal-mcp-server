@@ -61,8 +61,8 @@ class OpenCodeGoProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
 
     # Canonical identifiers used for category routing.
     PRIMARY_MODEL = "deepseek-v4-pro"
-    FALLBACK_MODEL = "glm-5.2"
-    FAST_MODEL = "deepseek-v4-flash"
+    FALLBACK_MODEL = "glm-5.3"
+    FAST_MODEL = "deepseek-v4.1-flash"
 
     def __init__(self, api_key: str, **kwargs):
         """Initialize the OpenCode Go provider with a subscription API key."""
