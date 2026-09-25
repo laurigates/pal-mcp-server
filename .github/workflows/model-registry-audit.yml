@@ -90,16 +90,33 @@ jobs:
           exit 1
 
       - name: Stage the report on a branch
-        if: ${{ !inputs.fail-on-drift && steps.audit.outputs.actionable != '0' }}
+        if: ${{ !inputs.fail-on-drift && (steps.audit.outputs.actionable != '0' || steps.audit.outputs.missing != '0') }}
         run: |
           mkdir -p docs/model-audit
           cp audit-report.txt docs/model-audit/latest-audit.txt
           cp audit-report.json docs/model-audit/latest-audit.json
 
+      # GITHUB_TOKEN cannot open PRs here: "Allow GitHub Actions to create and
+      # approve pull requests" is off (gitops can_approve_pull_request_reviews =
+      # false), and the job failed on exactly that from 2026-09-07 on. The
+      # release-please App credentials gitops already pushes to this repo can.
+      # A PR opened by an App token also triggers CI; one opened by GITHUB_TOKEN
+      # does not.
+      - name: Mint a GitHub App token
+        id: app-token
+        if: ${{ !inputs.fail-on-drift && (steps.audit.outputs.actionable != '0' || steps.audit.outputs.missing != '0') }}
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          # A numeric App ID is accepted as the JWT issuer, as in the
+          # reusable release-please workflow.
+          client-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
+
       - name: Open or update the drift PR
-        if: ${{ !inputs.fail-on-drift && steps.audit.outputs.actionable != '0' }}
+        if: ${{ !inputs.fail-on-drift && (steps.audit.outputs.actionable != '0' || steps.audit.outputs.missing != '0') }}
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ steps.app-token.outputs.token }}
           # A fixed branch name means a rerun updates the open PR instead of
           # stacking a new one every Monday.
           branch: chore/model-registry-drift
@@ -107,7 +124,7 @@ jobs:
           # Conventional commit: release-please parses these, and a bare
           # subject would land in the changelog as an unclassified entry.
           commit-message: "chore(models): refresh model registry drift report"
-          title: "chore(models): model registry drift — ${{ steps.audit.outputs.deprecated }} deprecated, ${{ steps.audit.outputs.stale }} stale"
+          title: "chore(models): model registry drift — ${{ steps.audit.outputs.deprecated }} deprecated, ${{ steps.audit.outputs.stale }} stale, ${{ steps.audit.outputs.missing }} candidates"
           labels: chore
           delete-branch: true
           body: |
