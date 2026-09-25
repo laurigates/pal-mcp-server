@@ -36,8 +36,8 @@ class XAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
     # Canonical model identifiers used for category routing.
     # These must name models that are still live in conf/xai_models.json - when
     # the registry drops or supersedes a model, move these in the same change.
-    PRIMARY_MODEL = "grok-4.6"
-    FALLBACK_MODEL = "grok-4.5"
+    PRIMARY_MODEL = "grok-4.7"
+    FALLBACK_MODEL = "grok-4.6"
 
     def __init__(self, api_key: str, **kwargs):
         """Initialize X.AI provider with API key."""

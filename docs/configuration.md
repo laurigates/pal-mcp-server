@@ -86,14 +86,14 @@ DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
 
   | Provider | Canonical Models | Notable Aliases |
   |----------|-----------------|-----------------|
-  | OpenAI | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5-pro`, `gpt-5.5`, `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`, `gpt-5.2-pro`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `o3`, `o3-mini`, `o3-pro`, `o4-mini` | `sol`, `terra`, `luna`, `gpt5.6`, `5.6`, `codex`, `codex-5.3`, `codex-spark`, `gpt5.2`, `5.2`, `gpt5pro`, `mini`, `nano`, `o3mini`, `o3pro`, `o4mini` |
+  | OpenAI | `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5-pro`, `gpt-5.5`, `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`, `gpt-5.2-pro`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `o3`, `o3-mini`, `o3-pro`, `o4-mini` | `astra`, `gpt6`, `sol`, `luna`, `terra`, `gpt5.6`, `5.6`, `codex`, `codex-5.3`, `codex-spark`, `gpt5.2`, `5.2`, `gpt5pro`, `mini`, `nano`, `o3mini`, `o3pro`, `o4mini` |
   | Gemini | `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-2.5-pro`, `gemini-2.5-flash` | `flash`, `flash3.8`, `flash3.7`, `flash-lite`, `pro`, `gemini-pro`, `flash2.5` |
-  | X.AI | `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-build-0.1` | `grok`, `grok4`, `grok-4.1-fast`, `grok-4.1-fast-reasoning`, `grok-build` |
-  | OpenCode Go | `glm-5.2`, `deepseek-v4-pro`, `deepseek-v4-flash`, `kimi-k2.7-code`, `qwen3.7-max`, `minimax-m3`, `mimo-v2.5-pro`, … (19 models) | `glm`, `deepseek`, `deepseek-flash`, `kimi`, `qwen`, `minimax`, `mimo` |
+  | X.AI | `grok-4.7`, `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-build-0.1` | `grok`, `grok4`, `grok-4.1-fast`, `grok-4.1-fast-reasoning`, `grok-build` |
+  | OpenCode Go | `glm-5.3`, `qwen3.8-max`, `mimo-v2.6-pro`, `deepseek-v4-pro`, `deepseek-v4.1-flash`, `kimi-k2.7-code`, `minimax-m3`, … (26 models) | `glm`, `glm-flash`, `qwen`, `qwen-flash`, `mimo`, `mimo-flash`, `deepseek`, `deepseek-flash`, `kimi`, `minimax` |
   | OpenRouter | See `conf/openrouter_models.json` for the continually evolving catalogue | e.g., `opus`, `sonnet`, `flash`, `pro`, `mistral` |
   | Custom | User-managed entries such as `llama3.2` | Define your own aliases per entry |
 
-  The GPT-5.6 tier (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`) exposes 1.05M-token contexts with reasoning-token support and multimodal inputs; the Pro tiers (`gpt-5.5-pro`, `gpt-5.2-pro`) and the Codex models are Responses-only with streaming disabled. Update your manifests if you run custom deployments so these capability bits stay accurate — `just models-audit` reports where they have drifted from what the provider actually serves.
+  The GPT-6 tier (`gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`) and the GPT-5.6 tier (`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`) expose 1.05M-token contexts with reasoning-token support and multimodal inputs; the Pro tiers (`gpt-5.5-pro`, `gpt-5.2-pro`) and the Codex models are Responses-only with streaming disabled. Update your manifests if you run custom deployments so these capability bits stay accurate — `just models-audit` reports where they have drifted from what the provider actually serves.
 
   > **Tip:** Copy the JSON file you need, customise it, and point the corresponding `*_MODELS_CONFIG_PATH` environment variable to your version. This lets you enable or disable capabilities (JSON mode, function calling, temperature support, code generation) without editing Python.
 

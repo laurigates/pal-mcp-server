@@ -84,18 +84,18 @@ class TestSupportedModelsAliases:
             assert isinstance(config.aliases, list), f"{model_name} aliases must be a list"
 
         # Test specific aliases
-        assert "grok" in provider.MODEL_CAPABILITIES["grok-4.6"].aliases
-        assert "grok4" in provider.MODEL_CAPABILITIES["grok-4.6"].aliases
+        assert "grok" in provider.MODEL_CAPABILITIES["grok-4.7"].aliases
+        assert "grok4" in provider.MODEL_CAPABILITIES["grok-4.7"].aliases
         assert "grok-4.1-fast-reasoning" in provider.MODEL_CAPABILITIES["grok-4.3"].aliases
 
         # Test alias resolution
-        assert provider._resolve_model_name("grok") == "grok-4.6"
-        assert provider._resolve_model_name("grok4") == "grok-4.6"
+        assert provider._resolve_model_name("grok") == "grok-4.7"
+        assert provider._resolve_model_name("grok4") == "grok-4.7"
         assert provider._resolve_model_name("grok-4.1-fast-reasoning") == "grok-4.3"
         assert provider._resolve_model_name("grok-4.1-fast-reasoning-latest") == "grok-4.3"
 
         # Test case insensitive resolution
-        assert provider._resolve_model_name("Grok") == "grok-4.6"
+        assert provider._resolve_model_name("Grok") == "grok-4.7"
         assert provider._resolve_model_name("GROK-4.1-FAST-REASONING") == "grok-4.3"
 
     def test_dial_provider_aliases(self):
@@ -145,7 +145,7 @@ class TestSupportedModelsAliases:
         # Test XAI
         xai_provider = XAIModelProvider("test-key")
         xai_models = xai_provider.list_models(respect_restrictions=False)
-        assert "grok-4.6" in xai_models
+        assert "grok-4.7" in xai_models
         assert "grok" in xai_models
         assert "grok-4.1-fast" in xai_models
         assert "grok-4.1-fast-reasoning" in xai_models

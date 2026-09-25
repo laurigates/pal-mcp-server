@@ -320,7 +320,7 @@ class TestAutoModeProviderSelection:
                 ("pro", ProviderType.GOOGLE, "gemini-3.1-pro-preview"),  # "pro" now resolves to gemini-3.1-pro-preview
                 ("mini", ProviderType.OPENAI, "gpt-5-mini"),  # "mini" now resolves to gpt-5-mini
                 ("o3mini", ProviderType.OPENAI, "o3-mini"),
-                ("grok", ProviderType.XAI, "grok-4.6"),
+                ("grok", ProviderType.XAI, "grok-4.7"),
                 ("grok-4.1-fast-reasoning", ProviderType.XAI, "grok-4.3"),
             ]
 

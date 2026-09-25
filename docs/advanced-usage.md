@@ -49,7 +49,8 @@ Regardless of your default configuration, you can specify models per request:
 | **`gpt5`** (GPT-5) | OpenAI | 400K tokens | Advanced model with reasoning support | Complex problems requiring advanced reasoning |
 | **`gpt5-mini`** (GPT-5 Mini) | OpenAI | 400K tokens | Efficient variant with reasoning | Balanced performance and capability |
 | **`gpt5-nano`** (GPT-5 Nano) | OpenAI | 400K tokens | Fastest, cheapest GPT-5 variant | Summarization and classification tasks |
-| **`grok-4.6`** | X.AI | 500K tokens | Latest flagship Grok model with reasoning, vision | Complex analysis, reasoning tasks |
+| **`grok-4.7`** | X.AI | 500K tokens | Latest flagship Grok model with configurable reasoning, vision | Complex analysis, reasoning tasks |
+| **`grok-4.6`** | X.AI | 500K tokens | Previous flagship Grok model with reasoning, vision | Long-running agents, coding |
 | **`grok-4.5`** | X.AI | 500K tokens | Grok for chat, coding, agentic tools, lower hallucination risk | Balanced day-to-day work |
 | **`grok-4.3`** | X.AI | 1M tokens | Long-context Grok with reasoning and vision | Document-heavy analysis |
 | **`grok-build-0.1`** | X.AI | 256K tokens | Fast Grok coding model for agentic engineering | Iterative code edits |
