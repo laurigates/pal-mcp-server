@@ -30,10 +30,10 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v6.8.0
         with:
           # Pinned: uv lock --check is load-bearing, and a uv that bumps
           # the lockfile revision would redden every open PR at once.
@@ -42,7 +42,7 @@ jobs:
           # The annotation below is inert unless the org Renovate config enables a
           # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.x"
+          version: "0.12.19"
           enable-cache: true
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -60,10 +60,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v6.8.0
         with:
           # Pinned: uv lock --check is load-bearing, and a uv that bumps
           # the lockfile revision would redden every open PR at once.
@@ -72,7 +72,7 @@ jobs:
           # The annotation below is inert unless the org Renovate config enables a
           # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.x"
+          version: "0.12.19"
           enable-cache: true
 
       # `uv sync` silently re-resolves instead of complaining, and the
