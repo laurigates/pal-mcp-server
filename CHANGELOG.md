@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [11.6.0](https://github.com/laurigates/pal-mcp-server/compare/v11.5.0...v11.6.0) (2026-09-27)
+
+
+### Features
+
+* **registry:** enabled_by_default flag and catalog-driven entry generator ([#160](https://github.com/laurigates/pal-mcp-server/issues/160)) ([8616cc1](https://github.com/laurigates/pal-mcp-server/commit/8616cc18a5bc572e8225ff991f265691fb3171a6))
+
+
+### Bug Fixes
+
+* **deps:** pin dependencies ([#157](https://github.com/laurigates/pal-mcp-server/issues/157)) ([3c6d5da](https://github.com/laurigates/pal-mcp-server/commit/3c6d5daf51d015b0c59984237918e0e4f2872aaa))
+* **deps:** restore pyproject version ranges and stop Renovate pinning them ([#161](https://github.com/laurigates/pal-mcp-server/issues/161)) ([c684319](https://github.com/laurigates/pal-mcp-server/commit/c6843193f34e4f3aca286cbfb53c9833580d9ca0))
+
 ## [11.5.0](https://github.com/laurigates/pal-mcp-server/compare/v11.4.0...v11.5.0) (2026-09-25)
 
 
