@@ -303,6 +303,10 @@ class CustomModelRegistryBase:
             if model_name_lower not in alias_map:
                 alias_map[model_name_lower] = config.model_name
 
+            # A disabled entry answers to its canonical name only (#149).
+            if not config.enabled_by_default:
+                continue
+
             for alias in config.aliases:
                 alias_lower = alias.lower()
                 if alias_lower in alias_map and alias_map[alias_lower] != config.model_name:

@@ -208,6 +208,28 @@ class TestCandidateAdditions:
         findings, _ = audit.audit_target(target, catalogs, top_n=10)
         assert [f.model_name for f in _kinds(findings, "missing")][0] == "vendor/brand-new"
 
+    def test_disabled_entry_is_not_a_candidate(self, conf_dir, catalogs):
+        """#149: a model triaged in switched off is configured, not MISSING."""
+        conf_dir("openrouter_models.json", [{"model_name": "vendor/brand-new", "enabled_by_default": False}])
+        target = audit.Target("openrouter_models.json", "openrouter", label="OpenRouter")
+        findings, _ = audit.audit_target(target, catalogs, top_n=10)
+        assert "vendor/brand-new" not in {f.model_name for f in _kinds(findings, "missing")}
+        assert _kinds(findings, "schema") == []
+
+    def test_id_claimed_by_an_alias_is_not_a_candidate(self, conf_dir, catalogs):
+        """An entry named after an existing alias would override what that name resolves to."""
+        conf_dir("openrouter_models.json", [{"model_name": "vendor/live-model", "aliases": ["Vendor/Brand-New"]}])
+        target = audit.Target("openrouter_models.json", "openrouter", label="OpenRouter")
+        findings, _ = audit.audit_target(target, catalogs, top_n=10)
+        assert "vendor/brand-new" not in {f.model_name for f in _kinds(findings, "missing")}
+
+    def test_expiring_model_is_not_a_candidate(self, conf_dir, catalogs):
+        """Adding it would only trade a MISSING finding for a DEPRECATED one."""
+        conf_dir("openrouter_models.json", [])
+        target = audit.Target("openrouter_models.json", "openrouter", label="OpenRouter")
+        findings, _ = audit.audit_target(target, catalogs, top_n=10)
+        assert "vendor/expiring-model" not in {f.model_name for f in _kinds(findings, "missing")}
+
     def test_top_n_zero_suppresses_candidates(self, conf_dir, catalogs):
         conf_dir("openrouter_models.json", [])
         target = audit.Target("openrouter_models.json", "openrouter", label="OpenRouter")

@@ -22,6 +22,18 @@ from utils.env import get_env
 logger = logging.getLogger(__name__)
 
 
+def _disabled_note(provider, allowlist_var: str) -> list[str]:
+    """One line counting the entries hidden by ``enabled_by_default: false`` (#149)."""
+    all_configs = provider.get_all_model_capabilities()
+    hidden = len(all_configs) - len(provider._enabled_configs(all_configs))
+    if not hidden:
+        return []
+    return [
+        f"\n*{hidden} more model(s) are disabled by default. Name one in {allowlist_var} to list it here "
+        "and use it in auto mode, or request it by its exact model name.*"
+    ]
+
+
 class ListModelsTool(BaseTool):
     """
     Tool for listing all available AI models organized by provider.
@@ -203,6 +215,7 @@ class ListModelsTool(BaseTool):
                     if aliases:
                         output_lines.append("\n**Aliases**:")
                         output_lines.extend(sorted(aliases))
+                output_lines.extend(_disabled_note(provider, provider_cls.allowed_models_env_vars()[0]))
             else:
                 output_lines.append(f"**Status**: Not configured (set {', '.join(provider_cls.gating_env_vars())})")
 
@@ -305,6 +318,7 @@ class ListModelsTool(BaseTool):
                                     output_lines.append(f"- `{alias}`{arrow} (score {rank}, {suffix})")
                                 else:
                                     output_lines.append(f"- `{alias}` (score {rank})")
+                    output_lines.extend(_disabled_note(provider, OpenRouterProvider.allowed_models_env_vars()[0]))
                 else:
                     output_lines.append("**Error**: Could not load OpenRouter provider")
 

@@ -34,8 +34,10 @@ test-integration:
 # OpenRouter /api/v1/models (authoritative, carries expiration_date) and
 # models.dev/api.json (community-maintained, covers google/openai/xai/opencode).
 #
-# The script reports; it never edits conf/*.json. Turning a candidate into a
-# config entry is judgment — see .claude/skills/model-registry-audit/SKILL.md.
+# The audit reports; it never edits conf/*.json. models-generate writes the
+# catalog-derived fields of each candidate as a disabled entry; enabling one,
+# with its intelligence_score and aliases, is judgment — see
+# .claude/skills/model-registry-audit/SKILL.md.
 
 # Audit conf/*_models.json for deprecated, stale, and missing models
 models-audit *ARGS:
@@ -52,6 +54,10 @@ models-audit-json:
 # Re-audit from the cached catalogs without hitting the network
 models-audit-offline *ARGS:
     uv run python scripts/audit_model_registry.py --cache-dir .cache/model-catalogs --offline {{ARGS}}
+
+# Append disabled, catalog-derived entries for every MISSING candidate; review the diff
+models-generate *ARGS:
+    uv run python scripts/generate_model_entries.py --cache-dir .cache/model-catalogs {{ARGS}}
 
 # CI gate: exit 1 when deprecated/stale/collision/schema drift exists
 models-audit-strict:
