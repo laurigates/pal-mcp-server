@@ -50,17 +50,17 @@ jobs:
       # PyPI exchanges for a short-lived upload credential.
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v6.8.0
         with:
           # Keep in step with [tool.uv] required-version in pyproject.toml and
           # the uv base image in Dockerfile — three places, not two.
           # The annotation below is inert unless the org Renovate config enables a
           # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.x"
+          version: "0.12.19"
           enable-cache: true
 
       - name: Build distributions

@@ -38,14 +38,14 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
       # The audit script is stdlib-only by design, so this job needs neither uv
       # nor a project sync — which also keeps it off the three-place uv pin
       # (pyproject required-version / setup-uv / Dockerfile) that the other
       # workflows have to move in step.
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version-file: .python-version
 
@@ -114,7 +114,7 @@ jobs:
 
       - name: Open or update the drift PR
         if: ${{ !inputs.fail-on-drift && (steps.audit.outputs.actionable != '0' || steps.audit.outputs.missing != '0') }}
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v7.0.11
         with:
           token: ${{ steps.app-token.outputs.token }}
           # A fixed branch name means a rerun updates the open PR instead of

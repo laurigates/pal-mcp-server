@@ -43,7 +43,7 @@ jobs:
       # workflow.
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@v3.2.0
         with:
           app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
@@ -52,14 +52,14 @@ jobs:
       # would otherwise be readable by the build backends `uv lock` runs to
       # build sdists for any dependency shipping no wheel. The push below
       # supplies it explicitly instead.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           ref: ${{ github.head_ref }}
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v6.8.0
         with:
           # Pinned: uv lock --check is load-bearing, and a uv that bumps
           # the lockfile revision would redden every open PR at once.
@@ -68,7 +68,7 @@ jobs:
           # The annotation below is inert unless the org Renovate config enables a
           # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.x"
+          version: "0.12.19"
           enable-cache: true
 
       - name: Relock

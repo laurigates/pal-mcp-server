@@ -2,7 +2,7 @@
 name = "pal-mcp-server"
 version = "11.5.0"
 description = "AI-powered MCP server with multiple model providers"
-requires-python = ">=3.10"
+requires-python = "==3.14.7"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 # requires-python has no upper bound, so newer interpreters resolve; these are
@@ -22,11 +22,11 @@ dependencies = [
     # (WebSocket transport missing Host/Origin validation). 2.x is downstream of
     # all three. Do not lower this, and do not move back to 1.x, without
     # confirming they remain fixed.
-    "mcp~=2.1",
-    "google-genai~=2.6",
-    "openai~=2.38",
-    "pydantic~=2.13",
-    "python-dotenv~=1.2",
+    "mcp==2.1.1",
+    "google-genai==2.6.0",
+    "openai==2.38.0",
+    "pydantic==2.13.4",
+    "python-dotenv==1.2.2",
 ]
 
 [project.scripts]
@@ -34,11 +34,11 @@ pal-mcp-server = "server:run"
 
 [dependency-groups]
 dev = [
-    "pytest~=9.0",
-    "pytest-asyncio~=1.3",
-    "pytest-mock~=3.15",
-    "ruff~=0.15",
-    "ty>=0.0.39",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.3.0",
+    "pytest-mock==3.15.1",
+    "ruff==0.15.14",
+    "ty==0.0.39",
 ]
 
 [tool.setuptools.packages.find]
@@ -156,5 +156,5 @@ markers = [
 [build-system]
 # 77 is the floor for PEP 639: the SPDX `license` string and `license-files`
 # in [project] are errors on older setuptools.
-requires = ["setuptools>=77", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools==84.0.0", "wheel", "setuptools_scm[toml]==10.3.4"]
 build-backend = "setuptools.build_meta"
