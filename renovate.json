@@ -11,6 +11,17 @@
       "description": "uv is pinned in three places that must move together (pyproject required-version, setup-uv version, this image); bump them by hand, see CLAUDE.md.",
       "matchPackageNames": ["ghcr.io/astral-sh/uv"],
       "enabled": false
+    },
+    {
+      "description": "pyproject.toml ranges are what installers resolve against (some are security floors); exact versions live in uv.lock. Overrides the central rangeStrategy: pin, which turned every range into an == pin in #157.",
+      "matchManagers": ["pep621"],
+      "rangeStrategy": "update-lockfile"
+    },
+    {
+      "description": "requires-python is the supported-interpreter floor, not a dependency. Pinning it to ==3.14.7 in #157 rejected the 3.12 that .python-version and the test matrix use, and every CI job failed at setup.",
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["requires-python"],
+      "enabled": false
     }
   ]
 }
