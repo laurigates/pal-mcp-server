@@ -241,6 +241,116 @@
       "supports_images": true,
       "supports_temperature": true,
       "max_image_size_mb": 20.0
+    },
+    {
+      "model_name": "deep-research-max-preview-04-2026",
+      "description": "Deep Research Max Preview (Apr-21-2026)",
+      "context_window": 131072,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "deep-research-preview-04-2026",
+      "description": "Deep Research Preview (Apr-21-2026)",
+      "context_window": 131072,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-2.5-flash-lite",
+      "description": "Gemini 2.5 Flash-Lite",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-3.1-flash-lite-preview",
+      "description": "Gemini 3.1 Flash Lite Preview",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-3.1-pro-preview-customtools",
+      "description": "Gemini 3.1 Pro Preview Custom Tools",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-flash-latest",
+      "description": "Gemini Flash Latest",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-flash-lite-latest",
+      "description": "Gemini Flash-Lite Latest",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemma-4-26b-a4b-it",
+      "description": "Gemma 4 26B A4B IT",
+      "context_window": 262144,
+      "max_output_tokens": 32768,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemma-4-31b-it",
+      "description": "Gemma 4 31B IT",
+      "context_window": 262144,
+      "max_output_tokens": 32768,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "lyria-3-clip-preview",
+      "description": "Lyria 3 Clip Preview",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": false,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "lyria-3-pro-preview",
+      "description": "Lyria 3 Pro Preview",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": false,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
     }
   ]
 }

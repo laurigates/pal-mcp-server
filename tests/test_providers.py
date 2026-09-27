@@ -212,7 +212,9 @@ class TestOpenAIProvider:
         assert provider.validate_model_name("gpt-5.2")
         assert provider.validate_model_name("gpt-5.3-codex")
         assert provider.validate_model_name("gpt-5.3-codex-spark")
-        assert not provider.validate_model_name("gpt-4o")
+        # gpt-4o is a disabled entry (#149): served by exact name, never listed
+        assert provider.validate_model_name("gpt-4o")
+        assert "gpt-4o" not in provider.list_models()
         assert not provider.validate_model_name("invalid-model")
 
     def test_openai_models_do_not_support_extended_thinking(self):

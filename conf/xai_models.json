@@ -131,6 +131,36 @@
       "supports_images": true,
       "supports_temperature": true,
       "max_image_size_mb": 20.0
+    },
+    {
+      "model_name": "grok-4.20-0309-non-reasoning",
+      "description": "Grok 4.20 (Non-Reasoning)",
+      "context_window": 1000000,
+      "max_output_tokens": 30000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "grok-4.20-0309-reasoning",
+      "description": "Grok 4.20 (Reasoning)",
+      "context_window": 1000000,
+      "max_output_tokens": 30000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "grok-4.20-multi-agent-0309",
+      "description": "Grok 4.20 Multi-Agent",
+      "context_window": 1000000,
+      "max_output_tokens": 30000,
+      "supports_images": true,
+      "supports_function_calling": false,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
     }
   ]
 }

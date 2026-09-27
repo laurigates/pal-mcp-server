@@ -192,6 +192,8 @@ class TestAliasTargetRestrictions:
 
         # Verify that for each alias, its target is also included
         for model_name, config in openai_provider.MODEL_CAPABILITIES.items():
+            if not getattr(config, "enabled_by_default", True):
+                continue  # disabled entries are not discoverable (#149)
             assert model_name.lower() in openai_all_known
             if isinstance(config, str):  # This is an alias
                 # The target should also be in the known models
@@ -207,6 +209,8 @@ class TestAliasTargetRestrictions:
 
         # Verify that for each alias, its target is also included
         for model_name, config in gemini_provider.MODEL_CAPABILITIES.items():
+            if not getattr(config, "enabled_by_default", True):
+                continue  # disabled entries are not discoverable (#149)
             assert model_name.lower() in gemini_all_known
             if isinstance(config, str):  # This is an alias
                 # The target should also be in the known models

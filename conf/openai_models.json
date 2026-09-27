@@ -501,6 +501,206 @@
       "default_reasoning_effort": "medium",
       "allow_code_generation": true,
       "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "gpt-3.5-turbo",
+      "description": "GPT-3.5-turbo",
+      "context_window": 16385,
+      "max_output_tokens": 4096,
+      "supports_images": false,
+      "supports_function_calling": false,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4",
+      "description": "GPT-4",
+      "context_window": 8192,
+      "max_output_tokens": 8192,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4-turbo",
+      "description": "GPT-4 Turbo",
+      "context_window": 128000,
+      "max_output_tokens": 4096,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4.1-mini",
+      "description": "GPT-4.1 mini",
+      "context_window": 1047576,
+      "max_output_tokens": 32768,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4.1-nano",
+      "description": "GPT-4.1 nano",
+      "context_window": 1047576,
+      "max_output_tokens": 32768,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4o",
+      "description": "GPT-4o",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4o-2024-05-13",
+      "description": "GPT-4o (2024-05-13)",
+      "context_window": 128000,
+      "max_output_tokens": 4096,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4o-2024-08-06",
+      "description": "GPT-4o (2024-08-06)",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4o-2024-11-20",
+      "description": "GPT-4o (2024-11-20)",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-4o-mini",
+      "description": "GPT-4o mini",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-5-pro",
+      "description": "GPT-5 Pro",
+      "context_window": 400000,
+      "max_output_tokens": 272000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-5.2-chat-latest",
+      "description": "GPT-5.2 Chat",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-5.3-chat-latest",
+      "description": "GPT-5.3 Chat (latest)",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-5.4",
+      "description": "GPT-5.4",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-5.4-mini",
+      "description": "GPT-5.4 mini",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-5.4-nano",
+      "description": "GPT-5.4 nano",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-5.4-pro",
+      "description": "GPT-5.4 Pro",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "o1",
+      "description": "o1",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "o1-pro",
+      "description": "o1-pro",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
     }
   ]
 }
