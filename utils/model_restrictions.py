@@ -236,6 +236,19 @@ class ModelRestrictionService:
 
         return False
 
+    def is_enabled(self, provider_type: ProviderType, capabilities) -> bool:
+        """Whether a registry entry takes part in model discovery.
+
+        Entries default to enabled. One with ``enabled_by_default: false`` is
+        enabled only when the provider's allowlist names its canonical model
+        name -- an alias cannot opt it in, because a disabled entry's aliases
+        are never registered. Discovery is separate from ``is_allowed``: a
+        disabled entry requested by its exact name is still served.
+        """
+        if getattr(capabilities, "enabled_by_default", True):
+            return True
+        return capabilities.model_name.lower() in self.restrictions.get(provider_type, set())
+
     def get_allowed_models(self, provider_type: ProviderType) -> set[str] | None:
         """
         Get the set of allowed models for a provider.

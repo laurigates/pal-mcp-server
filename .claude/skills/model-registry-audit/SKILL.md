@@ -42,9 +42,11 @@ ACTIONABLE=43
 STATUS=DRIFT
 ```
 
-`ACTIONABLE` excludes `MISSING` on purpose — candidate additions are ranked by
-release date, not by whether they are worth exposing, so a nonzero `MISSING`
-is the normal state and must never gate CI.
+`MISSING` counts catalog models the config has no entry for at all. An entry
+with `"enabled_by_default": false` counts as configured, so once
+`just models-generate` has run, `MISSING` lists only releases nobody has
+triaged yet. `ACTIONABLE` still excludes it: new releases land weekly, and a
+fresh release is not drift.
 
 `ORPHAN_REF` is the one finding that is not about the config at all. Providers
 pin canonical ids *outside* the registry — `PRIMARY_MODEL`, `FALLBACK_MODEL`,
@@ -169,6 +171,26 @@ than reporting them clean:
 
 ### Adding a model
 
+Untriaged catalog models enter the registry switched off:
+
+```
+just models-generate                    # every catalog-backed config
+just models-generate --only xai_models.json --dry-run
+```
+
+`scripts/generate_model_entries.py` writes one entry per `MISSING` candidate
+with the catalog-derived fields from the table below and
+`"enabled_by_default": false`. It never writes `intelligence_score` or
+`aliases`, so a generated entry changes nothing in auto mode until someone
+promotes it. Review the diff; the script does not commit.
+
+**Promoting an entry** is the judgment step: set `enabled_by_default` to `true`
+(or delete the key), add an `intelligence_score` and aliases per the sections
+below, and check the generated fields against the provider's docs. A model
+that should stay available but out of auto mode (a preview, a free trial, a
+superseded version) gets `"enabled_by_default": false` by hand instead of
+being deleted; users opt in by naming it in `*_ALLOWED_MODELS`.
+
 Every field must come from the catalog or the provider's own docs. **Never
 infer a context window from the model's name or from a sibling** — a
 fabricated `context_window` is silently wrong at runtime and produces
@@ -231,8 +253,8 @@ just check                 # lint, format, type check, unit tests
 ```
 
 Confirm the fix landed by re-reading the audit, not by the edit succeeding.
-`STATUS=CLEAN` is the goal for `ACTIONABLE` findings; `MISSING` will still be
-nonzero and that is correct.
+`STATUS=CLEAN` is the goal for `ACTIONABLE` findings. `MISSING` returns to 0
+after `just models-generate`.
 
 ## The scheduled workflow
 

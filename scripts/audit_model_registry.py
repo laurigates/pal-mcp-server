@@ -69,6 +69,7 @@ CAPABILITY_FIELDS = {
     "use_openai_response_api",
     "default_reasoning_effort",
     "allow_code_generation",
+    "enabled_by_default",
     "max_image_size_mb",
     "temperature_constraint",
 }
@@ -269,6 +270,7 @@ def modelsdev_index(catalog: Any, provider_id: str) -> dict[str, dict[str, Any]]
             "output_modalities": modalities.get("output") or [],
             "reasoning": m.get("reasoning"),
             "tool_call": m.get("tool_call"),
+            "temperature": m.get("temperature"),
             "attachment": m.get("attachment"),
             "cost": m.get("cost") or {},
             "description": m.get("description") or "",
@@ -296,6 +298,47 @@ def is_candidate_id(model_id: str) -> bool:
     those as additions would bury the genuinely new releases.
     """
     return not model_id.startswith("~") and ":" not in model_id
+
+
+def claimed_names(models: list[dict[str, Any]]) -> set[str]:
+    """Lowercased model names and aliases a config already answers to.
+
+    An alias counts: ``gpt-5.6`` as an alias of ``gpt-5.6-sol`` is a decision
+    about what that name means, and an entry named ``gpt-5.6`` would override
+    it, because resolvers try exact names before aliases.
+    """
+    names = {m["model_name"].lower() for m in models if m.get("model_name")}
+    names |= {a.lower() for m in models for a in (m.get("aliases") or [])}
+    return names
+
+
+def candidate_facts(live: dict[str, dict[str, Any]], claimed: set[str]) -> list[dict[str, Any]]:
+    """Live chat models a config does not answer to yet, newest first.
+
+    ``claimed`` comes from ``claimed_names``. A configured entry counts whether
+    or not it is ``enabled_by_default``, so a model triaged into the registry
+    switched off stops being a candidate. Models already carrying an
+    ``expiration_date`` are skipped: adding one would only trade a MISSING
+    finding for a DEPRECATED one.
+    """
+    seen: set[str] = set()
+    candidates: list[dict[str, Any]] = []
+    for facts in live.values():
+        mid = facts.get("id")
+        if not mid or mid in seen or mid.lower() in claimed:
+            continue
+        seen.add(mid)
+        if is_chat_model(facts) and is_candidate_id(mid) and not facts.get("expiration_date"):
+            candidates.append(facts)
+    candidates.sort(key=lambda f: str(f.get("created") or ""), reverse=True)
+    return candidates
+
+
+def live_index(target: Target, catalogs: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], str]:
+    """The catalog slice that verifies ``target``, and how far to trust an absence from it."""
+    if target.source == "openrouter":
+        return openrouter_index(catalogs["openrouter"]), "confirmed"  # the provider's own live endpoint
+    return modelsdev_index(catalogs["modelsdev"], target.provider_id), "review"  # community-maintained
 
 
 def read_config(path: Path) -> tuple[list[dict[str, Any]], str | None]:
@@ -424,24 +467,17 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
         meta["catalog"] = 0
         return findings, meta
 
-    if target.source == "openrouter":
-        live = openrouter_index(catalogs["openrouter"])
-        confidence = "confirmed"  # the provider's own live endpoint
-    else:
-        live = modelsdev_index(catalogs["modelsdev"], target.provider_id)
-        confidence = "review"  # community-maintained; absence is not proof
+    live, confidence = live_index(target, catalogs)
 
     meta["catalog"] = len({f["id"] for f in live.values() if f.get("id")})
     if not live:
         meta["error"] = f"catalog slice for {target.provider_id or target.source} came back empty"
         return findings, meta
 
-    configured_ids = set()
     for m in models:
         name = m.get("model_name")
         if not name:
             continue
-        configured_ids.add(name)
         facts = live.get(name) or live.get(name.split(":", 1)[0])
         if facts is None:
             findings.append(
@@ -480,18 +516,9 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
                     )
                 )
 
-    # Candidate additions: live chat models this config does not expose, newest
-    # first. Ranked, never auto-applied -- picking which to add is judgment.
-    seen: set[str] = set()
-    candidates: list[dict[str, Any]] = []
-    for facts in live.values():
-        mid = facts.get("id")
-        if not mid or mid in seen or mid in configured_ids:
-            continue
-        seen.add(mid)
-        if is_chat_model(facts) and is_candidate_id(mid):
-            candidates.append(facts)
-    candidates.sort(key=lambda f: str(f.get("created") or ""), reverse=True)
+    # Candidate additions: live chat models this config does not have at all.
+    # scripts/generate_model_entries.py turns them into disabled entries.
+    candidates = candidate_facts(live, claimed_names(models))
     for facts in candidates[:top_n]:
         findings.append(
             Finding(

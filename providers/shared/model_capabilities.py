@@ -65,6 +65,12 @@ class ModelCapabilities:
         False  # Enables structured code generation in chat tool for substantial implementations
     )
 
+    # False keeps a registry entry out of discovery: auto mode, list_models,
+    # the ranked summary and listmodels skip it, and its aliases do not
+    # resolve. It still answers to its exact canonical name, and naming it in
+    # the provider's *_ALLOWED_MODELS makes it discoverable again (#149).
+    enabled_by_default: bool = True
+
     # Additional attributes
     max_image_size_mb: float = 0.0
     temperature_constraint: TemperatureConstraint = field(

@@ -200,6 +200,14 @@ OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
 - When you override the manifest files you can add or remove aliases as needed; restriction policies (`*_ALLOWED_MODELS`) automatically pick up those changes.
 - Models omitted from a manifest fall back to generic capability detection (where supported) and may have limited feature metadata.
 
+**Models disabled by default:** Manifest entries with `"enabled_by_default": false` (previews, free trials, superseded models, and every entry `just models-generate` writes from the provider catalogs) stay out of auto mode, the ranked model summary and `listmodels`, and their aliases do not resolve. To opt one in, add its canonical `model_name` to the provider's `*_ALLOWED_MODELS`; an alias does not enable it. You can also request one by its exact `model_name` without listing it, unless an allowlist that omits it is set.
+
+```env
+# An allowlist replaces the default set: list the models you use,
+# including any disabled entry you want to opt in
+OPENROUTER_ALLOWED_MODELS=opus,sonnet,qwen/qwen-2.5-coder-32b-instruct
+```
+
 **Example Configurations:**
 ```env
 # Cost control - only cheap models

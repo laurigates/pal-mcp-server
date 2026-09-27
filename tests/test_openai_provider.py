@@ -71,7 +71,9 @@ class TestOpenAIProvider:
 
         # Test invalid model
         assert provider.validate_model_name("invalid-model") is False
-        assert provider.validate_model_name("gpt-4") is False
+        # gpt-4 is a disabled entry (#149): served by exact name, never listed
+        assert provider.validate_model_name("gpt-4") is True
+        assert "gpt-4" not in provider.list_models()
         assert provider.validate_model_name("gemini-pro") is False
 
     def test_resolve_model_name(self):

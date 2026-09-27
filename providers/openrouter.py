@@ -146,6 +146,9 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             if config.provider == ProviderType.CUSTOM:
                 continue
 
+            if not get_restriction_service().is_enabled(self.get_provider_type(), config):
+                continue
+
             if restriction_service:
                 allowed = restriction_service.is_allowed(self.get_provider_type(), model_name)
 

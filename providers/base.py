@@ -147,17 +147,27 @@ class ModelProvider(ABC):
         return {}
 
     def get_capabilities_by_rank(self) -> list[tuple[str, ModelCapabilities]]:
-        """Return model capabilities sorted by effective capability rank."""
-        if self._sorted_capabilities_cache is not None:
-            return list(self._sorted_capabilities_cache)
-        model_configs = self.get_all_model_capabilities()
-        if not model_configs:
-            self._sorted_capabilities_cache = []
-            return []
-        items = list(model_configs.items())
-        items.sort(key=lambda item: (-item[1].get_effective_capability_rank(), item[0]))
-        self._sorted_capabilities_cache = items
-        return list(items)
+        """Return enabled model capabilities sorted by effective capability rank."""
+        if self._sorted_capabilities_cache is None:
+            items = list(self.get_all_model_capabilities().items())
+            items.sort(key=lambda item: (-item[1].get_effective_capability_rank(), item[0]))
+            self._sorted_capabilities_cache = items
+        # Filtered after the cache rather than before it: enablement reads the
+        # restriction service, which tests rebuild between cases.
+        enabled = self._enabled_configs(dict(self._sorted_capabilities_cache))
+        return [item for item in self._sorted_capabilities_cache if item[0] in enabled]
+
+    def _enabled_configs(self, model_configs: dict[str, ModelCapabilities]) -> dict[str, ModelCapabilities]:
+        """Drop entries that are disabled by default and not opted in (#149)."""
+        from utils.model_restrictions import get_restriction_service
+
+        restriction_service = get_restriction_service()
+        provider_type = self.get_provider_type()
+        return {
+            name: config
+            for name, config in model_configs.items()
+            if restriction_service.is_enabled(provider_type, config)
+        }
 
     def _invalidate_capability_cache(self) -> None:
         """Clear cached sorted capability data."""
@@ -172,14 +182,12 @@ class ModelProvider(ABC):
         unique: bool = False,
     ) -> list[str]:
         """Return formatted model names supported by this provider."""
-        model_configs = self.get_all_model_capabilities()
+        from utils.model_restrictions import get_restriction_service
+
+        model_configs = self._enabled_configs(self.get_all_model_capabilities())
         if not model_configs:
             return []
-        restriction_service = None
-        if respect_restrictions:
-            from utils.model_restrictions import get_restriction_service
-
-            restriction_service = get_restriction_service()
+        restriction_service = get_restriction_service() if respect_restrictions else None
         if restriction_service:
             allowed_configs = {}
             for model_name, config in model_configs.items():
@@ -465,7 +473,10 @@ class ModelProvider(ABC):
         for base_model in model_configs:
             if base_model.lower() == model_name_lower:
                 return base_model
-        alias_map = ModelCapabilities.collect_aliases(model_configs)
+        # A disabled entry answers to its canonical name only (#149).
+        alias_map = ModelCapabilities.collect_aliases(
+            {name: config for name, config in model_configs.items() if config.enabled_by_default}
+        )
         for base_model, aliases in alias_map.items():
             if any(alias.lower() == model_name_lower for alias in aliases):
                 return base_model

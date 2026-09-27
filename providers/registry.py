@@ -224,6 +224,12 @@ class ModelProviderRegistry:
         logging.debug(f"Registry instance: {instance}")
         logging.debug(f"Available providers in registry: {list(instance._providers.keys())}")
 
+        from utils.model_restrictions import get_restriction_service
+
+        # A provider whose match is disabled by default (#149) serves the name
+        # only when no provider has an enabled match, so a generated entry
+        # never takes a name another provider's alias already answers to.
+        disabled_match: ModelProvider | None = None
         for provider_type in cls.PROVIDER_PRIORITY_ORDER:
             if provider_type in instance._providers:
                 logging.debug(f"Found {provider_type} in registry")
@@ -231,14 +237,18 @@ class ModelProviderRegistry:
                 provider = cls.get_provider(provider_type)
                 if provider and provider.validate_model_name(model_name):
                     logging.debug(f"{provider_type} validates model {model_name}")
-                    return provider
+                    capabilities = provider.get_capabilities(model_name)
+                    if get_restriction_service().is_enabled(provider_type, capabilities):
+                        return provider
+                    disabled_match = disabled_match or provider
                 else:
                     logging.debug(f"{provider_type} does not validate model {model_name}")
             else:
                 logging.debug(f"{provider_type} not found in registry")
 
-        logging.debug(f"No provider found for model {model_name}")
-        return None
+        if disabled_match is None:
+            logging.debug(f"No provider found for model {model_name}")
+        return disabled_match
 
     @classmethod
     def get_available_providers(cls) -> list[ProviderType]:
