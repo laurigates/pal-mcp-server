@@ -42,7 +42,7 @@ jobs:
           # The annotation below is inert unless the org Renovate config enables a
           # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.19"
+          version: "0.12.22"
           enable-cache: true
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -72,7 +72,7 @@ jobs:
           # The annotation below is inert unless the org Renovate config enables a
           # matching customManager; assume this bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.19"
+          version: "0.12.22"
           enable-cache: true
 
       # `uv sync` silently re-resolves instead of complaining, and the
