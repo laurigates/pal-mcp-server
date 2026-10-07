@@ -1502,13 +1502,6 @@ async def handle_get_prompt(
     )
 
 
-def _readable_transcripts_dir() -> Path | None:
-    """Return the transcripts directory, or ``None`` when transcripts are disabled."""
-    from utils.transcripts import get_transcripts_dir, transcripts_enabled
-
-    return get_transcripts_dir() if transcripts_enabled() else None
-
-
 async def handle_list_resources(
     context: ServerRequestContext,  # noqa: ARG001 - required by the on_list_resources signature
     params: PaginatedRequestParams | None = None,  # noqa: ARG001 - capped at transcript_reader.DEFAULT_LIMIT
@@ -1516,7 +1509,7 @@ async def handle_list_resources(
     """List the thread index plus one resource per recent conversation thread (``@pal:`` mentions)."""
     from utils import transcript_reader as reader
 
-    directory = _readable_transcripts_dir()
+    directory = reader.readable_transcripts_dir()
     transcripts = reader.load_recent_transcripts(directory) if directory else []
     resources = [
         Resource(
@@ -1568,7 +1561,7 @@ async def handle_read_resource(
     from utils import transcript_reader as reader
 
     uri = str(params.uri)
-    directory = _readable_transcripts_dir()
+    directory = reader.readable_transcripts_dir()
 
     if uri == reader.THREADS_INDEX_URI:
         text = reader.render_index(reader.load_recent_transcripts(directory) if directory else [])

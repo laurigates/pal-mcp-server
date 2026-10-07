@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from utils.transcripts import get_transcripts_dir, transcripts_enabled
+
 logger = logging.getLogger(__name__)
 
 THREADS_INDEX_URI = "pal://threads"
@@ -63,6 +65,11 @@ class ThreadTranscript:
             if turn.get("role") == "user" and turn.get("content"):
                 return str(turn["content"])
         return None
+
+
+def readable_transcripts_dir() -> Path | None:
+    """Return the transcripts directory to read, or ``None`` when ``PAL_TRANSCRIPTS`` disables them."""
+    return get_transcripts_dir() if transcripts_enabled() else None
 
 
 def is_valid_thread_id(thread_id: str) -> bool:
