@@ -20,6 +20,7 @@
     ],
     "deny": []
   },
+  "enabledMcpjsonServers": ["pal"],
   "extraKnownMarketplaces": {
     "claude-plugins": {
       "source": {
