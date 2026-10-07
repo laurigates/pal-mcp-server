@@ -249,6 +249,19 @@ def mock_provider(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolated_state_dir(monkeypatch, tmp_path_factory):
+    """Point ``PAL_STATE_DIR`` at a per-test temp dir.
+
+    Conversation transcripts (issue #164) are on by default and every
+    ``create_thread()`` / ``add_turn()`` writes one, so without this the suite
+    would write into the developer's real ``~/.local/state/pal-mcp-server``.
+    A separate ``mktemp`` dir (not ``tmp_path``) keeps tests that inspect
+    their own ``tmp_path`` free of an unexpected subdirectory.
+    """
+    monkeypatch.setenv("PAL_STATE_DIR", str(tmp_path_factory.mktemp("pal-state")))
+
+
+@pytest.fixture(autouse=True)
 def _runtime_env(monkeypatch):
     """Default tests to runtime environment visibility with a stable DEFAULT_MODEL.
 

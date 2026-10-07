@@ -276,6 +276,36 @@ aborting a call that is still making progress.
 PAL_PROGRESS_HEARTBEAT_SECONDS=5
 ```
 
+### Conversation Transcripts
+
+PAL appends every conversation turn — the request sent to a model and the model's
+reply — to a per-thread JSONL file, so you can read or `tail -f` what delegated
+models were asked and answered. Transcripts are **on by default**.
+
+```env
+# Set to false to write no transcripts. Default: true
+PAL_TRANSCRIPTS=true
+
+# Transcripts not modified for this many days are deleted at server startup.
+# 0 or a negative value never prunes. Default: 30
+PAL_TRANSCRIPT_RETENTION_DAYS=30
+
+# Base directory for PAL's on-disk state. Default: $XDG_STATE_HOME/pal-mcp-server,
+# else ~/.local/state/pal-mcp-server
+PAL_STATE_DIR=/path/to/state
+```
+
+- **Location:** `<state dir>/threads/<thread_id>.jsonl`. The directory is created
+  with mode `0700` and each file with `0600`.
+- **Privacy:** transcripts hold full prompt and reply text, and replies can quote
+  code from files embedded in a request. Treat the directory like source code;
+  disable transcripts where that is not acceptable.
+- **Failures never break a tool call:** an unwritable directory logs a `WARNING`
+  per write and the conversation continues. In the Docker image the home
+  directory is not writable, so set `PAL_STATE_DIR` to a mounted volume or
+  `PAL_TRANSCRIPTS=false`.
+- **Record format:** see [Conversation Transcripts in the logging guide](logging.md#conversation-transcripts).
+
 ## Configuration Examples
 
 ### Development Setup

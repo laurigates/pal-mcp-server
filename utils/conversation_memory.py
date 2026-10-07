@@ -112,6 +112,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from utils import transcripts
 from utils.env import get_env
 
 logger = logging.getLogger(__name__)
@@ -277,6 +278,7 @@ def create_thread(tool_name: str, initial_request: dict[str, Any], parent_thread
     storage = get_storage()
     key = f"thread:{thread_id}"
     storage.setex(key, CONVERSATION_TIMEOUT_SECONDS, context.model_dump_json())
+    transcripts.record_thread_created(thread_id, parent_thread_id, tool_name, now)
 
     logger.debug(f"[THREAD] Created new thread {thread_id} with parent {parent_thread_id}")
 
@@ -441,7 +443,6 @@ def add_turn(
         storage = get_storage()
         key = f"thread:{thread_id}"
         storage.setex(key, CONVERSATION_TIMEOUT_SECONDS, context.model_dump_json())  # Refresh TTL to configured timeout
-        return True
     except Exception as exc:
         # Storage write failure is a hard backend fault, not a
         # validation outcome. Log loudly so operators see the real
@@ -456,6 +457,10 @@ def add_turn(
         raise ConversationMemoryStorageError(
             f"Conversation storage backend failure while saving turn to thread {thread_id}"
         ) from exc
+
+    # Transcript writes never raise; a failure is logged and the turn stands.
+    transcripts.record_turn(thread_id, turn)
+    return True
 
 
 def get_thread_chain(thread_id: str, max_depth: int = 20) -> list[ThreadContext]:
