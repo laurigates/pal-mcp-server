@@ -314,6 +314,7 @@ PAL_STATE_DIR=/path/to/state
   directory is not writable, so set `PAL_STATE_DIR` to a mounted volume or
   `PAL_TRANSCRIPTS=false`.
 - **Record format:** see [Conversation Transcripts in the logging guide](logging.md#conversation-transcripts).
+- **Browsing:** `@pal:pal://threads` lists recent threads in an MCP client; see [Browsing threads](logging.md#browsing-threads-with-pal).
 
 ## Configuration Examples
 
