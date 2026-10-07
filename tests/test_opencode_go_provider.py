@@ -130,9 +130,9 @@ class TestOpenCodeGoProvider:
     def test_catalogue_size(self):
         provider = OpenCodeGoProvider("test-key")
         caps = provider.get_all_model_capabilities()
-        # 26 curated models published by the OpenCode Go plan (models.dev);
+        # 22 curated models published by the OpenCode Go plan (models.dev);
         # the rest of the catalog is present but disabled by default (#149)
-        assert len([c for c in caps.values() if c.enabled_by_default]) == 26
+        assert len([c for c in caps.values() if c.enabled_by_default]) == 22
         assert all(c.provider == ProviderType.OPENCODE_GO for c in caps.values())
 
     # ------------------------------------------------------------------
