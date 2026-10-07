@@ -226,4 +226,6 @@ Write-Emoji "💡" "Tips:" -Color Yellow
 Write-ColorText "- Run '.\run_integration_tests.ps1' for integration tests only" -Color White
 Write-ColorText "- Run '.\run_integration_tests.ps1 -WithSimulator' to also run simulator tests" -Color White
 Write-ColorText "- Run '.\code_quality_checks.ps1' for unit tests and linting" -Color White
-Write-ColorText "- Check logs in logs\mcp_server.log if tests fail" -Color White
+$serverLogDir = python -c "from utils.log_dir import get_log_dir; print(get_log_dir().resolve())"
+Write-ColorText "- Check logs in $(Join-Path $serverLogDir 'mcp_server.log') if simulator tests fail" -Color White
+Write-ColorText "  (pytest runs log to a throwaway pal-test-logs-* temp directory instead; see tests\conftest.py)" -Color White

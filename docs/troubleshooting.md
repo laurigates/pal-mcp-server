@@ -47,20 +47,23 @@ If you need to update your API keys, edit the `.env` file and then restart Claud
 View the server logs for detailed error information:
 
 ```bash
+# Default log directory; use your PAL_LOG_DIR instead if you set one
+LOG_DIR=~/.local/state/pal-mcp-server/logs
+
 # View recent logs
-tail -n 100 logs/mcp_server.log
+tail -n 100 $LOG_DIR/mcp_server.log
 
 # Follow logs in real-time
-tail -f logs/mcp_server.log
+tail -f $LOG_DIR/mcp_server.log
 
 # Or use the -f flag when starting to automatically follow logs
 ./run-server.sh -f
 
 # Search for errors
-grep "ERROR" logs/mcp_server.log
+grep "ERROR" $LOG_DIR/mcp_server.log
 ```
 
-See [Logging Documentation](logging.md) for more details on accessing logs.
+The server writes the path it uses at startup (`Logging to: ...`). See [Logging Documentation](logging.md) for how the location is resolved.
 
 ### 5. Common Issues
 

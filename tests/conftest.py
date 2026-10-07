@@ -60,6 +60,12 @@ import utils.env as env_config  # noqa: E402
 # (The per-test ``_runtime_env`` fixture below re-applies this on every test.)
 env_config.reload_env({"PAL_MCP_FORCE_ENV_OVERRIDE": "false"})
 
+# ``import server`` attaches file log handlers at import time. Point them at a
+# throwaway directory so the suite never writes into the developer's real
+# per-user state directory. A plain assignment, set after the reload above, so
+# neither a shell value nor a .env value wins over it.
+os.environ["PAL_LOG_DIR"] = tempfile.mkdtemp(prefix="pal-test-logs-")
+
 # Configure asyncio for Windows compatibility
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

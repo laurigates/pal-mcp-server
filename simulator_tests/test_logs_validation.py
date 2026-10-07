@@ -7,6 +7,7 @@ conversation threading is working properly.
 """
 
 from .base_test import BaseSimulatorTest
+from .log_utils import LogUtils
 
 
 class LogsValidationTest(BaseSimulatorTest):
@@ -29,7 +30,7 @@ class LogsValidationTest(BaseSimulatorTest):
             import os
 
             logs = ""
-            log_files = ["logs/mcp_server.log", "logs/mcp_activity.log"]
+            log_files = [LogUtils.MAIN_LOG_FILE, LogUtils.ACTIVITY_LOG_FILE]
 
             for log_file in log_files:
                 if os.path.exists(log_file):

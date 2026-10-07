@@ -6,6 +6,7 @@ import json
 import os
 
 from .base_test import BaseSimulatorTest
+from .log_utils import LogUtils
 
 
 class LineNumberValidationTest(BaseSimulatorTest):
@@ -147,7 +148,7 @@ def validate_data(data):
 
             # Get logs from server
             try:
-                log_file_path = "logs/mcp_server.log"
+                log_file_path = LogUtils.MAIN_LOG_FILE
                 with open(log_file_path) as f:
                     lines = f.readlines()
                     logs = "".join(lines[-500:])
