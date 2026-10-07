@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pal": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "${CLAUDE_PROJECT_DIR:-.}", "--frozen", "--no-dev", "pal-mcp-server"]
+    }
+  }
+}
