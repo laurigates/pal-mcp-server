@@ -186,6 +186,9 @@ class ListModelsTool(BaseTool):
 
                     aliases = []
                     for model_name, capabilities in provider.get_capabilities_by_rank():
+                        # No allowlist here, but DISABLED_MODELS still applies.
+                        if restriction_service and not restriction_service.is_allowed(provider_type, model_name):
+                            continue
                         try:
                             description = capabilities.description or "No description available"
                         except AttributeError:

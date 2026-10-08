@@ -16,11 +16,18 @@ Environment Variables:
 
     An unset or empty value means "no restriction", not "allow nothing".
 
+    DISABLED_MODELS is one global blocklist applied after the allowlists:
+    the effective set is allowlist-or-all minus blocklist. Entries are
+    canonical names or aliases (an alias blocks the model it resolves to), and
+    ``provider:model`` scopes an entry to one provider, e.g.
+    ``openrouter:x-ai/grok-4.6``.
+
 Example:
     OPENAI_ALLOWED_MODELS=o3-mini,o4-mini
     GOOGLE_ALLOWED_MODELS=flash
     XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
     OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
+    DISABLED_MODELS=grok,gpt-5-nano,openrouter:x-ai/grok-4.6
 """
 
 import logging
@@ -30,6 +37,47 @@ from providers.shared import ProviderType
 from utils.env import get_env
 
 logger = logging.getLogger(__name__)
+
+DISABLED_MODELS_ENV = "DISABLED_MODELS"
+
+_PROVIDER_BY_VALUE = {provider_type.value: provider_type for provider_type in ProviderType}
+
+
+def _parse_disabled_models(raw: str | None) -> tuple[tuple[ProviderType | None, str], ...]:
+    """Split ``DISABLED_MODELS`` into ``(provider scope or None, lowercase name)`` pairs.
+
+    A prefix before the first ``:`` scopes the entry only when it names a
+    provider; otherwise the colon is part of the model name (``llama3.2:1b``).
+    """
+    entries: list[tuple[ProviderType | None, str]] = []
+    for token in (raw or "").split(","):
+        cleaned = token.strip().lower()
+        if not cleaned:
+            continue
+        prefix, sep, rest = cleaned.partition(":")
+        scope = _PROVIDER_BY_VALUE.get(prefix) if sep else None
+        if scope is not None and rest.strip():
+            entries.append((scope, rest.strip()))
+        else:
+            entries.append((None, cleaned))
+    return tuple(dict.fromkeys(entries))
+
+
+def _recognizes(provider, name: str) -> bool:
+    """Whether ``provider`` knows ``name``, ignoring restriction policy.
+
+    ``validate_model_name`` applies policy, so a blocked model would read as
+    unknown; look the capabilities up directly first.
+    """
+    try:
+        if provider._lookup_capabilities(provider._resolve_model_name(name), name) is not None:
+            return True
+    except Exception:  # pragma: no cover - fall back to the public check
+        pass
+    try:
+        return bool(provider.validate_model_name(name))
+    except Exception:  # pragma: no cover - never block startup on this check
+        return False
 
 
 class ModelRestrictionService:
@@ -76,6 +124,8 @@ class ModelRestrictionService:
         self.restrictions: dict[ProviderType, set[str]] = {}
         self._env_var_used: dict[ProviderType, str] = {}
         self._alias_resolution_cache: dict[ProviderType, dict[str, str]] = defaultdict(dict)
+        self.disabled_models: tuple[tuple[ProviderType | None, str], ...] = ()
+        self._blocklist_resolution_cache: dict[ProviderType, dict[str, str | None]] = defaultdict(dict)
         self._load_from_env()
 
     def _load_from_env(self) -> None:
@@ -103,6 +153,10 @@ class ModelRestrictionService:
                 logger.debug(f"{env_var} contains only whitespace - all {provider_type.value} models allowed")
             else:
                 logger.debug(f"No allow-list set for {provider_type.value} - all models allowed")
+
+        self.disabled_models = _parse_disabled_models(get_env(DISABLED_MODELS_ENV))
+        if self.disabled_models:
+            logger.info(f"Disabled models: {self._format_disabled_models()}")
 
     def validate_against_known_models(self, provider_instances: dict[ProviderType, any]) -> None:
         """
@@ -172,6 +226,78 @@ class ModelRestrictionService:
                         f"Please check for typos. Known models: {known_models}"
                     )
 
+        self._validate_disabled_models(provider_instances)
+
+    def _validate_disabled_models(self, provider_instances: dict[ProviderType, any]) -> None:
+        """Warn about ``DISABLED_MODELS`` entries no configured provider recognizes.
+
+        A scoped entry whose provider is not configured is skipped, as an
+        allowlist for an unconfigured provider is.
+        """
+        for scope, name in self.disabled_models:
+            if scope is not None:
+                provider = provider_instances.get(scope)
+                if provider is None or _recognizes(provider, name):
+                    continue
+                logger.warning(
+                    f"Model '{scope.value}:{name}' in {DISABLED_MODELS_ENV} is not a recognized "
+                    f"{scope.value} model. Please check for typos."
+                )
+                continue
+            if any(_recognizes(provider, name) for provider in provider_instances.values() if provider):
+                continue
+            logger.warning(
+                f"Model '{name}' in {DISABLED_MODELS_ENV} is not recognized by any configured provider. "
+                "Please check for typos."
+            )
+
+    def _resolve_for_blocklist(self, provider_type: ProviderType, name: str) -> str | None:
+        """Lowercase canonical name ``name`` resolves to on ``provider_type``, if it resolves."""
+        cache = self._blocklist_resolution_cache[provider_type]
+        if name in cache:
+            return cache[name]
+        resolved: str | None = None
+        try:
+            from providers.registry import ModelProviderRegistry
+
+            provider = ModelProviderRegistry.get_provider(provider_type)
+            if provider:
+                resolved = (provider._resolve_model_name(name) or "").lower() or None
+        except Exception:  # pragma: no cover - resolution failure means literal matching only
+            resolved = None
+        cache[name] = resolved
+        return resolved
+
+    def is_blocked(self, provider_type: ProviderType, model_name: str, original_name: str | None = None) -> bool:
+        """Whether ``DISABLED_MODELS`` blocks this model on this provider.
+
+        Both the entry and the requested names are resolved through the
+        provider's aliases, so an entry blocks every name of the model it
+        resolves to.
+        """
+        entries = [name for scope, name in self.disabled_models if scope is None or scope == provider_type]
+        if not entries:
+            return False
+
+        requested = {model_name.lower()}
+        if original_name:
+            requested.add(original_name.lower())
+        for name in list(requested):
+            resolved = self._resolve_for_blocklist(provider_type, name)
+            if resolved:
+                requested.add(resolved)
+
+        for entry in entries:
+            if entry in requested:
+                return True
+            resolved = self._resolve_for_blocklist(provider_type, entry)
+            if resolved and resolved in requested:
+                return True
+        return False
+
+    def _format_disabled_models(self) -> str:
+        return ", ".join(f"{scope.value}:{name}" if scope else name for scope, name in self.disabled_models)
+
     def is_allowed(self, provider_type: ProviderType, model_name: str, original_name: str | None = None) -> bool:
         """
         Check if a model is allowed for a specific provider.
@@ -184,6 +310,9 @@ class ModelRestrictionService:
         Returns:
             True if allowed (or no restrictions), False if restricted
         """
+        if self.is_blocked(provider_type, model_name, original_name):
+            return False
+
         if provider_type not in self.restrictions:
             # No restrictions for this provider
             return True
@@ -284,7 +413,7 @@ class ModelRestrictionService:
         Returns:
             Filtered list containing only allowed models
         """
-        if not self.has_restrictions(provider_type):
+        if not self.has_restrictions(provider_type) and not self.disabled_models:
             return models
 
         return [m for m in models if self.is_allowed(provider_type, m)]

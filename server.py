@@ -546,7 +546,7 @@ def configure_providers():
     restriction_service = get_restriction_service()
     restrictions = restriction_service.get_restriction_summary()
 
-    if restrictions:
+    if restrictions or restriction_service.disabled_models:
         logger.info("Model restrictions configured:")
         for provider_name, allowed_models in restrictions.items():
             if isinstance(allowed_models, list):
@@ -554,7 +554,7 @@ def configure_providers():
             else:
                 logger.info(f"  {provider_name}: {allowed_models}")
 
-        # Validate restrictions against known models
+        # Validate allowlists and DISABLED_MODELS against known models
         provider_instances = {}
         for provider_type in ModelProviderRegistry.PROVIDER_PRIORITY_ORDER:
             provider = ModelProviderRegistry.get_provider(provider_type)
@@ -580,6 +580,8 @@ def configure_providers():
                 for var in provider_cls.allowed_models_env_vars()
                 if get_env(var)
             ]
+            if restriction_service.disabled_models:
+                active_allowlists.append("DISABLED_MODELS")
             named = ", ".join(active_allowlists) if active_allowlists else "your *_ALLOWED_MODELS"
             logger.error(
                 "Auto mode is enabled but no models are available after applying restrictions. "
