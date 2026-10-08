@@ -467,7 +467,7 @@ def configure_providers():
     global _provider_configuration_error
     from providers import ModelProviderRegistry
     from providers.registry import REGISTERED_PROVIDER_CLASSES, ModelRegistryConfigError
-    from utils.model_restrictions import get_restriction_service
+    from utils.model_restrictions import PREFERRED_MODELS_ENV, get_restriction_service
 
     # Log environment variable status for debugging. Derived from the provider
     # classes, so a new provider's key is logged automatically.
@@ -565,6 +565,16 @@ def configure_providers():
             restriction_service.validate_against_known_models(provider_instances)
     else:
         logger.info("No model restrictions configured - all models allowed")
+
+    # PREFERRED_MODELS entries that cannot be served are skipped at selection
+    # time; say so once here rather than silently.
+    if valid_providers:
+        for name in restriction_service.preferred_models:
+            if ModelProviderRegistry.resolve_preferred_model(name) is None:
+                logger.warning(
+                    f"Model '{name}' in {PREFERRED_MODELS_ENV} is not available (unknown name, provider not "
+                    "configured, or excluded by *_ALLOWED_MODELS / DISABLED_MODELS); skipping it."
+                )
 
     # Check if auto mode has any models available after restrictions
     from config import IS_AUTO_MODE
