@@ -237,11 +237,15 @@ class CLinkTool(SimpleTool):
             "model_name": result.parsed.metadata.get("model_used"),
         }
 
-        if continuation_id:
+        # _create_continuation_offer_response no longer records the reply for a
+        # new thread (issue #174), so clink records it for new and continued
+        # threads alike.
+        thread_id = continuation_id or new_thread_id
+        if thread_id:
             try:
-                self._record_assistant_turn(continuation_id, content, request, model_info)
+                self._record_assistant_turn(thread_id, content, request, model_info)
             except Exception:
-                logger.debug("Failed to record assistant turn for continuation %s", continuation_id, exc_info=True)
+                logger.debug("Failed to record assistant turn for thread %s", thread_id, exc_info=True)
 
         continuation_offer = self._create_continuation_offer(request, model_info, new_thread_id)
         if continuation_offer:
