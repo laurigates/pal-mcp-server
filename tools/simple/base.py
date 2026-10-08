@@ -447,6 +447,11 @@ class SimpleTool(BaseTool):
             # Resolve model capabilities for feature gating
             supports_thinking = capabilities.supports_extended_thinking
 
+            # Open a new thread before the model call, so its transcript shows the
+            # request while the model is still working and keeps it if the call
+            # fails (issue #177). Continuations already have their user turn.
+            new_thread_id = None if continuation_id else self._start_conversation_thread(request)
+
             # Generate content with provider abstraction. The await below is the
             # longest opaque stretch of a simple tool, so heartbeat through it:
             # a client with no signal cannot tell a thinking model from a hung one.
@@ -483,7 +488,7 @@ class SimpleTool(BaseTool):
                 }
 
                 # Parse response using the same logic as old base.py
-                tool_output = self._parse_response(raw_text, request, model_info)
+                tool_output = self._parse_response(raw_text, request, model_info, new_thread_id)
                 logger.info(f"✅ {self.get_name()} tool completed successfully")
 
             else:
@@ -546,7 +551,7 @@ class SimpleTool(BaseTool):
                                 }
 
                                 # Parse the retry response
-                                tool_output = self._parse_response(raw_text, request, model_info)
+                                tool_output = self._parse_response(raw_text, request, model_info, new_thread_id)
                                 logger.info(f"✅ {self.get_name()} tool completed successfully after retry")
                             else:
                                 # Retry also failed - inspect metadata to find out why
@@ -613,12 +618,15 @@ class SimpleTool(BaseTool):
             )
             raise ToolExecutionError(error_output.model_dump_json()) from e
 
-    def _parse_response(self, raw_text: str, request, model_info: dict | None = None):
+    def _parse_response(self, raw_text: str, request, model_info: dict | None = None, new_thread_id: str | None = None):
         """
         Parse the raw response and format it using the hook method.
 
         This simplified version focuses on the SimpleTool pattern: format the response
         using the format_response hook, then handle conversation continuation.
+
+        ``new_thread_id`` is the thread ``execute`` opened for a request that
+        carried no ``continuation_id``; ``None`` when there is none.
         """
         from tools.models import ToolOutput
 
@@ -631,7 +639,7 @@ class SimpleTool(BaseTool):
             self._record_assistant_turn(continuation_id, raw_text, request, model_info)
 
         # Create continuation offer like old base.py
-        continuation_data = self._create_continuation_offer(request, model_info)
+        continuation_data = self._create_continuation_offer(request, model_info, new_thread_id)
         if continuation_data:
             return self._create_continuation_offer_response(formatted_response, continuation_data, request, model_info)
         else:
@@ -667,12 +675,37 @@ class SimpleTool(BaseTool):
         model_response = (model_info or {}).get("model_response")
         return usage_metadata(getattr(model_response, "usage", None))
 
-    def _create_continuation_offer(self, request, model_info: dict | None = None):
+    def _start_conversation_thread(self, request) -> str | None:
+        """Create the thread for a new conversation and add the caller's request as its first turn.
+
+        Called before the model is, so the thread and its transcript hold the
+        request while the model works and keep it if the call fails. Returns
+        ``None`` when the thread cannot be created; the response then carries no
+        continuation offer, as it did when creation failed after the reply.
+        """
+        from utils.conversation_memory import add_turn, create_thread
+
+        try:
+            thread_id = create_thread(tool_name=self.get_name(), initial_request=self.get_request_as_dict(request))
+            add_turn(
+                thread_id,
+                "user",
+                self.get_request_prompt(request),
+                files=self.get_request_files(request),
+                images=self.get_request_images(request),
+                tool_name=self.get_name(),
+            )
+        except Exception as exc:
+            logger.warning(f"Could not open a conversation thread for {self.get_name()}: {exc}", exc_info=True)
+            return None
+        return thread_id
+
+    def _create_continuation_offer(self, request, model_info: dict | None = None, new_thread_id: str | None = None):
         """Create continuation offer following old base.py pattern"""
         continuation_id = self.get_request_continuation_id(request)
 
         try:
-            from utils.conversation_memory import create_thread, get_thread
+            from utils.conversation_memory import get_thread
 
             if continuation_id:
                 # Existing conversation
@@ -690,24 +723,9 @@ class SimpleTool(BaseTool):
                         "remaining_turns": remaining_turns,
                         "note": f"You can continue this conversation for {remaining_turns} more exchanges.",
                     }
-            else:
-                # New conversation - create thread and offer continuation
-                # Convert request to dict for initial_context
-                initial_request_dict = self.get_request_as_dict(request)
-
-                new_thread_id = create_thread(tool_name=self.get_name(), initial_request=initial_request_dict)
-
-                # Add the initial user turn to the new thread
-                from utils.conversation_memory import MAX_CONVERSATION_TURNS, add_turn
-
-                user_prompt = self.get_request_prompt(request)
-                user_files = self.get_request_files(request)
-                user_images = self.get_request_images(request)
-
-                # Add user's initial turn
-                add_turn(
-                    new_thread_id, "user", user_prompt, files=user_files, images=user_images, tool_name=self.get_name()
-                )
+            elif new_thread_id:
+                # New conversation: execute() opened the thread before the model call
+                from utils.conversation_memory import MAX_CONVERSATION_TURNS
 
                 return {
                     "continuation_id": new_thread_id,
