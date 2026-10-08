@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## [11.7.0](https://github.com/laurigates/pal-mcp-server/compare/v11.6.0...v11.7.0) (2026-10-08)
+
+
+### Features
+
+* **conversation:** persist turns to per-thread JSONL transcripts ([#167](https://github.com/laurigates/pal-mcp-server/issues/167)) ([beca1b1](https://github.com/laurigates/pal-mcp-server/commit/beca1b10dcda0bf85dc3d08ec82a25660b88a4e5)), closes [#164](https://github.com/laurigates/pal-mcp-server/issues/164)
+* **restrictions:** add a global DISABLED_MODELS blocklist ([#179](https://github.com/laurigates/pal-mcp-server/issues/179)) ([a6ba38b](https://github.com/laurigates/pal-mcp-server/commit/a6ba38b21bec641430c287a7469571fc200738fa))
+* **server:** expose conversation threads as MCP resources ([#169](https://github.com/laurigates/pal-mcp-server/issues/169)) ([00efb1c](https://github.com/laurigates/pal-mcp-server/commit/00efb1c27777823924557cf902c1eff2de7efcfc))
+
+
+### Bug Fixes
+
+* **conversation:** write a new thread's first prompt before the model call ([#180](https://github.com/laurigates/pal-mcp-server/issues/180)) ([236f50e](https://github.com/laurigates/pal-mcp-server/commit/236f50ea2c6b70f0b4a8c923da392d789fd61e65))
+* **logging:** write logs to the per-user state directory ([#168](https://github.com/laurigates/pal-mcp-server/issues/168)) ([6dbc3ba](https://github.com/laurigates/pal-mcp-server/commit/6dbc3ba4bcd6959679c2ff6de3632a2e165a10a3)), closes [#166](https://github.com/laurigates/pal-mcp-server/issues/166)
+* **registry:** honour models.dev status deprecated in audit and generator ([#181](https://github.com/laurigates/pal-mcp-server/issues/181)) ([ed96be4](https://github.com/laurigates/pal-mcp-server/commit/ed96be451a1e3d702a79284cf5ee2eb6db4d547d)), closes [#171](https://github.com/laurigates/pal-mcp-server/issues/171)
+* **server:** return -32002 for missing thread transcripts ([#182](https://github.com/laurigates/pal-mcp-server/issues/182)) ([cbcb5e0](https://github.com/laurigates/pal-mcp-server/commit/cbcb5e0f4bb93564aaeb6e0e54c4e9c48da980f4)), closes [#175](https://github.com/laurigates/pal-mcp-server/issues/175)
+* **transcripts:** enforce modes on existing files and make pruning never raise ([#183](https://github.com/laurigates/pal-mcp-server/issues/183)) ([7c447ac](https://github.com/laurigates/pal-mcp-server/commit/7c447ac3d815b5a31d57fe048f20ce510756c3ad))
+
 ## [11.6.0](https://github.com/laurigates/pal-mcp-server/compare/v11.5.0...v11.6.0) (2026-09-27)
 
 
