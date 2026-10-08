@@ -502,6 +502,7 @@ class BaseWorkflowMixin(ABC):
         self._embedded_file_content = ""
         self._file_reference_note = ""
         self._actually_processed_files = []
+        self._files_in_history = []
 
         # Determine if we should embed files or just reference them
         should_embed_files = self._should_embed_files_in_workflow_step(step_number, continuation_id, is_final_step)
@@ -590,6 +591,13 @@ class BaseWorkflowMixin(ABC):
             # Store for use in expert analysis
             self._embedded_file_content = file_content
             self._actually_processed_files = processed_files
+            # The requested files not read above are the ones an earlier turn of the
+            # thread already carries; they still reach the expert, so file_context
+            # counts them (issue #178).
+            from utils.file_utils import expand_paths
+
+            embedded_now = set(processed_files)
+            self._files_in_history = [f for f in expand_paths(request_files) if f not in embedded_now]
 
             logger.info(
                 f"[WORKFLOW_FILES] {self.get_name()}: Embedded {len(processed_files)} relevant_files for final analysis"
@@ -868,7 +876,6 @@ class BaseWorkflowMixin(ABC):
         # Add file context information based on workflow phase
         embedded_content = self.get_embedded_file_content()
         reference_note = self.get_file_reference_note()
-        processed_files = self.get_actually_processed_files()
 
         logger.debug(
             f"[WORKFLOW_FILES] {self.get_name()}: Building response - has embedded_content: {bool(embedded_content)}, has reference_note: {bool(reference_note)}"
@@ -878,11 +885,7 @@ class BaseWorkflowMixin(ABC):
         if embedded_content:
             # Final step - include embedded file information
             logger.debug(f"[WORKFLOW_FILES] {self.get_name()}: Adding fully_embedded file context")
-            response_data["file_context"] = {
-                "type": "fully_embedded",
-                "files_embedded": len(processed_files),
-                "context_optimization": "Full file content embedded for expert analysis",
-            }
+            response_data["file_context"] = self._fully_embedded_file_context()
         elif reference_note:
             # Intermediate step - include file reference note
             logger.debug(f"[WORKFLOW_FILES] {self.get_name()}: Adding reference_only file context")
@@ -964,6 +967,23 @@ class BaseWorkflowMixin(ABC):
             return self._actually_processed_files or []
         except AttributeError:
             return []
+
+    def _fully_embedded_file_context(self) -> dict[str, Any]:
+        """file_context for a step that embedded files for the expert.
+
+        ``files_embedded`` counts every file the expert receives: those read in
+        this step plus those an earlier turn of the thread already carries, which
+        this step skips rather than embedding twice (issue #178).
+        """
+        this_step = len(self.get_actually_processed_files())
+        in_history = len(getattr(self, "_files_in_history", None) or [])
+        return {
+            "type": "fully_embedded",
+            "files_embedded": this_step + in_history,
+            "files_embedded_this_step": this_step,
+            "files_in_history": in_history,
+            "context_optimization": "Full file content embedded for expert analysis",
+        }
 
     def get_current_model_context(self):
         """Get current model context. Returns None if not available."""
@@ -1210,15 +1230,10 @@ class BaseWorkflowMixin(ABC):
         if not response_data.get("file_context"):
             embedded_content = self.get_embedded_file_content()
             reference_note = self.get_file_reference_note()
-            processed_files = self.get_actually_processed_files()
 
             # Prioritize embedded content over references for final steps
             if embedded_content:
-                response_data["file_context"] = {
-                    "type": "fully_embedded",
-                    "files_embedded": len(processed_files),
-                    "context_optimization": "Full file content embedded for expert analysis",
-                }
+                response_data["file_context"] = self._fully_embedded_file_context()
             elif reference_note:
                 response_data["file_context"] = {
                     "type": "reference_only",
