@@ -254,6 +254,56 @@ class TestCandidateAdditions:
         assert audit.is_candidate_id("anthropic/claude-opus-4.8")
 
 
+class TestModelsDevStatusDeprecated:
+    """#171: models.dev marks withdrawn models ``"status": "deprecated"``.
+
+    The flag is not proof of withdrawal (some flagged models still serve), so a
+    configured one is a ``[review]`` finding, and an unconfigured one is never
+    proposed as an addition.
+    """
+
+    TARGET = audit.Target("gemini_models.json", "modelsdev", "google", "Gemini")
+
+    @pytest.fixture
+    def flagged(self, catalogs):
+        catalogs["modelsdev"]["google"]["models"]["gemini-flagged"] = {
+            "id": "gemini-flagged",
+            "name": "Gemini Flagged",
+            "limit": {"context": 1_000_000, "output": 65_536},
+            "release_date": "2026-06-01",
+            "modalities": {"input": ["text"], "output": ["text"]},
+            "status": "deprecated",
+        }
+        return catalogs
+
+    def test_deprecated_status_is_not_a_candidate(self, conf_dir, flagged):
+        conf_dir("gemini_models.json", [])
+        findings, meta = audit.audit_target(self.TARGET, flagged, top_n=10)
+        names = {f.model_name for f in _kinds(findings, "missing")}
+        assert "gemini-flagged" not in names
+        assert "gemini-test" in names
+        assert meta["candidates_total"] == 1
+
+    def test_configured_deprecated_status_is_a_review_finding(self, conf_dir, flagged):
+        conf_dir(
+            "gemini_models.json",
+            [{"model_name": "gemini-flagged", "aliases": ["flag"], "context_window": 1_000_000}],
+        )
+        findings, _ = audit.audit_target(self.TARGET, flagged, top_n=0)
+        deprecated = _kinds(findings, "deprecated")
+        assert [f.model_name for f in deprecated] == ["gemini-flagged"]
+        assert deprecated[0].detail == "catalog sets status=deprecated"
+        assert deprecated[0].confidence == "review"
+        assert deprecated[0].extra["aliases"] == ["flag"]
+
+    def test_other_status_values_are_live(self, conf_dir, flagged):
+        flagged["modelsdev"]["google"]["models"]["gemini-flagged"]["status"] = "beta"
+        conf_dir("gemini_models.json", [{"model_name": "gemini-flagged"}])
+        findings, _ = audit.audit_target(self.TARGET, flagged, top_n=10)
+        assert _kinds(findings, "deprecated") == []
+        assert "gemini-flagged" not in {f.model_name for f in _kinds(findings, "missing")}
+
+
 class TestAliasAndSchemaChecks:
     def test_duplicate_alias_in_one_file_is_a_collision(self):
         findings = audit.check_aliases(

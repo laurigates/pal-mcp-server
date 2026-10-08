@@ -68,8 +68,8 @@ Two catalogs back the audit, and they carry **different authority**:
 
 | Catalog | Covers | A model's absence means |
 |---|---|---|
-| `openrouter.ai/api/v1/models` | `openrouter_models.json` | **Confirmed gone.** This is the provider's own live serving list. It also carries `expiration_date`, the only explicit deprecation signal either catalog has. |
-| `models.dev/api.json` | gemini, openai, xai, opencode zen | **Review only.** Community-maintained. It lags new releases and omits live models outright. |
+| `openrouter.ai/api/v1/models` | `openrouter_models.json` | **Confirmed gone.** This is the provider's own live serving list. It also carries `expiration_date`, reported as a confirmed DEPRECATED finding. |
+| `models.dev/api.json` | gemini, openai, xai, opencode zen | **Review only.** Community-maintained. It lags new releases and omits live models outright. Its per-model `status: "deprecated"` keeps a model out of CANDIDATE ADDITIONS and `models-generate`, and a configured one gets a `[review]` DEPRECATED finding: on 2026-10-07 the flag sat on `kimi-k2.6`, `qwen3.6-plus` and `qwen3.7-max` while the OpenCode Go gateway still served all three. |
 
 The script marks every models.dev-derived finding `[review]`. Treat that marker
 as a hard gate: **never delete a configured entry on a `[review]` finding
