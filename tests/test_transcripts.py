@@ -110,6 +110,38 @@ def test_existing_directory_and_file_are_tightened_on_write(state_dir):
     assert _read_records(path) == [{"type": "turn"}]
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
+def test_failed_chmod_closes_the_transcript_descriptor(state_dir, monkeypatch, caplog):
+    """A chmod that fails after the open (EPERM on another user's file) must not leak the fd."""
+    opened = []
+    real_open = os.open
+
+    def recording_open(*args, **kwargs):
+        fd = real_open(*args, **kwargs)
+        opened.append(fd)
+        return fd
+
+    real_chmod = os.chmod
+
+    def deny_file(target, *args, **kwargs):
+        # Only the transcript file (by path or descriptor); the threads/ dir chmod still works.
+        if isinstance(target, int) or str(target).endswith(".jsonl"):
+            raise PermissionError("not the owner")
+        return real_chmod(target, *args, **kwargs)
+
+    monkeypatch.setattr(transcripts.os, "open", recording_open)
+    monkeypatch.setattr(transcripts.os, "chmod", deny_file)
+    monkeypatch.setattr(transcripts.os, "fchmod", deny_file)
+
+    with caplog.at_level(logging.WARNING, logger="utils.transcripts"):
+        transcripts.append_record("leaky", {"type": "turn"})
+
+    assert opened, "append_record never opened the transcript"
+    with pytest.raises(OSError):
+        os.fstat(opened[0])
+    assert "PermissionError" in caplog.text
+
+
 def test_turn_for_thread_without_file_is_appended(state_dir):
     thread_id = conversation_memory.create_thread("chat", {})
     path = state_dir / "threads" / f"{thread_id}.jsonl"

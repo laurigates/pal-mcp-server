@@ -71,8 +71,8 @@ def append_record(thread_id: str, record: dict[str, Any]) -> None:
         path.parent.chmod(_DIR_MODE)
         line = json.dumps(record, ensure_ascii=False, default=str) + "\n"
         fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, _FILE_MODE)
-        os.chmod(path, _FILE_MODE)
         with os.fdopen(fd, "a", encoding="utf-8") as handle:
+            os.fchmod(handle.fileno(), _FILE_MODE)
             handle.write(line)
             handle.flush()
     except Exception as exc:
