@@ -31,19 +31,29 @@ from mcp.server import Server  # noqa: E402
 from mcp.server.context import ServerRequestContext  # noqa: E402
 from mcp.server.models import InitializationOptions  # noqa: E402
 from mcp.server.stdio import stdio_server  # noqa: E402
+from mcp.shared.exceptions import MCPError  # noqa: E402
 from mcp.types import (  # noqa: E402
+    INVALID_PARAMS,
     CallToolRequestParams,
     CallToolResult,
     GetPromptRequestParams,
     GetPromptResult,
     ListPromptsResult,
+    ListResourcesResult,
+    ListResourceTemplatesResult,
     ListToolsResult,
     PaginatedRequestParams,
     Prompt,
     PromptMessage,
     PromptsCapability,
+    ReadResourceRequestParams,
+    ReadResourceResult,
+    Resource,
+    ResourcesCapability,
+    ResourceTemplate,
     ServerCapabilities,
     TextContent,
+    TextResourceContents,
     Tool,
     ToolAnnotations,
     ToolsCapability,
@@ -1492,6 +1502,87 @@ async def handle_get_prompt(
     )
 
 
+async def handle_list_resources(
+    context: ServerRequestContext,  # noqa: ARG001 - required by the on_list_resources signature
+    params: PaginatedRequestParams | None = None,  # noqa: ARG001 - capped at transcript_reader.DEFAULT_LIMIT
+) -> ListResourcesResult:
+    """List the thread index plus one resource per recent conversation thread (``@pal:`` mentions)."""
+    from utils import transcript_reader as reader
+
+    directory = reader.readable_transcripts_dir()
+    transcripts = reader.load_recent_transcripts(directory) if directory else []
+    resources = [
+        Resource(
+            uri=reader.THREADS_INDEX_URI,
+            name="threads",
+            title="PAL conversation threads",
+            description="Index of recent PAL conversation threads: id, tool, models, turn count, last update.",
+            mime_type="text/markdown",
+        )
+    ]
+    for transcript in transcripts:
+        name, description = reader.describe_thread(transcript)
+        resources.append(
+            Resource(
+                uri=reader.thread_uri(transcript.thread_id),
+                name=name,
+                description=description,
+                mime_type="text/markdown",
+            )
+        )
+    return ListResourcesResult(resources=resources)
+
+
+async def handle_list_resource_templates(
+    context: ServerRequestContext,  # noqa: ARG001 - required by the on_list_resource_templates signature
+    params: PaginatedRequestParams | None = None,  # noqa: ARG001 - this surface is not paginated
+) -> ListResourceTemplatesResult:
+    """Advertise ``pal://threads/{thread_id}`` so threads older than the listed ones stay addressable."""
+    from utils.transcript_reader import THREAD_URI_TEMPLATE
+
+    return ListResourceTemplatesResult(
+        resource_templates=[
+            ResourceTemplate(
+                uri_template=THREAD_URI_TEMPLATE,
+                name="thread",
+                title="PAL conversation thread",
+                description="One PAL conversation thread rendered as markdown, by thread id (continuation_id).",
+                mime_type="text/markdown",
+            )
+        ]
+    )
+
+
+async def handle_read_resource(
+    context: ServerRequestContext,  # noqa: ARG001 - required by the on_read_resource signature
+    params: ReadResourceRequestParams,
+) -> ReadResourceResult:
+    """Render ``pal://threads`` or ``pal://threads/<thread_id>`` as markdown."""
+    from utils import transcript_reader as reader
+
+    uri = str(params.uri)
+    directory = reader.readable_transcripts_dir()
+
+    if uri == reader.THREADS_INDEX_URI:
+        text = reader.render_index(reader.load_recent_transcripts(directory) if directory else [])
+    elif uri.startswith(reader.THREAD_URI_PREFIX):
+        thread_id = uri[len(reader.THREAD_URI_PREFIX) :]
+        if not reader.is_valid_thread_id(thread_id):
+            raise MCPError(INVALID_PARAMS, f"Invalid thread id {thread_id!r}: expected a lowercase UUID")
+        path = directory / f"{thread_id}.jsonl" if directory else None
+        try:
+            if path is None:
+                raise FileNotFoundError(thread_id)
+            transcript = reader.load_transcript(path)
+        except OSError as exc:
+            raise MCPError(INVALID_PARAMS, f"No transcript for thread {thread_id}") from exc
+        text = reader.render_thread(transcript)
+    else:
+        raise MCPError(INVALID_PARAMS, f"Unknown resource {uri!r}")
+
+    return ReadResourceResult(contents=[TextResourceContents(uri=uri, mime_type="text/markdown", text=text)])
+
+
 # Handlers are registered through constructor parameters; v2 removed the
 # ``@server.list_tools()`` style decorators and the ``request_handlers`` mapping
 # they wrote into. Constructing here, below the handler definitions, is what
@@ -1502,6 +1593,9 @@ server = Server(
     on_call_tool=handle_call_tool,
     on_list_prompts=handle_list_prompts,
     on_get_prompt=handle_get_prompt,
+    on_list_resources=handle_list_resources,
+    on_list_resource_templates=handle_list_resource_templates,
+    on_read_resource=handle_read_resource,
 )
 
 
@@ -1572,6 +1666,7 @@ async def main():
                 capabilities=ServerCapabilities(
                     tools=ToolsCapability(),  # Advertise tool support capability
                     prompts=PromptsCapability(),  # Advertise prompt support capability
+                    resources=ResourcesCapability(),  # Conversation threads as pal:// resources
                 ),
             ),
         )

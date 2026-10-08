@@ -112,3 +112,22 @@ a format change. A file can begin with a `turn` record when the server started
 in the middle of a thread. `parent_thread_id` is set only when the caller passed
 a parent to `create_thread()`, which no built-in tool does today. The header
 omits the thread's initial request parameters to stay small.
+
+### Browsing threads with `@pal:`
+
+The server exposes the transcripts as MCP resources, so a client such as Claude
+Code can open them with an `@` mention instead of a file path. The resources read
+the files on disk, so threads from other sessions' server processes appear too.
+
+| Resource | Content |
+|---|---|
+| `pal://threads` | Markdown table of the 50 most recently modified threads, newest first: thread id, tool, models used, turn count, last update |
+| `pal://threads/<thread_id>` | One thread as markdown: tool, creation time and models, then each turn with role, model and provider, timestamp, files and content |
+
+`resources/list` returns the index plus one entry per recent thread, named by
+tool, the first words of the first prompt and the model, which is what the `@`
+picker shows. Older threads stay readable through the `pal://threads/{thread_id}`
+resource template; the thread id is the tool's `continuation_id`. A thread id
+that is not a lowercase UUID is rejected with an `Invalid params` error before
+any path is built. With `PAL_TRANSCRIPTS=false` or no transcript directory the
+index is empty and no thread resources are listed.
