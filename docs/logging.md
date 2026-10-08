@@ -129,5 +129,8 @@ tool, the first words of the first prompt and the model, which is what the `@`
 picker shows. Older threads stay readable through the `pal://threads/{thread_id}`
 resource template; the thread id is the tool's `continuation_id`. A thread id
 that is not a lowercase UUID is rejected with an `Invalid params` error before
-any path is built. With `PAL_TRANSCRIPTS=false` or no transcript directory the
-index is empty and no thread resources are listed.
+any path is built. A well-formed id with no transcript file returns the MCP
+"Resource not found" error (`-32002`). With `PAL_TRANSCRIPTS=false` or no
+transcript directory the index is empty and no thread resources are listed;
+with `PAL_TRANSCRIPTS=false`, reading a thread returns `-32002` with a message
+naming that setting.

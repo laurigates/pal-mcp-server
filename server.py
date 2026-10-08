@@ -1553,6 +1553,11 @@ async def handle_list_resource_templates(
     )
 
 
+# MCP spec (Resources > Error Handling) code for "Resource not found"; mcp.types
+# defines no constant for it.
+RESOURCE_NOT_FOUND = -32002
+
+
 async def handle_read_resource(
     context: ServerRequestContext,  # noqa: ARG001 - required by the on_read_resource signature
     params: ReadResourceRequestParams,
@@ -1569,13 +1574,12 @@ async def handle_read_resource(
         thread_id = uri[len(reader.THREAD_URI_PREFIX) :]
         if not reader.is_valid_thread_id(thread_id):
             raise MCPError(INVALID_PARAMS, f"Invalid thread id {thread_id!r}: expected a lowercase UUID")
-        path = directory / f"{thread_id}.jsonl" if directory else None
+        if directory is None:
+            raise MCPError(RESOURCE_NOT_FOUND, "Conversation transcripts are disabled (PAL_TRANSCRIPTS=false)")
         try:
-            if path is None:
-                raise FileNotFoundError(thread_id)
-            transcript = reader.load_transcript(path)
+            transcript = reader.load_transcript(directory / f"{thread_id}.jsonl")
         except OSError as exc:
-            raise MCPError(INVALID_PARAMS, f"No transcript for thread {thread_id}") from exc
+            raise MCPError(RESOURCE_NOT_FOUND, f"No transcript for thread {thread_id}") from exc
         text = reader.render_thread(transcript)
     else:
         raise MCPError(INVALID_PARAMS, f"Unknown resource {uri!r}")

@@ -14,6 +14,11 @@ from pathlib import Path
 import pytest
 from mcp.client import Client
 from mcp.shared.exceptions import MCPError
+from mcp.types import INVALID_PARAMS
+
+# MCP spec, Resources > Error Handling: "Resource not found" is -32002. Written
+# out rather than imported from server so a wrong constant there cannot pass.
+RESOURCE_NOT_FOUND = -32002
 
 THREAD_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
 THREAD_URI = f"pal://threads/{THREAD_ID}"
@@ -134,13 +139,16 @@ async def test_in_process_read_rejects_invalid_and_unknown_thread(pal_server, mo
     monkeypatch.setenv("PAL_STATE_DIR", str(tmp_path))
     _write_fixture_transcript(tmp_path)
     async with Client(pal_server) as client:
-        with pytest.raises(MCPError, match="Invalid thread id"):
+        with pytest.raises(MCPError, match="Invalid thread id") as bad_id:
             await client.read_resource("pal://threads/not-a-uuid")
-        with pytest.raises(MCPError, match="No transcript for thread"):
+        with pytest.raises(MCPError, match="No transcript for thread") as missing:
             await client.read_resource("pal://threads/00000000-0000-4000-8000-000000000000")
-        with pytest.raises(MCPError, match="Unknown resource"):
+        with pytest.raises(MCPError, match="Unknown resource") as unknown:
             await client.read_resource("pal://elsewhere")
         assert "No: it retries forever" in _text(await client.read_resource(THREAD_URI))
+    assert bad_id.value.code == INVALID_PARAMS
+    assert missing.value.code == RESOURCE_NOT_FOUND
+    assert unknown.value.code == INVALID_PARAMS
 
 
 @pytest.mark.asyncio
@@ -151,8 +159,9 @@ async def test_in_process_disabled_transcripts_give_empty_index(pal_server, monk
     async with Client(pal_server) as client:
         listed = await client.list_resources()
         index = await client.read_resource("pal://threads")
-        with pytest.raises(MCPError, match="No transcript for thread"):
+        with pytest.raises(MCPError, match="PAL_TRANSCRIPTS") as disabled:
             await client.read_resource(THREAD_URI)
+    assert disabled.value.code == RESOURCE_NOT_FOUND
     assert [str(r.uri) for r in listed.resources] == ["pal://threads"]
     assert "No conversation transcripts found" in _text(index)
 
