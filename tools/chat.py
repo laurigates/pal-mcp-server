@@ -72,10 +72,6 @@ class ChatTool(SimpleTool):
     Chat tool with 100% behavioral compatibility.
     """
 
-    def __init__(self) -> None:
-        super().__init__()
-        self._last_recordable_response: str | None = None
-
     def get_name(self) -> str:
         return "chat"
 
@@ -258,9 +254,7 @@ class ChatTool(SimpleTool):
         """
         Format the chat response to match the original Chat tool exactly.
         """
-        self._last_recordable_response = None
         body = response
-        recordable_override: str | None = None
 
         if self._model_supports_code_generation():
             block, remainder, _ = self._extract_generated_code_block(response)
@@ -296,7 +290,6 @@ class ChatTool(SimpleTool):
 
                     history_copy_base = sanitized_text
                     history_copy = self._join_sections(history_copy_base, warning) if history_copy_base else warning
-                    recordable_override = history_copy
 
                     sanitized_warning = history_copy.strip()
                     body = f"{sanitized_warning}\n\n{block.strip()}".strip()
@@ -321,29 +314,10 @@ class ChatTool(SimpleTool):
                     instruction = self._build_agent_instruction(artifact_path)
                     body = self._join_sections(sanitized_text, instruction)
 
-        final_output = (
+        return (
             f"{body}\n\n---\n\nAGENT'S TURN: Evaluate this perspective alongside your analysis to "
             "form a comprehensive solution and continue with the user's request and task at hand."
         )
-
-        if recordable_override is not None:
-            self._last_recordable_response = (
-                f"{recordable_override}\n\n---\n\nAGENT'S TURN: Evaluate this perspective alongside your analysis to "
-                "form a comprehensive solution and continue with the user's request and task at hand."
-            )
-        else:
-            self._last_recordable_response = final_output
-
-        return final_output
-
-    def _record_assistant_turn(
-        self, continuation_id: str, response_text: str, request, model_info: dict | None
-    ) -> None:
-        recordable = self._last_recordable_response if self._last_recordable_response is not None else response_text
-        try:
-            super()._record_assistant_turn(continuation_id, recordable, request, model_info)
-        finally:
-            self._last_recordable_response = None
 
     def _model_supports_code_generation(self) -> bool:
         context = getattr(self, "_model_context", None)

@@ -762,13 +762,7 @@ class BaseWorkflowMixin(ABC):
 
             # Create thread for first step
             if not continuation_id and request.step_number == 1:
-                clean_args = {
-                    k: v
-                    for k, v in arguments.items()
-                    if k
-                    not in ["_model_context", "_resolved_model_name", "_expert_model_called", "_expert_provider_called"]
-                }
-                continuation_id = create_thread(self.get_name(), clean_args)
+                continuation_id = self._create_workflow_thread(arguments, request)
 
             # Process work step - allow tools to customize field mapping
             step_data = self.prepare_step_data(request)
@@ -1228,6 +1222,25 @@ class BaseWorkflowMixin(ABC):
 
         return response_data
 
+    def _create_workflow_thread(self, arguments: dict[str, Any], request) -> str:
+        """Create the thread for a step 1 that carries no continuation_id, with the step as its first turn.
+
+        Continuations get their user turn from server.py before the tool runs;
+        a new thread has no earlier point, so the step is added here, before any
+        expert call (issue #174).
+        """
+        clean_args = {
+            k: v
+            for k, v in arguments.items()
+            if k not in ["_model_context", "_resolved_model_name", "_expert_model_called", "_expert_provider_called"]
+        }
+        thread_id = create_thread(self.get_name(), clean_args)
+        try:
+            add_turn(thread_id, "user", request.step, tool_name=self.get_name())
+        except ConversationMemoryStorageError as exc:
+            logger.error(f"Failed to persist the opening step of workflow thread {thread_id}: {exc}", exc_info=True)
+        return thread_id
+
     def store_conversation_turn(self, continuation_id: str, response_data: dict, request):
         """
         Store the conversation turn. Tools can override for custom memory storage.
@@ -1252,6 +1265,10 @@ class BaseWorkflowMixin(ABC):
             "tool_state": self.get_persisted_tool_state(),
         }
 
+        # _add_workflow_metadata has already named the model this step called, or
+        # None when no model ran, so the turn says which model answered (issue #174).
+        response_metadata = response_data.get("metadata") or {}
+
         try:
             add_turn(
                 thread_id=continuation_id,
@@ -1260,6 +1277,8 @@ class BaseWorkflowMixin(ABC):
                 tool_name=self.get_name(),
                 files=self.get_request_relevant_files(request),
                 images=self.get_request_images(request),
+                model_provider=response_metadata.get("provider_used"),
+                model_name=response_metadata.get("model_used"),
                 model_metadata=workflow_state,  # Persist the state
             )
         except ConversationMemoryStorageError as exc:
@@ -1361,10 +1380,10 @@ class BaseWorkflowMixin(ABC):
                 if clean_complete:
                     clean_data["analysis_summary"] = clean_complete
 
-        # Include step information for context but remove internal workflow metadata
+        # Include step position for context but remove internal workflow metadata.
+        # The step text itself is the thread's user turn.
         if "step_number" in response_data:
             clean_data["step_info"] = {
-                "step": response_data.get("step", ""),
                 "step_number": response_data.get("step_number", 1),
                 "total_steps": response_data.get("total_steps", 1),
             }

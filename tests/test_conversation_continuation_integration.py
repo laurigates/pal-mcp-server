@@ -21,17 +21,17 @@ def test_first_response_persisted_in_conversation_history(tmp_path):
     response_text = "Here is the initial answer."
 
     # Mimic the first tool invocation (no continuation_id supplied): execute()
-    # opens the thread before the model call, then offers continuation on it.
+    # opens the thread before the model call, then parses the reply into it.
     new_thread_id = tool._start_conversation_thread(request)
-    continuation_data = tool._create_continuation_offer(request, {"model_name": "local-llama"}, new_thread_id)
-    tool._create_continuation_offer_response(
+    output = tool._parse_response(
         response_text,
-        continuation_data,
         request,
         {"model_name": "local-llama", "provider": "custom"},
+        new_thread_id,
     )
 
-    thread_id = continuation_data["continuation_id"]
+    thread_id = output.continuation_offer.continuation_id
+    assert thread_id == new_thread_id
     thread = get_thread(thread_id)
 
     assert thread is not None

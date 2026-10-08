@@ -1290,7 +1290,9 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
     """
     from utils.conversation_memory import ConversationMemoryStorageError, add_turn
 
-    user_prompt = arguments.get("prompt", "")
+    # Simple tools carry the request in ``prompt``; workflow tools carry it in
+    # ``step`` (issue #174).
+    user_prompt = arguments.get("prompt") or arguments.get("step") or ""
     if not user_prompt:
         return
 
