@@ -525,6 +525,8 @@ class TestAutoModeComprehensive:
 
             # Mock the actual provider to simulate successful execution
             mock_provider = MagicMock()
+            # The assistant turn stores the provider type, which must be a real enum.
+            mock_provider.get_provider_type.return_value = ProviderType.GOOGLE
             mock_response = MagicMock()
             mock_response.content = "test response"
             mock_response.model_name = "gemini-2.5-flash"  # The resolved name

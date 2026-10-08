@@ -524,6 +524,8 @@ class TestUnavailableModelFallback:
                 with patch.object(ModelProviderRegistry, "get_provider_for_model") as mock_get_provider:
                     # Model is available
                     mock_provider = MagicMock()
+                    # The assistant turn stores the provider type, which must be a real enum.
+                    mock_provider.get_provider_type.return_value = ProviderType.GOOGLE
                     mock_provider.generate_content = AsyncMock(
                         return_value=MagicMock(content="Test response", metadata={})
                     )
