@@ -304,8 +304,14 @@ PAL_TRANSCRIPT_RETENTION_DAYS=30
 PAL_STATE_DIR=/path/to/state
 ```
 
-- **Location:** `<state dir>/threads/<thread_id>.jsonl`. The directory is created
-  with mode `0700` and each file with `0600`.
+- **Location:** `<state dir>/threads/<thread_id>.jsonl`. Each write sets the
+  directory to mode `0700` and the file to `0600`, including a directory or file
+  that existed before PAL wrote to it.
+- **Pruning:** runs once, at server startup; a running server does not prune.
+  A stdio MCP server lives as long as the client session that started it, so a
+  transcript outlives `PAL_TRANSCRIPT_RETENTION_DAYS` by at most the current
+  server's uptime. A prune failure, including an unusable retention value, logs a
+  `WARNING` and startup continues.
 - **Privacy:** transcripts hold full prompt and reply text, and replies can quote
   code from files embedded in a request. Treat the directory like source code;
   disable transcripts where that is not acceptable.

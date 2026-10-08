@@ -93,6 +93,23 @@ def test_directory_and_file_modes(state_dir):
     assert stat.S_IMODE((threads_dir / f"{thread_id}.jsonl").stat().st_mode) == 0o600
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
+def test_existing_directory_and_file_are_tightened_on_write(state_dir):
+    """A pre-existing threads/ dir and transcript file get 0700/0600, not just new ones (#176)."""
+    threads_dir = state_dir / "threads"
+    threads_dir.mkdir(parents=True)
+    threads_dir.chmod(0o755)
+    path = threads_dir / "loose.jsonl"
+    path.write_text("")
+    path.chmod(0o644)
+
+    transcripts.append_record("loose", {"type": "turn"})
+
+    assert stat.S_IMODE(threads_dir.stat().st_mode) == 0o700
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert _read_records(path) == [{"type": "turn"}]
+
+
 def test_turn_for_thread_without_file_is_appended(state_dir):
     thread_id = conversation_memory.create_thread("chat", {})
     path = state_dir / "threads" / f"{thread_id}.jsonl"
@@ -205,6 +222,30 @@ def test_invalid_retention_falls_back_to_default(state_dir, monkeypatch, caplog)
 def test_prune_without_directory_is_a_no_op(state_dir):
     assert transcripts.prune_transcripts(retention_days=30) == 0
     assert not state_dir.exists()
+
+
+def test_prune_overflowing_retention_logs_and_returns_zero(state_dir, monkeypatch, caplog):
+    """A retention too large for float arithmetic must not raise out of startup (#176)."""
+    old = _make_transcript(state_dir / "threads", "old.jsonl", age_days=400)
+    monkeypatch.setenv("PAL_TRANSCRIPT_RETENTION_DAYS", "9" * 401)
+
+    with caplog.at_level(logging.WARNING, logger="utils.transcripts"):
+        assert transcripts.prune_transcripts() == 0
+
+    assert old.exists()
+    assert "OverflowError" in caplog.text
+
+
+def test_prune_logs_and_returns_zero_when_directory_lookup_fails(state_dir, monkeypatch, caplog):
+    def boom():
+        raise RuntimeError("no state dir")
+
+    monkeypatch.setattr(transcripts, "get_transcripts_dir", boom)
+
+    with caplog.at_level(logging.WARNING, logger="utils.transcripts"):
+        assert transcripts.prune_transcripts(retention_days=30) == 0
+
+    assert "RuntimeError" in caplog.text
 
 
 def test_suite_does_not_write_to_real_state_dir():
