@@ -106,7 +106,9 @@ Each line is one UTF-8 JSON object. The `type` field selects the shape:
 | `thread` | `create_thread()`, once, first line | `thread_id`, `parent_thread_id` (or `null`), `tool_name`, `created_at` |
 | `turn` | `add_turn()`, after the turn is saved | `thread_id`, plus every `ConversationTurn` field: `role` (`user` or `assistant`), `content`, `timestamp`, `files`, `images`, `tool_name`, `model_provider`, `model_name`, `model_metadata` |
 
-Timestamps are ISO 8601 in UTC. Turn records are built from the
+A new thread's header and first user turn are written before the model is
+called, so a slow first request is visible while it runs and a failed one still
+leaves the request on disk. Timestamps are ISO 8601 in UTC. Turn records are built from the
 `ConversationTurn` model, so a field added there appears in new records without
 a format change. A file can begin with a `turn` record when the server started
 in the middle of a thread. `parent_thread_id` is set only when the caller passed

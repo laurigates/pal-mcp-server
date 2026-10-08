@@ -20,8 +20,10 @@ def test_first_response_persisted_in_conversation_history(tmp_path):
     )
     response_text = "Here is the initial answer."
 
-    # Mimic the first tool invocation (no continuation_id supplied)
-    continuation_data = tool._create_continuation_offer(request, model_info={"model_name": "local-llama"})
+    # Mimic the first tool invocation (no continuation_id supplied): execute()
+    # opens the thread before the model call, then offers continuation on it.
+    new_thread_id = tool._start_conversation_thread(request)
+    continuation_data = tool._create_continuation_offer(request, {"model_name": "local-llama"}, new_thread_id)
     tool._create_continuation_offer_response(
         response_text,
         continuation_data,
