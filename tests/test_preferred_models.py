@@ -68,11 +68,14 @@ class TestRankedSummary:
     def test_preferred_models_come_first_in_user_order(self, monkeypatch):
         default_names, default_total = _summary_names(limit=100)
         assert default_names.index("gpt-5-nano") > 5 and default_names.index("grok-4.3") > 5
+        # The user's order below must disagree with score order, or keeping
+        # score order among preferred models would pass too.
+        assert default_names.index("grok-4.3") < default_names.index("gpt-5-nano")
 
-        _set(monkeypatch, "PREFERRED_MODELS", "grok-4.3,no-such-model,nano")
+        _set(monkeypatch, "PREFERRED_MODELS", "nano,no-such-model,grok-4.3")
         names, total = _summary_names(limit=100)
 
-        assert names[:2] == ["grok-4.3", "gpt-5-nano"]
+        assert names[:2] == ["gpt-5-nano", "grok-4.3"]
         # The rest keep their score order.
         assert names[2:] == [n for n in default_names if n not in ("grok-4.3", "gpt-5-nano")]
         assert total == default_total
