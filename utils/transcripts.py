@@ -19,8 +19,10 @@ A file may start with a turn record when the server started mid-thread.
 
 Configuration: ``PAL_TRANSCRIPTS=false`` disables writing (on by default).
 ``PAL_TRANSCRIPT_RETENTION_DAYS`` (default 30; ``0`` or negative never prunes)
-controls the startup prune by file mtime. The directory is created ``0700`` and
-files ``0600``. A write failure is logged at WARNING and never propagates.
+controls the prune by file mtime, which runs once at server startup only. Every
+write sets the directory to ``0700`` and the file to ``0600``, including ones
+that already existed. A write or prune failure is logged at WARNING and never
+propagates.
 """
 
 import json
@@ -65,9 +67,12 @@ def append_record(thread_id: str, record: dict[str, Any]) -> None:
     try:
         path = transcript_path(thread_id)
         path.parent.mkdir(mode=_DIR_MODE, parents=True, exist_ok=True)
+        # mkdir/os.open apply the mode only on creation; tighten pre-existing ones too.
+        path.parent.chmod(_DIR_MODE)
         line = json.dumps(record, ensure_ascii=False, default=str) + "\n"
         fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, _FILE_MODE)
         with os.fdopen(fd, "a", encoding="utf-8") as handle:
+            os.fchmod(handle.fileno(), _FILE_MODE)
             handle.write(line)
             handle.flush()
     except Exception as exc:
@@ -120,7 +125,14 @@ def prune_transcripts(retention_days: int | None = None) -> int:
     Returns the number of files removed. ``retention_days`` of 0 or less keeps
     everything. Failures are logged at WARNING and never raised.
     """
-    days = get_retention_days() if retention_days is None else retention_days
+    try:
+        return _prune(get_retention_days() if retention_days is None else retention_days)
+    except Exception as exc:
+        logger.warning(f"[TRANSCRIPT] Could not prune transcripts: {type(exc).__name__}: {exc}")
+        return 0
+
+
+def _prune(days: int) -> int:
     if days <= 0:
         return 0
 
