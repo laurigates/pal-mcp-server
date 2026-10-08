@@ -203,6 +203,10 @@ class CLinkTool(SimpleTool):
             logger.exception("Failed to prepare clink prompt")
             self._raise_tool_error(f"Failed to prepare prompt: {exc}")
 
+        # clink bypasses SimpleTool.execute, so it opens a new thread itself,
+        # before the CLI runs, as simple tools do before the model call (issue #177).
+        new_thread_id = None if continuation_id else self._start_conversation_thread(request)
+
         agent = create_agent(client_config)
         try:
             result = await agent.run(
@@ -239,7 +243,7 @@ class CLinkTool(SimpleTool):
             except Exception:
                 logger.debug("Failed to record assistant turn for continuation %s", continuation_id, exc_info=True)
 
-        continuation_offer = self._create_continuation_offer(request, model_info)
+        continuation_offer = self._create_continuation_offer(request, model_info, new_thread_id)
         if continuation_offer:
             tool_output = self._create_continuation_offer_response(
                 content,
