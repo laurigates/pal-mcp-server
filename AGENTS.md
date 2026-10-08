@@ -4,7 +4,7 @@ Dependencies live in `pyproject.toml` (deps + `[dependency-groups.dev]`) and are
 
 ## Project Structure & Module Organization
 
-PAL MCP Server centers on `server.py`, which exposes MCP entrypoints and coordinates multi-model workflows. Feature-specific tools live in `tools/`, provider integrations in `providers/`, and shared helpers in `utils/`. Prompt and system context assets stay in `systemprompts/`, while configuration templates live under `conf/` and container assets in `docker/`. Unit tests sit in `tests/`; simulator-driven scenarios and log utilities are in `simulator_tests/` with the `communication_simulator_test.py` harness. Authoritative documentation and samples live in `docs/`, and runtime diagnostics rotate in `logs/`.
+PAL MCP Server centers on `server.py`, which exposes MCP entrypoints and coordinates multi-model workflows. Feature-specific tools live in `tools/`, provider integrations in `providers/`, and shared helpers in `utils/`. Prompt and system context assets stay in `systemprompts/`, while configuration templates live under `conf/` and container assets in `docker/`. Unit tests sit in `tests/`; simulator-driven scenarios and log utilities are in `simulator_tests/` with the `communication_simulator_test.py` harness. Authoritative documentation and samples live in `docs/`, and runtime diagnostics rotate in the per-user log directory (`PAL_LOG_DIR`, else `~/.local/state/pal-mcp-server/logs`; resolved by `utils/log_dir.py`).
 
 ## Build, Test, and Development Commands
 
@@ -30,7 +30,7 @@ Target Python ≥ 3.10. Lint and format with ruff (120-char line limit; pycodest
 
 ## Testing Guidelines
 
-Mirror production modules inside `tests/` and name tests `test_<behavior>` or `Test<Feature>` classes. Run `uv run pytest tests/ -v -m "not integration"` before every commit; add `--cov=. --cov-report=html` for coverage-sensitive changes. Use `uv run python communication_simulator_test.py --verbose` or `--individual <case>` to validate cross-agent flows; reserve `./run_integration_tests.sh` for provider or transport modifications. Capture relevant excerpts from `logs/mcp_server.log` or `logs/mcp_activity.log` when documenting failures.
+Mirror production modules inside `tests/` and name tests `test_<behavior>` or `Test<Feature>` classes. Run `uv run pytest tests/ -v -m "not integration"` before every commit; add `--cov=. --cov-report=html` for coverage-sensitive changes. Use `uv run python communication_simulator_test.py --verbose` or `--individual <case>` to validate cross-agent flows; reserve `./run_integration_tests.sh` for provider or transport modifications. Capture relevant excerpts from `mcp_server.log` or `mcp_activity.log` in that log directory when documenting failures.
 
 ## Commit & Pull Request Guidelines
 

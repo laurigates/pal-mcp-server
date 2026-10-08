@@ -68,8 +68,10 @@ Each capability keeps its own MCP tool name. Clients that defer schema loading (
 ```bash
 ./run-server.sh          # bootstrap + register with Claude
 ./run-server.sh -f       # follow logs
-tail -f logs/mcp_server.log
+tail -f ~/.local/state/pal-mcp-server/logs/mcp_server.log
 ```
+
+Logs go to `PAL_LOG_DIR`, else `<state dir>/logs` (`PAL_STATE_DIR`, else `$XDG_STATE_HOME/pal-mcp-server`, else `~/.local/state/pal-mcp-server`) — resolved by `utils/log_dir.py`, which the server, `run-server.sh -f` and the simulator log readers all call. Unit tests point `PAL_LOG_DIR` at a temp dir (`tests/conftest.py`).
 
 ## Conventions
 

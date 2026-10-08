@@ -2029,12 +2029,25 @@ function Start-Server {
     }
 }
 
+# Directory the server writes mcp_server.log to. Asks the server's own resolver
+# (utils/log_dir.py: PAL_LOG_DIR, else the per-user state directory) so this
+# script and the server cannot disagree. $LOG_DIR ("logs") is only the host side
+# of the Docker volume mount.
+function Get-ServerLogDir {
+    $pythonPath = "$VENV_PATH\Scripts\python.exe"
+    $logDir = & $pythonPath -c "from utils.log_dir import get_log_dir; print(get_log_dir().resolve())"
+    if ($LASTEXITCODE -ne 0 -or !$logDir) {
+        throw "Could not resolve the server log directory with $pythonPath"
+    }
+    return $logDir.Trim()
+}
+
 # Follow server logs
 function Follow-Logs {
     Write-Step "Following Server Logs"
     
-    $logPath = Join-Path $LOG_DIR $LOG_FILE
-    
+    $logPath = Join-Path (Get-ServerLogDir) $LOG_FILE
+
     if (!(Test-Path $logPath)) {
         Write-Warning "Log file not found: $logPath"
         Write-Info "Starting server to generate logs..."
@@ -2223,10 +2236,9 @@ function Invoke-PythonWorkflow {
     Invoke-McpClientConfiguration -UseDocker $false -PythonPath $pythonPath -ServerPath $serverPath
     
     Show-SetupInstructions $pythonPath $serverPath
-    Initialize-Logging
-    
+
     Write-Host ""
-    Write-Host "Logs will be written to: $(Get-AbsolutePath $LOG_DIR)\$LOG_FILE"
+    Write-Host "Logs will be written to: $(Join-Path (Get-ServerLogDir) $LOG_FILE)"
     Write-Host ""
     
     if ($Follow) {

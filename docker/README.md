@@ -116,8 +116,9 @@ The container includes health checks that verify:
 
 The Docker setup includes persistent volumes to preserve data between container runs:
 
-- **`./logs:/app/logs`** - Persistent log storage (local folder mount)
+- **`./logs:/app/logs`** - Persistent log storage (local folder mount). The image sets `PAL_LOG_DIR=/app/logs`, so the server writes here rather than to the per-user state directory it uses outside a container
 - **`pal-mcp-config:/app/conf`** - Configuration persistence (named Docker volume)
+- **`pal-mcp-state:/app/state`** - PAL's per-user state directory (`PAL_STATE_DIR=/app/state`, set by the image; named Docker volume, writable under the read-only root filesystem)
 - **`/etc/localtime:/etc/localtime:ro`** - Host timezone synchronization (read-only)
 
 ### How Persistent Volumes Work

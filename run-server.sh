@@ -26,8 +26,9 @@ readonly YELLOW='\033[1;33m'
 readonly RED='\033[0;31m'
 readonly NC='\033[0m'
 
-readonly LOG_DIR="logs"
 readonly LOG_FILE="mcp_server.log"
+# Resolved after the dependency sync; see resolve_log_dir.
+LOG_DIR=""
 
 readonly PLACEHOLDER_KEYS=(
     "GEMINI_API_KEY:your_gemini_api_key_here"
@@ -72,7 +73,7 @@ Usage: $0 [OPTIONS]
 Options:
   -h, --help      Show this help message
   -v, --version   Show version information
-  -f, --follow    Set up, then follow server logs (tail -f $LOG_DIR/$LOG_FILE)
+  -f, --follow    Set up, then follow server logs (tail -f <log dir>/$LOG_FILE)
 
 Examples:
   $0              Set up the dev environment (sync deps, prepare .env)
@@ -180,6 +181,13 @@ sync_dependencies() {
 # Log directory
 # ----------------------------------------------------------------------------
 
+# Ask the server's own resolver (utils/log_dir.py) rather than re-implementing
+# the PAL_LOG_DIR / PAL_STATE_DIR / XDG_STATE_HOME chain here, so this script and
+# the server cannot disagree — including on values that come from .env.
+resolve_log_dir() {
+    LOG_DIR=$(uv run --no-sync python -c 'from utils.log_dir import get_log_dir; print(get_log_dir().resolve())')
+}
+
 ensure_log_dir() {
     mkdir -p "$LOG_DIR"
     touch "$LOG_DIR/$LOG_FILE"
@@ -221,11 +229,12 @@ main() {
     setup_env_file
     check_api_keys
     sync_dependencies
+    resolve_log_dir
     ensure_log_dir
 
     echo ""
     print_success "Setup complete"
-    echo "  Logs:      $(pwd)/$LOG_DIR/$LOG_FILE"
+    echo "  Logs:      $LOG_DIR/$LOG_FILE"
     echo "  Follow:    ./run-server.sh -f"
     echo "  Dev deps:  uv sync --group dev"
     echo ""

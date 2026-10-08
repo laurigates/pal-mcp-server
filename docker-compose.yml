@@ -52,6 +52,8 @@ services:
     volumes:
       - ./logs:/app/logs
       - pal-mcp-config:/app/conf
+      # PAL_STATE_DIR (set in the Dockerfile); the root filesystem is read-only
+      - pal-mcp-state:/app/state
       - /etc/localtime:/etc/localtime:ro
     
     # Network configuration
@@ -90,6 +92,8 @@ services:
 # Named volumes
 volumes:
   pal-mcp-config:
+    driver: local
+  pal-mcp-state:
     driver: local
 
 # Networks

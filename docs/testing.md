@@ -33,16 +33,17 @@ Simulator tests replicate real-world Claude CLI interactions with the standalone
 
 #### Monitoring logs during tests
 
-The MCP stdio protocol captures stderr during tool execution to prevent interference with the JSON-RPC channel — so tool execution logs land in `logs/` files, not the console.
+The MCP stdio protocol captures stderr during tool execution to prevent interference with the JSON-RPC channel — so tool execution logs land in log files, not the console. The simulator reads them from the directory the server resolves (`PAL_LOG_DIR`, else `~/.local/state/pal-mcp-server/logs`; see [Logging](logging.md)), using the same resolver, so the two always agree.
 
 ```bash
 # Start server and follow logs in one step
 ./run-server.sh -f
 
 # Or manually monitor
-tail -f -n 500 logs/mcp_server.log         # main server activity
-tail -f logs/mcp_activity.log              # tool calls and completions
-ls -lh logs/mcp_*.log*                     # check rotation status
+LOG_DIR=~/.local/state/pal-mcp-server/logs  # or your PAL_LOG_DIR
+tail -f -n 500 $LOG_DIR/mcp_server.log     # main server activity
+tail -f $LOG_DIR/mcp_activity.log          # tool calls and completions
+ls -lh $LOG_DIR/mcp_*.log*                 # check rotation status
 ```
 
 Log rotation: 20 MB cap per file. The server keeps:

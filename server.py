@@ -25,7 +25,6 @@ import os
 import sys
 import time
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 from typing import Any
 
 from mcp.server import Server  # noqa: E402
@@ -78,6 +77,7 @@ from tools import (  # noqa: E402
 from tools.models import ToolOutput  # noqa: E402
 from tools.shared.exceptions import ToolExecutionError  # noqa: E402
 from utils.env import env_override_enabled, get_env  # noqa: E402
+from utils.log_dir import get_log_dir  # noqa: E402
 from utils.model_resolution import resolve_model_for_context  # noqa: E402
 from utils.progress import reporter_from_request_context, set_progress_reporter  # noqa: E402
 from utils.session_context import set_session_id  # noqa: E402
@@ -115,7 +115,7 @@ stderr_handler.setFormatter(LocalTimeFormatter(log_format))
 root_logger.addHandler(stderr_handler)
 
 # Note: MCP stdio_server interferes with stderr during tool execution
-# All logs are properly written to logs/mcp_server.log for monitoring
+# All logs are properly written to <log dir>/mcp_server.log for monitoring (see utils/log_dir.py)
 
 # Set root logger level
 root_logger.setLevel(getattr(logging, log_level, logging.INFO))
@@ -123,9 +123,10 @@ root_logger.setLevel(getattr(logging, log_level, logging.INFO))
 # Add rotating file handler for local log monitoring
 
 try:
-    # Create logs directory in project root
-    log_dir = Path(__file__).parent / "logs"
-    log_dir.mkdir(exist_ok=True)
+    # Per-user state directory, not the package directory: under uvx the latter
+    # sits inside a hash-named uv archive that changes with every release.
+    log_dir = get_log_dir().resolve()
+    log_dir.mkdir(parents=True, exist_ok=True)
 
     # Main server log with size-based rotation (20MB max per file)
     # This ensures logs don't grow indefinitely and are properly managed

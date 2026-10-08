@@ -256,7 +256,16 @@ MAX_CONVERSATION_TURNS=20
 ```env
 # Logging level: DEBUG, INFO, WARNING, ERROR
 LOG_LEVEL=DEBUG  # Default: shows detailed operational messages
+
+# Per-user state directory (default: $XDG_STATE_HOME/pal-mcp-server,
+# else ~/.local/state/pal-mcp-server)
+PAL_STATE_DIR=~/.local/state/pal-mcp-server
+
+# Log directory alone (default: <state dir>/logs)
+PAL_LOG_DIR=~/.local/state/pal-mcp-server/logs
 ```
+
+Log files are written to the per-user state directory, not the package directory: under `uvx` the package lives in a uv archive whose path changes with every release. The server logs the resolved path at startup (`Logging to: ...`). See [Logging](logging.md).
 
 **Progress Reporting:**
 

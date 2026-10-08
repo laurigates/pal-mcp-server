@@ -74,8 +74,8 @@ WORKDIR /app
 # Copy application code
 COPY --chown=paluser:paluser . .
 
-# Create logs and tmp directories with proper permissions
-RUN mkdir -p logs tmp && chown -R paluser:paluser logs tmp
+# Create logs, tmp and state directories with proper permissions
+RUN mkdir -p logs tmp state && chown -R paluser:paluser logs tmp state
 
 # Copy health check script
 COPY --chown=paluser:paluser docker/scripts/healthcheck.py /usr/local/bin/healthcheck.py
@@ -86,7 +86,15 @@ USER paluser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python /usr/local/bin/healthcheck.py
 
+# Outside a container PAL keeps its state under ~/.local/state/pal-mcp-server.
+# paluser has no home directory and docker-compose.yml runs the root filesystem
+# read-only, so both locations are pinned to directories created above:
+# - PAL_STATE_DIR: /app/state, a writable volume in docker-compose.yml
+# - PAL_LOG_DIR:   /app/logs, kept where the health check and the ./logs mount
+#   expect it (otherwise logs would follow the state dir to /app/state/logs)
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PAL_STATE_DIR=/app/state \
+    PAL_LOG_DIR=/app/logs
 
 CMD ["python", "server.py"]

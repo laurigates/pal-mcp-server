@@ -306,6 +306,9 @@ async def test_live_stdio_client_receives_progress_notifications(tmp_path):
             # `version` never calls out, so this is never spent.
             "OPENAI_API_KEY": "sk-test-not-used",
             "DEFAULT_MODEL": "auto",
+            # This env replaces the inherited one, so conftest's PAL_LOG_DIR does not
+            # reach the child; without it the server would log to the real state dir.
+            "PAL_LOG_DIR": str(tmp_path / "logs"),
         },
     )
 

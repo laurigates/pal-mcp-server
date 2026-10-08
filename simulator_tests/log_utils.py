@@ -9,13 +9,18 @@ import logging
 import re
 import subprocess
 
+from utils.log_dir import get_log_dir
+
 
 class LogUtils:
     """Centralized logging utilities for simulator tests."""
 
-    # Log file paths
-    MAIN_LOG_FILE = "logs/mcp_server.log"
-    ACTIVITY_LOG_FILE = "logs/mcp_activity.log"
+    # Log file paths. Resolved through the same function server.py uses, so the
+    # server subprocess (which inherits this process's environment and reads the
+    # same .env) writes exactly where these readers look.
+    LOG_DIR = get_log_dir().resolve()
+    MAIN_LOG_FILE = str(LOG_DIR / "mcp_server.log")
+    ACTIVITY_LOG_FILE = str(LOG_DIR / "mcp_activity.log")
 
     @classmethod
     def get_server_logs_since(cls, since_time: str | None = None) -> str:

@@ -10,6 +10,7 @@ Tests custom API endpoint functionality with Ollama-style local models, includin
 """
 
 from .base_test import BaseSimulatorTest
+from .log_utils import LogUtils
 
 
 class OllamaCustomUrlTest(BaseSimulatorTest):
@@ -313,7 +314,7 @@ if __name__ == "__main__":
         """Check server logs for any error messages that might explain failures"""
         try:
             # Get recent logs from the log file
-            log_file_path = "logs/mcp_server.log"
+            log_file_path = LogUtils.MAIN_LOG_FILE
             with open(log_file_path) as f:
                 lines = f.readlines()
                 recent_logs = lines[-50:]  # Last 50 lines

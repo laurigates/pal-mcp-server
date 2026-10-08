@@ -58,8 +58,20 @@ MAX_DESCRIPTION_CHARS = 220
 # Only what the interpreter needs to start. Provider credentials and model
 # restrictions are deliberately absent: they append roster text to the model
 # parameter's description, which would make the measured numbers depend on the
-# developer's shell rather than on the source.
-_PASSTHROUGH_ENV = ("PATH", "HOME", "TMPDIR", "TEMP", "TMP", "LANG", "LC_ALL", "PYTHONPATH", "SYSTEMROOT")
+# developer's shell rather than on the source. PAL_LOG_DIR carries conftest's
+# throwaway log directory, so importing ``server`` does not log to the real one.
+_PASSTHROUGH_ENV = (
+    "PATH",
+    "HOME",
+    "TMPDIR",
+    "TEMP",
+    "TMP",
+    "LANG",
+    "LC_ALL",
+    "PYTHONPATH",
+    "SYSTEMROOT",
+    "PAL_LOG_DIR",
+)
 
 
 def _run_script(*args: str) -> subprocess.CompletedProcess[str]:
