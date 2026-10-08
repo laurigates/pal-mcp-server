@@ -1523,6 +1523,11 @@ async def main():
     logger.info("PAL MCP Server starting up...")
     logger.info(f"Log level: {log_level}")
 
+    # Drop conversation transcripts older than PAL_TRANSCRIPT_RETENTION_DAYS (never raises)
+    from utils.transcripts import prune_transcripts
+
+    prune_transcripts()
+
     # Note: MCP client info will be logged during the protocol handshake
     # (when handle_list_tools is called)
 
