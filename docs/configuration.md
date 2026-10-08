@@ -194,6 +194,18 @@ OPENCODE_GO_ALLOWED_MODELS=glm-5.2,deepseek-v4-pro,deepseek-v4-flash
 OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
 ```
 
+**Blocking individual models:** `DISABLED_MODELS` is one global blocklist, applied after the allowlists: the models in use are the allowlist (or every model, when it is unset) minus the blocklist. Use it to drop a few models without listing every model you keep.
+
+```env
+# Canonical names or aliases; an alias blocks the model it resolves to
+DISABLED_MODELS=grok,gpt-5-nano
+
+# provider:model blocks one provider's entry only, for names several providers serve
+DISABLED_MODELS=openrouter:x-ai/grok-4.6
+```
+
+A blocked model is left out of auto mode, the ranked model summary and `listmodels`, and a request that names it is rejected. The provider prefix is one of `google`, `openai`, `azure`, `xai`, `openrouter`, `custom`, `dial`, `opencode_go`; any other text before a colon is part of the model name (`llama3.2:1b`). Names no configured provider recognizes produce a startup warning, not an error.
+
 **Supported Model Names:** The names/aliases listed in the JSON manifests above are the authoritative source. Keep in mind:
 
 - Aliases are case-insensitive and defined per entry (for example, `mini` maps to `gpt-5-mini` by default, while `flash` maps to `gemini-2.5-flash`).
