@@ -69,6 +69,17 @@ class TestProviderScope:
         assert not _service().is_allowed(ProviderType.OPENROUTER, "x-ai/grok-4.6")
         assert _service().is_allowed(ProviderType.XAI, "grok-4.6")
 
+    def test_scoped_alias_leaves_other_providers_resolution_alone(self, monkeypatch, openrouter):
+        # ``grok`` resolves on both providers, so only the scope keeps the
+        # entry off the other one.
+        _set(monkeypatch, "DISABLED_MODELS", "openrouter:grok")
+        assert not _service().is_allowed(ProviderType.OPENROUTER, "x-ai/grok-4.6")
+        assert _service().is_allowed(ProviderType.XAI, "grok-4.7")
+
+        _set(monkeypatch, "DISABLED_MODELS", "xai:grok")
+        assert not _service().is_allowed(ProviderType.XAI, "grok-4.7")
+        assert _service().is_allowed(ProviderType.OPENROUTER, "x-ai/grok-4.6")
+
     def test_scoped_entry_covers_the_providers_aliases(self, monkeypatch, openrouter):
         _set(monkeypatch, "DISABLED_MODELS", "openrouter:x-ai/grok-4.6")
         assert not openrouter.validate_model_name("grok")
