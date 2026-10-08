@@ -264,6 +264,9 @@ def modelsdev_index(catalog: Any, provider_id: str) -> dict[str, dict[str, Any]]
             "context_window": limit.get("context"),
             "max_output_tokens": limit.get("output"),
             "expiration_date": None,
+            # "deprecated" marks a withdrawn model, but the flag can run ahead
+            # of the provider, so it is a review signal rather than proof.
+            "status": m.get("status"),
             "created": m.get("release_date"),
             "last_updated": m.get("last_updated"),
             "input_modalities": modalities.get("input") or [],
@@ -300,6 +303,11 @@ def is_candidate_id(model_id: str) -> bool:
     return not model_id.startswith("~") and ":" not in model_id
 
 
+def is_flagged_deprecated(facts: dict[str, Any]) -> bool:
+    """The catalog itself marks the model as on its way out."""
+    return bool(facts.get("expiration_date")) or facts.get("status") == "deprecated"
+
+
 def claimed_names(models: list[dict[str, Any]]) -> set[str]:
     """Lowercased model names and aliases a config already answers to.
 
@@ -318,8 +326,8 @@ def candidate_facts(live: dict[str, dict[str, Any]], claimed: set[str]) -> list[
     ``claimed`` comes from ``claimed_names``. A configured entry counts whether
     or not it is ``enabled_by_default``, so a model triaged into the registry
     switched off stops being a candidate. Models already carrying an
-    ``expiration_date`` are skipped: adding one would only trade a MISSING
-    finding for a DEPRECATED one.
+    ``expiration_date`` or models.dev ``status: deprecated`` are skipped:
+    adding one would only trade a MISSING finding for a DEPRECATED one.
     """
     seen: set[str] = set()
     candidates: list[dict[str, Any]] = []
@@ -328,7 +336,7 @@ def candidate_facts(live: dict[str, dict[str, Any]], claimed: set[str]) -> list[
         if not mid or mid in seen or mid.lower() in claimed:
             continue
         seen.add(mid)
-        if is_chat_model(facts) and is_candidate_id(mid) and not facts.get("expiration_date"):
+        if is_chat_model(facts) and is_candidate_id(mid) and not is_flagged_deprecated(facts):
             candidates.append(facts)
     candidates.sort(key=lambda f: str(f.get("created") or ""), reverse=True)
     return candidates
@@ -500,6 +508,17 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
                     f"catalog sets expiration_date={facts['expiration_date']}",
                     "confirmed",
                     {"aliases": m.get("aliases", []), "expires": facts["expiration_date"]},
+                )
+            )
+        elif facts.get("status") == "deprecated":
+            findings.append(
+                Finding(
+                    "deprecated",
+                    target.filename,
+                    name,
+                    "catalog sets status=deprecated",
+                    "review",
+                    {"aliases": m.get("aliases", [])},
                 )
             )
         for cfg_field in ("context_window", "max_output_tokens"):

@@ -96,6 +96,28 @@ class TestEntryFromFacts:
         assert "supports_temperature" not in gen.entry_from_facts(facts, "modelsdev")
 
 
+class TestGenerateFor:
+    def test_skips_models_dev_status_deprecated(self, tmp_path, monkeypatch):
+        """#171: a model models.dev flags as deprecated is never generated."""
+        (tmp_path / "gemini_models.json").write_text('{\n  "models": []\n}\n')
+        monkeypatch.setattr(gen, "CONF_DIR", tmp_path)
+        model = {"limit": {"context": 1000}, "modalities": {"input": ["text"], "output": ["text"]}}
+        catalogs = {
+            "modelsdev": {
+                "google": {
+                    "models": {
+                        "gemini-served": {**model, "name": "Served"},
+                        "gemini-gone": {**model, "name": "Gone", "status": "deprecated"},
+                    }
+                }
+            }
+        }
+        target = gen.Target("gemini_models.json", "modelsdev", "google", "Gemini")
+        entries, err = gen.generate_for(target, catalogs)
+        assert err is None
+        assert [e["model_name"] for e in entries] == ["gemini-served"]
+
+
 class TestSpliceEntries:
     ENTRIES = [{"model_name": "a", "enabled_by_default": False}]
 
