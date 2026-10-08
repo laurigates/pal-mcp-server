@@ -206,13 +206,21 @@ DISABLED_MODELS=openrouter:x-ai/grok-4.6
 
 A blocked model is left out of auto mode, the ranked model summary and `listmodels`, and a request that names it is rejected. The provider prefix is one of `google`, `openai`, `azure`, `xai`, `openrouter`, `custom`, `dial`, `opencode_go`; any other text before a colon is part of the model name (`llama3.2:1b`). Names no configured provider recognizes produce a startup warning, not an error.
 
+**Preferring models in auto mode:** `PREFERRED_MODELS` is an ordered list that auto mode prefers over the default ranking by score. The auto-mode fallback picks the first available entry regardless of tool category, and the model summary in tool descriptions lists the available entries first, in your order, before filling the remaining slots by score.
+
+```env
+PREFERRED_MODELS=gpt-6-sol,glm-5.3,flash
+```
+
+Entries are canonical names or aliases and must still pass `*_ALLOWED_MODELS` and `DISABLED_MODELS`. An entry that is unknown, belongs to a provider that is not configured, or is excluded by those lists is skipped with a startup warning. Naming the canonical `model_name` of an `"enabled_by_default": false` entry opts it in, as an allowlist does.
+
 **Supported Model Names:** The names/aliases listed in the JSON manifests above are the authoritative source. Keep in mind:
 
 - Aliases are case-insensitive and defined per entry (for example, `mini` maps to `gpt-5-mini` by default, while `flash` maps to `gemini-2.5-flash`).
 - When you override the manifest files you can add or remove aliases as needed; restriction policies (`*_ALLOWED_MODELS`) automatically pick up those changes.
 - Models omitted from a manifest fall back to generic capability detection (where supported) and may have limited feature metadata.
 
-**Models disabled by default:** Manifest entries with `"enabled_by_default": false` (previews, free trials, superseded models, and every entry `just models-generate` writes from the provider catalogs) stay out of auto mode, the ranked model summary and `listmodels`, and their aliases do not resolve. To opt one in, add its canonical `model_name` to the provider's `*_ALLOWED_MODELS`; an alias does not enable it. You can also request one by its exact `model_name` without listing it, unless an allowlist that omits it is set.
+**Models disabled by default:** Manifest entries with `"enabled_by_default": false` (previews, free trials, superseded models, and every entry `just models-generate` writes from the provider catalogs) stay out of auto mode, the ranked model summary and `listmodels`, and their aliases do not resolve. To opt one in, add its canonical `model_name` to the provider's `*_ALLOWED_MODELS` or to `PREFERRED_MODELS`; an alias does not enable it. You can also request one by its exact `model_name` without listing it, unless an allowlist that omits it is set.
 
 ```env
 # An allowlist replaces the default set: list the models you use,

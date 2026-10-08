@@ -393,6 +393,8 @@ class BaseTool(ABC):
             seen_normalized.add(normalized)
             filtered.append((rank, canonical_name, capabilities))
 
+        filtered = self._put_preferred_models_first(filtered)
+
         summaries: list[str] = []
         for rank, canonical_name, capabilities in filtered[:limit]:
             details: list[str] = []
@@ -413,6 +415,21 @@ class BaseTool(ABC):
             summaries.append(f"{base})")
 
         return summaries, len(filtered), bool(allowed_map)
+
+    @staticmethod
+    def _put_preferred_models_first(ranked: list[tuple[int, str, Any]]) -> list[tuple[int, str, Any]]:
+        """Move available ``PREFERRED_MODELS`` entries to the front, in the user's order (#151)."""
+
+        from providers.registry import ModelProviderRegistry
+
+        preferred = [name.lower() for name in ModelProviderRegistry.get_available_preferred_models()]
+        if not preferred:
+            return ranked
+        position = {name: index for index, name in enumerate(preferred)}
+        head = sorted(
+            (item for item in ranked if item[1].lower() in position), key=lambda item: position[item[1].lower()]
+        )
+        return head + [item for item in ranked if item[1].lower() not in position]
 
     def _get_restriction_note(self) -> str | None:
         """Return a string describing active per-provider allowlists, if any."""

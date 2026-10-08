@@ -202,8 +202,9 @@ def _isolated_provider_registry(request, monkeypatch):
         for provider_cls in REGISTERED_PROVIDER_CLASSES:
             for var in provider_cls.credential_env_vars():
                 monkeypatch.delenv(var, raising=False)
-        # The global blocklist is not per-provider, so the roster misses it.
+        # The global lists are not per-provider, so the roster misses them.
         monkeypatch.delenv(model_restrictions.DISABLED_MODELS_ENV, raising=False)
+        monkeypatch.delenv(model_restrictions.PREFERRED_MODELS_ENV, raising=False)
 
     registry = ModelProviderRegistry()
     saved_providers = dict(registry._providers)
