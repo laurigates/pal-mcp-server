@@ -14,6 +14,7 @@ _Formerly known as PAL MCP. See the short [name change note](name-change.md) for
 | [Advanced Usage](advanced-usage.md) | Auto-mode tricks, workflow tools, and collaboration tips. |
 | [Configuration](configuration.md) | .env options, restriction policies, logging levels. |
 | [Testing](testing.md) | Test strategy, command cheats, and coverage notes. |
+| [Prompt Caching](prompt-caching.md) | Using provider prompt caches: request layout, staged plan, metrics, and done criteria. |
 | [Troubleshooting](troubleshooting.md) | Common issues and resolutions. |
 
 Additional docs live in this directory; start with the table above to orient yourself.
