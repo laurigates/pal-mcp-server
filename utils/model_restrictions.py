@@ -22,6 +22,11 @@ Environment Variables:
     ``provider:model`` scopes an entry to one provider, e.g.
     ``openrouter:x-ai/grok-4.6``.
 
+    PREFERRED_MODELS is an ordered list auto mode prefers over the default
+    ranking. It is not a restriction -- entries must still pass the allowlists
+    and blocklist -- but naming a canonical model there opts an
+    ``enabled_by_default: false`` entry into discovery, as an allowlist does.
+
 Example:
     OPENAI_ALLOWED_MODELS=o3-mini,o4-mini
     GOOGLE_ALLOWED_MODELS=flash
@@ -39,6 +44,7 @@ from utils.env import get_env
 logger = logging.getLogger(__name__)
 
 DISABLED_MODELS_ENV = "DISABLED_MODELS"
+PREFERRED_MODELS_ENV = "PREFERRED_MODELS"
 
 _PROVIDER_BY_VALUE = {provider_type.value: provider_type for provider_type in ProviderType}
 
@@ -126,6 +132,7 @@ class ModelRestrictionService:
         self._alias_resolution_cache: dict[ProviderType, dict[str, str]] = defaultdict(dict)
         self.disabled_models: tuple[tuple[ProviderType | None, str], ...] = ()
         self._blocklist_resolution_cache: dict[ProviderType, dict[str, str | None]] = defaultdict(dict)
+        self.preferred_models: tuple[str, ...] = ()
         self._load_from_env()
 
     def _load_from_env(self) -> None:
@@ -157,6 +164,13 @@ class ModelRestrictionService:
         self.disabled_models = _parse_disabled_models(get_env(DISABLED_MODELS_ENV))
         if self.disabled_models:
             logger.info(f"Disabled models: {self._format_disabled_models()}")
+
+        raw_preferred = get_env(PREFERRED_MODELS_ENV) or ""
+        self.preferred_models = tuple(
+            dict.fromkeys(name.strip().lower() for name in raw_preferred.split(",") if name.strip())
+        )
+        if self.preferred_models:
+            logger.info(f"Preferred models: {', '.join(self.preferred_models)}")
 
     def validate_against_known_models(self, provider_instances: dict[ProviderType, any]) -> None:
         """
@@ -369,14 +383,15 @@ class ModelRestrictionService:
         """Whether a registry entry takes part in model discovery.
 
         Entries default to enabled. One with ``enabled_by_default: false`` is
-        enabled only when the provider's allowlist names its canonical model
-        name -- an alias cannot opt it in, because a disabled entry's aliases
-        are never registered. Discovery is separate from ``is_allowed``: a
+        enabled only when the provider's allowlist or ``PREFERRED_MODELS``
+        names its canonical model name -- an alias cannot opt it in, because a
+        disabled entry's aliases are never registered. Discovery is separate from ``is_allowed``: a
         disabled entry requested by its exact name is still served.
         """
         if getattr(capabilities, "enabled_by_default", True):
             return True
-        return capabilities.model_name.lower() in self.restrictions.get(provider_type, set())
+        canonical = capabilities.model_name.lower()
+        return canonical in self.restrictions.get(provider_type, set()) or canonical in self.preferred_models
 
     def get_allowed_models(self, provider_type: ProviderType) -> set[str] | None:
         """

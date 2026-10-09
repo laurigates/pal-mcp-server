@@ -433,6 +433,34 @@ class ModelProviderRegistry:
         return allowed_models
 
     @classmethod
+    def resolve_preferred_model(cls, name: str) -> str | None:
+        """Canonical name a ``PREFERRED_MODELS`` entry serves, or None if unavailable.
+
+        Unavailable covers an unknown name, a provider that is not configured,
+        and a model the allowlists or ``DISABLED_MODELS`` reject: the lookup
+        goes through ``get_capabilities``, which applies restriction policy.
+        """
+        provider = cls.get_provider_for_model(name)
+        if provider is None:
+            return None
+        try:
+            return provider.get_capabilities(name).model_name
+        except ValueError:
+            return None
+
+    @classmethod
+    def get_available_preferred_models(cls) -> list[str]:
+        """Available ``PREFERRED_MODELS`` entries as canonical names, in the user's order."""
+        from utils.model_restrictions import get_restriction_service
+
+        resolved: list[str] = []
+        for name in get_restriction_service().preferred_models:
+            canonical = cls.resolve_preferred_model(name)
+            if canonical and canonical not in resolved:
+                resolved.append(canonical)
+        return resolved
+
+    @classmethod
     def get_preferred_fallback_model(cls, tool_category: Optional["ToolModelCategory"] = None) -> str:
         """Get the preferred fallback model based on provider priority and tool category.
 
@@ -448,6 +476,12 @@ class ModelProviderRegistry:
             Model name string for fallback use
         """
         from tools.models import ToolModelCategory
+
+        # PREFERRED_MODELS outranks every category preference (#151).
+        preferred = cls.get_available_preferred_models()
+        if preferred:
+            logging.debug(f"Using first available PREFERRED_MODELS entry: {preferred[0]}")
+            return preferred[0]
 
         effective_category = tool_category or ToolModelCategory.BALANCED
         first_available_model = None
