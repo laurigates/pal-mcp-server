@@ -29,7 +29,7 @@ from mcp.types import TextContent
 from config import TEMPERATURE_ANALYTICAL
 from systemprompts import CONSENSUS_PROMPT
 from tools.shared.base_models import ConsolidatedFindings, WorkflowRequest
-from utils.conversation_memory import MAX_CONVERSATION_TURNS, create_thread, get_thread
+from utils.conversation_memory import MAX_CONVERSATION_TURNS, get_thread
 from utils.progress import get_progress_reporter, summarize_usage
 
 from .workflow.base import WorkflowTool
@@ -491,13 +491,7 @@ of the evidence, even when it strongly points in one direction.""",
 
         if request.step_number == 1:
             if not continuation_id:
-                clean_args = {
-                    k: v
-                    for k, v in arguments.items()
-                    if k
-                    not in ["_model_context", "_resolved_model_name", "_expert_model_called", "_expert_provider_called"]
-                }
-                continuation_id = create_thread(self.get_name(), clean_args)
+                continuation_id = self._create_workflow_thread(arguments, request)
                 request.continuation_id = continuation_id
                 arguments["continuation_id"] = continuation_id
                 self.work_history = []

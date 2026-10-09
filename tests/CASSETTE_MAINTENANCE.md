@@ -39,6 +39,15 @@ asserted directly against the provider request in
 > were not re-recorded, which is sound here only because a ceiling far above the
 > recorded answer's length cannot have changed that answer.
 
+> **Hand-edited for #174.** The step-2 requests in
+> `openai_cassettes/chat_cross_step2_gpt5_reminder.json` and
+> `openai_cassettes/chat_gpt5_continuation.json` replay the step-1 reply as
+> conversation history. That reply used to be stored with chat's trailing
+> `---` / `AGENT'S TURN: …` instruction to the calling agent; it is now stored
+> as the model's text alone, so the instruction was deleted from the recorded
+> request. The responses were not re-recorded: the instruction was addressed to
+> the agent, not the model, and the recorded answers do not refer to it.
+
 ### Semantic Matching (o3 Models)
 
 **Problem**: o3 models use system prompts and conversation memory instructions that change frequently with code updates. Using exact hash matching would require re-recording cassettes after every prompt change.

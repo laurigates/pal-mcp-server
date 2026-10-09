@@ -633,10 +633,12 @@ class SimpleTool(BaseTool):
         # Format the response using the hook method
         formatted_response = self.format_response(raw_text, request, model_info)
 
-        # Handle conversation continuation like old base.py
-        continuation_id = self.get_request_continuation_id(request)
-        if continuation_id:
-            self._record_assistant_turn(continuation_id, raw_text, request, model_info)
+        # The thread records the model's reply, not the tool's formatting of it,
+        # so new and continued threads hold the same text and the next model is
+        # not handed instructions meant for the calling agent (issue #174).
+        thread_id = self.get_request_continuation_id(request) or new_thread_id
+        if thread_id:
+            self._record_assistant_turn(thread_id, raw_text, request, model_info)
 
         # Create continuation offer like old base.py
         continuation_data = self._create_continuation_offer(request, model_info, new_thread_id)
@@ -742,14 +744,6 @@ class SimpleTool(BaseTool):
         from tools.models import ContinuationOffer, ToolOutput
 
         try:
-            if not self.get_request_continuation_id(request):
-                self._record_assistant_turn(
-                    continuation_data["continuation_id"],
-                    content,
-                    request,
-                    model_info,
-                )
-
             continuation_offer = ContinuationOffer(
                 continuation_id=continuation_data["continuation_id"],
                 note=continuation_data["note"],
