@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## [11.8.0](https://github.com/laurigates/pal-mcp-server/compare/v11.7.0...v11.8.0) (2026-10-09)
+
+
+### Features
+
+* **auto-mode:** add an ordered PREFERRED_MODELS list ([#190](https://github.com/laurigates/pal-mcp-server/issues/190)) ([4d26814](https://github.com/laurigates/pal-mcp-server/commit/4d268149872d8719d7b70434aa693b33b9bfb70c))
+
+
+### Bug Fixes
+
+* **conversation:** record the model's reply and the workflow request as turns ([#191](https://github.com/laurigates/pal-mcp-server/issues/191)) ([b611a78](https://github.com/laurigates/pal-mcp-server/commit/b611a782baa190d88634d47c4e642ab79af26cd1))
+* **docs:** ruff formatting fixes ([#204](https://github.com/laurigates/pal-mcp-server/issues/204)) ([3e4ea79](https://github.com/laurigates/pal-mcp-server/commit/3e4ea7917f2fc92d6e54590573dd6155d139f193))
+* **workflow:** count files carried in from history in file_context ([#186](https://github.com/laurigates/pal-mcp-server/issues/186)) ([ac35881](https://github.com/laurigates/pal-mcp-server/commit/ac358818100e32397f6d148fdd24d3b0475862c6)), closes [#178](https://github.com/laurigates/pal-mcp-server/issues/178)
+* **workflow:** count files carried in from history in file_context ([#192](https://github.com/laurigates/pal-mcp-server/issues/192)) ([ac35881](https://github.com/laurigates/pal-mcp-server/commit/ac358818100e32397f6d148fdd24d3b0475862c6))
+
 ## [11.7.0](https://github.com/laurigates/pal-mcp-server/compare/v11.6.0...v11.7.0) (2026-10-08)
 
 
