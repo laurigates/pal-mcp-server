@@ -22,18 +22,18 @@ second list to update.
 
 ```python
 class AcmeProvider(OpenAICompatibleProvider):
-    PROVIDER_TYPE = ProviderType.ACME          # required; add the enum member too
-    FRIENDLY_NAME = "Acme"                     # product name in errors and logs
-    DISPLAY_NAME = "Acme AI"                   # optional; roster label if it differs
-    HELP_SUMMARY = "Acme models"               # phrase in the "no providers" error
-    API_KEY_ENV = "ACME_API_KEY"               # not derived - OpenCode Go's key is
-                                               # OPENCODE_API_KEY, not OPENCODE_GO_API_KEY
-    API_KEY_PLACEHOLDER = "your_acme_api_key_here"   # the .env.example value to reject
-    REQUIRED_ENV = ()                          # non-key vars that gate activation
-    OPTIONAL_ENV = ("ACME_MODELS_CONFIG_PATH",)      # honoured when present
-    ALLOWED_MODELS_ENV = ()                    # empty => ACME_ALLOWED_MODELS
-    ACCEPTS_UNLISTED_MODELS = False            # True if you serve models beyond
-                                               # your manifest (see OpenRouter)
+    PROVIDER_TYPE = ProviderType.ACME  # required; add the enum member too
+    FRIENDLY_NAME = "Acme"  # product name in errors and logs
+    DISPLAY_NAME = "Acme AI"  # optional; roster label if it differs
+    HELP_SUMMARY = "Acme models"  # phrase in the "no providers" error
+    API_KEY_ENV = "ACME_API_KEY"  # not derived - OpenCode Go's key is
+    # OPENCODE_API_KEY, not OPENCODE_GO_API_KEY
+    API_KEY_PLACEHOLDER = "your_acme_api_key_here"  # the .env.example value to reject
+    REQUIRED_ENV = ()  # non-key vars that gate activation
+    OPTIONAL_ENV = ("ACME_MODELS_CONFIG_PATH",)  # honoured when present
+    ALLOWED_MODELS_ENV = ()  # empty => ACME_ALLOWED_MODELS
+    ACCEPTS_UNLISTED_MODELS = False  # True if you serve models beyond
+    # your manifest (see OpenRouter)
 ```
 
 `get_provider_type()` is **no longer abstract** — the base class resolves it
@@ -250,17 +250,17 @@ One edit. Append your class to `_build_registered_provider_classes()` in
 cascade where it belongs:
 
 ```python
-    return [
-        GeminiModelProvider,
-        OpenAIModelProvider,
-        AzureOpenAIProvider,
-        XAIModelProvider,
-        DIALModelProvider,
-        ExampleModelProvider,   # native APIs first...
-        CustomProvider,         # ...then local/self-hosted...
-        OpenCodeGoProvider,
-        OpenRouterProvider,     # ...and the catch-all stays LAST
-    ]
+return [
+    GeminiModelProvider,
+    OpenAIModelProvider,
+    AzureOpenAIProvider,
+    XAIModelProvider,
+    DIALModelProvider,
+    ExampleModelProvider,  # native APIs first...
+    CustomProvider,  # ...then local/self-hosted...
+    OpenCodeGoProvider,
+    OpenRouterProvider,  # ...and the catch-all stays LAST
+]
 ```
 
 List position **is** the priority: `PROVIDER_PRIORITY_ORDER` is derived from
