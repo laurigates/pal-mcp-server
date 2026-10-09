@@ -51,6 +51,7 @@ from systemprompts import CHAT_PROMPT
 from tools.shared.base_models import ToolRequest
 from tools.simple.base import SimpleTool
 
+
 class ChatRequest(ToolRequest):
     prompt: str = Field(..., description="Your question or idea.")
     absolute_file_paths: list[str] | None = Field(default_factory=list)
@@ -58,6 +59,7 @@ class ChatRequest(ToolRequest):
         ...,
         description="Absolute path to an existing directory where generated code can be saved.",
     )
+
 
 class ChatTool(SimpleTool):
     def get_name(self) -> str:  # required by BaseTool
@@ -111,8 +113,10 @@ from systemprompts import CONSENSUS_PROMPT
 from tools.shared.base_models import WorkflowRequest
 from tools.workflow.base import WorkflowTool
 
+
 class ConsensusRequest(WorkflowRequest):
     models: list[dict] = Field(..., description="Models to consult (with optional stance).")
+
 
 class ConsensusTool(WorkflowTool):
     def get_name(self) -> str:
@@ -127,7 +131,9 @@ class ConsensusTool(WorkflowTool):
     def get_workflow_request_model(self):
         return ConsensusRequest
 
-    def get_required_actions(self, step_number: int, confidence: str, findings: str, total_steps: int, request=None) -> list[str]:
+    def get_required_actions(
+        self, step_number: int, confidence: str, findings: str, total_steps: int, request=None
+    ) -> list[str]:
         if step_number == 1:
             return ["Write the shared proposal all models will evaluate."]
         return ["Summarize the latest model response before moving on."]

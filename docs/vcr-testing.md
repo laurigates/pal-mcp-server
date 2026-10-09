@@ -15,10 +15,11 @@ The HTTP Transport Recorder captures and replays HTTP interactions at the transp
 ```python
 from tests.transport_helpers import inject_transport
 
+
 # Simple one-line setup with automatic transport injection
 def test_expensive_api_call(monkeypatch):
     inject_transport(monkeypatch, "tests/openai_cassettes/my_test.json")
-    
+
     # Make API calls - automatically recorded/replayed with PII sanitization
     result = await chat_tool.execute({"prompt": "2+2?", "model": "o3-pro"})
 ```
@@ -36,10 +37,11 @@ The `transport_helpers.inject_transport()` function simplifies test setup:
 ```python
 from tests.transport_helpers import inject_transport
 
+
 async def test_with_recording(monkeypatch):
     # One-line setup - handles all transport injection complexity
     inject_transport(monkeypatch, "tests/openai_cassettes/my_test.json")
-    
+
     # Use API normally - recording/replay happens transparently
     result = await chat_tool.execute({"prompt": "2+2?", "model": "o3-pro"})
 ```
