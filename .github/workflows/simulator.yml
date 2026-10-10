@@ -57,7 +57,7 @@ jobs:
           # Keep in step with [tool.uv] required-version in pyproject.toml, the
           # other workflows, and the uv base image in Dockerfile.
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.22"
+          version: "0.12.23"
           enable-cache: true
 
       - name: Sync dependencies
@@ -125,7 +125,7 @@ jobs:
         uses: astral-sh/setup-uv@v6.8.0
         with:
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.22"
+          version: "0.12.23"
           enable-cache: true
 
       - name: Sync dependencies
