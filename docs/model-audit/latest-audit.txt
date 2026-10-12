@@ -1,56 +1,72 @@
 === COVERAGE ===
-OpenRouter: configured=316 catalog=466 source=openrouter
+OpenRouter: configured=316 catalog=458 source=openrouter
 Gemini: configured=21 catalog=39 source=modelsdev
 OpenAI: configured=39 catalog=53 source=modelsdev
 xAI: configured=8 catalog=13 source=modelsdev
-OpenCode Zen (go): configured=42 catalog=33 source=modelsdev
+OpenCode Zen (go): configured=35 catalog=36 source=modelsdev
 DIAL: configured=9 catalog=0 source=unverifiable (enterprise aggregator, no public keyless catalog)
 Custom: configured=1 catalog=0 source=unverifiable (user-supplied local endpoints (Ollama, vLLM))
 Azure: configured=0 catalog=0 source=unverifiable (per-deployment names chosen by the operator)
 
-=== DEPRECATED (16) ===
+=== DEPRECATED (29) ===
 openrouter_models.json: google/gemini-2.5-pro -- catalog sets expiration_date=2026-10-20
 openrouter_models.json: google/gemini-2.5-flash -- catalog sets expiration_date=2026-10-20
+openrouter_models.json: kwaipilot/kat-coder-pro-v2.5 -- absent from the openrouter catalog
 openrouter_models.json: poolside/laguna-s-2.1 -- catalog sets expiration_date=2026-10-31
 openrouter_models.json: poolside/laguna-xs-2.1 -- catalog sets expiration_date=2026-10-31
-openrouter_models.json: qwen/qwen3-next-80b-a3b-thinking -- catalog sets expiration_date=2026-10-09
+openrouter_models.json: qwen/qwen3.5-9b -- catalog sets expiration_date=2026-10-21
+openrouter_models.json: stealth/space-bunny-alpha -- absent from the openrouter catalog
+openrouter_models.json: xiaomi/mimo-v2.5 -- catalog sets expiration_date=2026-10-21
+openrouter_models.json: xiaomi/mimo-v2.5-pro -- catalog sets expiration_date=2026-10-21
 openrouter_models.json: z-ai/glm-4.5 -- catalog sets expiration_date=2026-12-31
 openrouter_models.json: z-ai/glm-4.7 -- catalog sets expiration_date=2026-12-31
-opencode_go_models.json: mimo-v2-pro -- absent from the modelsdev catalog [review]
+gemini_models.json: gemini-3.1-flash-lite-preview -- catalog sets status=deprecated [review]
+openai_models.json: o3-mini -- catalog sets status=deprecated [review]
+openai_models.json: o4-mini -- catalog sets status=deprecated [review]
+openai_models.json: gpt-3.5-turbo -- catalog sets status=deprecated [review]
+openai_models.json: gpt-4 -- catalog sets status=deprecated [review]
+openai_models.json: gpt-4-turbo -- catalog sets status=deprecated [review]
+openai_models.json: gpt-4.1-nano -- catalog sets status=deprecated [review]
+openai_models.json: gpt-4o-2024-05-13 -- catalog sets status=deprecated [review]
+openai_models.json: gpt-5.2-chat-latest -- catalog sets status=deprecated [review]
+openai_models.json: gpt-5.3-chat-latest -- catalog sets status=deprecated [review]
+openai_models.json: o1 -- catalog sets status=deprecated [review]
+openai_models.json: o1-pro -- catalog sets status=deprecated [review]
+opencode_go_models.json: qwen3.7-max -- catalog sets status=deprecated [review]
 opencode_go_models.json: glm-5.1 -- absent from the modelsdev catalog [review]
-opencode_go_models.json: glm-5 -- absent from the modelsdev catalog [review]
-opencode_go_models.json: mimo-v2-omni -- absent from the modelsdev catalog [review]
+opencode_go_models.json: kimi-k2.6 -- catalog sets status=deprecated [review]
+opencode_go_models.json: qwen3.6-plus -- catalog sets status=deprecated [review]
 opencode_go_models.json: minimax-m2.5 -- absent from the modelsdev catalog [review]
-opencode_go_models.json: qwen3.5-plus -- absent from the modelsdev catalog [review]
-opencode_go_models.json: kimi-k2.5 -- absent from the modelsdev catalog [review]
 opencode_go_models.json: omen-alpha -- absent from the modelsdev catalog [review]
-opencode_go_models.json: ox-alpha-free -- absent from the modelsdev catalog [review]
 
-=== STALE METADATA (24) ===
-openrouter_models.json: deepseek/deepseek-chat -- max_output_tokens: configured 16,384 vs catalog 16,000
+=== STALE METADATA (27) ===
 openrouter_models.json: deepseek/deepseek-chat-v3-0324 -- max_output_tokens: configured 147,456 vs catalog 115,200
 openrouter_models.json: deepseek/deepseek-v4-flash -- max_output_tokens: configured 131,072 vs catalog 943,718
 openrouter_models.json: deepseek/deepseek-v4-flash-0731 -- context_window: configured 1,310,720 vs catalog 1,048,576
-openrouter_models.json: deepseek/deepseek-v4.1-flash -- max_output_tokens: configured 384,000 vs catalog 943,718
+openrouter_models.json: deepseek/deepseek-v4-pro-0813 -- max_output_tokens: configured 943,718 vs catalog 393,216
+openrouter_models.json: deepseek/deepseek-v4.1-flash -- max_output_tokens: configured 384,000 vs catalog 393,216
 openrouter_models.json: inclusionai/ling-3.0-flash-fin -- max_output_tokens: configured 235,929 vs catalog 32,768
-openrouter_models.json: meta/muse-glimmer-30b -- max_output_tokens: configured 16,384 vs catalog 117,964
+openrouter_models.json: meta-llama/llama-4-scout -- max_output_tokens: configured 16,384 vs catalog 117,964
 openrouter_models.json: minimax/minimax-m2 -- max_output_tokens: configured 131,072 vs catalog 176,947
-openrouter_models.json: moonshotai/kimi-k2-thinking -- max_output_tokens: configured 98,304 vs catalog 235,929
-openrouter_models.json: nvidia/nemotron-3-ultra-550b-a55b -- max_output_tokens: configured 182,520 vs catalog 16,384
 openrouter_models.json: nvidia/nemotron-3.5-lightning -- context_window: configured 1,000,000 vs catalog 262,144
-openrouter_models.json: nvidia/nemotron-3.5-lightning -- max_output_tokens: configured 131,072 vs catalog 32,768
+openrouter_models.json: nvidia/nemotron-3.5-lightning -- max_output_tokens: configured 131,072 vs catalog 235,929
 openrouter_models.json: openai/gpt-oss-120b -- max_output_tokens: configured 65,536 vs catalog 117,964
-openrouter_models.json: qwen/qwen3-30b-a3b-instruct-2507 -- max_output_tokens: configured 235,929 vs catalog 32,000
-openrouter_models.json: qwen/qwen3-next-80b-a3b-thinking -- max_output_tokens: configured 235,929 vs catalog 32,768
+openrouter_models.json: qwen/qwen3-14b -- context_window: configured 131,072 vs catalog 40,960
+openrouter_models.json: qwen/qwen3-235b-a22b-2507 -- max_output_tokens: configured 235,929 vs catalog 16,384
+openrouter_models.json: qwen/qwen3-30b-a3b -- context_window: configured 131,072 vs catalog 40,960
 openrouter_models.json: qwen/qwen3.5-122b-a10b -- max_output_tokens: configured 235,929 vs catalog 65,536
-openrouter_models.json: qwen/qwen3.5-35b-a3b -- max_output_tokens: configured 16,384 vs catalog 235,929
-openrouter_models.json: qwen/qwen3.6-27b -- max_output_tokens: configured 81,920 vs catalog 262,140
-openrouter_models.json: thinkingmachines/inkling -- max_output_tokens: configured 471,859 vs catalog 262,144
+openrouter_models.json: qwen/qwen3.5-27b -- max_output_tokens: configured 65,536 vs catalog 81,920
+openrouter_models.json: qwen/qwen3.5-35b-a3b -- max_output_tokens: configured 16,384 vs catalog 32,768
+openrouter_models.json: qwen/qwen3.6-35b-a3b -- max_output_tokens: configured 235,929 vs catalog 65,536
+openrouter_models.json: qwen/qwen3.8-27b -- max_output_tokens: configured 131,072 vs catalog 235,929
 openrouter_models.json: xiaomi/mimo-v2.6-flash -- context_window: configured 1,048,576 vs catalog 1,050,000
+openrouter_models.json: z-ai/glm-4.6 -- max_output_tokens: configured 16,384 vs catalog 131,072
+openrouter_models.json: z-ai/glm-5.1 -- max_output_tokens: configured 131,072 vs catalog 128,000
+openrouter_models.json: z-ai/glm-5.2 -- max_output_tokens: configured 131,072 vs catalog 943,718
 openrouter_models.json: z-ai/glm-5.3 -- context_window: configured 1,310,720 vs catalog 1,048,576
 openrouter_models.json: z-ai/glm-5.3 -- max_output_tokens: configured 943,717 vs catalog 943,718
 openrouter_models.json: z-ai/glm-5.3-flash -- context_window: configured 1,310,720 vs catalog 1,048,576
-openrouter_models.json: z-ai/glm-5.3-flash -- max_output_tokens: configured 128,000 vs catalog 943,717
+openrouter_models.json: z-ai/glm-5.3-flash -- max_output_tokens: configured 128,000 vs catalog 943,718
 
 === ALIAS COLLISIONS (0) ===
 
@@ -58,7 +74,11 @@ openrouter_models.json: z-ai/glm-5.3-flash -- max_output_tokens: configured 128,
 
 === SCHEMA (0) ===
 
-=== CANDIDATE ADDITIONS (15) ===
+=== CANDIDATE ADDITIONS (17) ===
+openrouter_models.json: stepfun/step-5-preview -- live in catalog (released/created 1791462849), not configured [review]
+openrouter_models.json: anthropic/claude-haiku-5.5 -- live in catalog (released/created 1791397883), not configured [review]
+openrouter_models.json: google/gemini-nano-banana-2.1 -- live in catalog (released/created 1791300825), not configured [review]
+openrouter_models.json: mistralai/mistral-large-4-0 -- live in catalog (released/created 1791294122), not configured [review]
 openrouter_models.json: inclusionai/ling-3.1-flash -- live in catalog (released/created 1790950024), not configured [review]
 openrouter_models.json: unbiased/pareto-26.10-preview -- live in catalog (released/created 1790863623), not configured [review]
 openrouter_models.json: openai/gpt-6.1-sol-pro -- live in catalog (released/created 1790702886), not configured [review]
@@ -67,20 +87,18 @@ openrouter_models.json: anthropic/claude-sonnet-5.5 -- live in catalog (released
 openrouter_models.json: nvidia/switchyard -- live in catalog (released/created 1790025947), not configured [review]
 openrouter_models.json: nex-agi/nex-n2.5-mini -- live in catalog (released/created 1788890061), not configured [review]
 openrouter_models.json: nex-agi/nex-n2.5-pro -- live in catalog (released/created 1788890050), not configured [review]
-openrouter_models.json: minimax/minimax-m2.1 -- live in catalog (released/created 1766454997), not configured [review]
-openrouter_models.json: deepseek/deepseek-v3.2 -- live in catalog (released/created 1764594642), not configured [review]
-openrouter_models.json: deepseek/deepseek-v3.2-exp -- live in catalog (released/created 1759150481), not configured [review]
-openrouter_models.json: deepseek/deepseek-v3.1-terminus -- live in catalog (released/created 1758548275), not configured [review]
 openai_models.json: gpt-6.1-sol -- live in catalog (released/created 2026-09-29), not configured [review]
 openai_models.json: gpt-daybreak-blue-latest -- live in catalog (released/created 2026-08-07), not configured [review]
 openai_models.json: gpt-daybreak-red-latest -- live in catalog (released/created 2026-08-07), not configured [review]
+opencode_go_models.json: claude-haiku-5-5 -- live in catalog (released/created 2026-10-07), not configured [review]
+opencode_go_models.json: step-5-preview-free -- live in catalog (released/created 2026-09-16), not configured [review]
 
 === SUMMARY ===
-DEPRECATED=16
-STALE=24
+DEPRECATED=29
+STALE=27
 ALIAS_COLLISION=0
 ORPHAN_REF=0
 SCHEMA=0
-MISSING=15
-ACTIONABLE=40
+MISSING=17
+ACTIONABLE=56
 STATUS=DRIFT
