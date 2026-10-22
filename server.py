@@ -1161,6 +1161,13 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
     # races between get_thread and add_turn).
     _record_user_turn_or_raise(continuation_id, context, arguments)
 
+    # Reload so the history built below holds that turn and the files it
+    # attached: the tool sees the history is already embedded and does not
+    # rebuild it (issue #187).
+    from utils.conversation_memory import get_thread
+
+    context = get_thread(continuation_id) or context
+
     # Resolve the model used to rebuild conversation history. The
     # resolver encapsulates the fallback cascade
     # (requested → ModelContext → tool fallback → globally-available).
@@ -1308,7 +1315,17 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
     if not user_prompt:
         return
 
-    user_files = arguments.get("absolute_file_paths") or []
+    # The history embeds only regular files, and the tool skips any path the
+    # history already lists, so a directory recorded as-is would reach the model
+    # as neither. Record the files inside it instead.
+    from utils.file_utils import expand_paths
+
+    user_files = []
+    for path in arguments.get("absolute_file_paths") or []:
+        if os.path.isabs(path) and os.path.isdir(path):
+            user_files.extend(expand_paths([path]))
+        else:
+            user_files.append(path)
     logger.debug(f"[CONVERSATION_DEBUG] Adding user turn to thread {continuation_id}")
 
     try:

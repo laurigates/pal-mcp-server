@@ -340,10 +340,13 @@ class SimpleTool(BaseTool):
             # Handle conversation history and prompt preparation
             if continuation_id:
                 # Check if conversation history is already embedded
+                from utils.conversation_memory import CONVERSATION_HISTORY_MARKER
+
                 field_value = self.get_request_prompt(request)
-                if "=== CONVERSATION HISTORY ===" in field_value:
-                    # Use pre-embedded history
-                    prompt = field_value
+                if CONVERSATION_HISTORY_MARKER in field_value:
+                    # server.py already recorded the user turn and embedded the history.
+                    # prepare_prompt still runs for files, prompt.txt and the size check.
+                    prompt = await self.prepare_prompt(request)
                     logger.debug(f"{self.get_name()}: Using pre-embedded conversation history")
                 else:
                     # No embedded history - reconstruct it (for in-process calls)
@@ -960,8 +963,16 @@ Please provide a thoughtful, comprehensive response:"""
         else:
             prompt_content = None
 
-        # Use prompt.txt content if available, otherwise use the prompt field
-        user_content = prompt_content if prompt_content else self.get_request_prompt(request)
+        # Use prompt.txt content if available, otherwise use the prompt field. When
+        # server.py embedded the conversation history in the prompt field, keep it
+        # ahead of the prompt.txt request rather than dropping it.
+        from utils.conversation_memory import CONVERSATION_HISTORY_MARKER
+
+        request_prompt = self.get_request_prompt(request)
+        if prompt_content and CONVERSATION_HISTORY_MARKER in request_prompt:
+            user_content = f"{request_prompt}\n\n{prompt_content}"
+        else:
+            user_content = prompt_content if prompt_content else request_prompt
 
         # Check user input size at MCP transport boundary (excluding conversation history)
         validation_content = self.get_prompt_content_for_size_validation(user_content)

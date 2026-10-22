@@ -162,6 +162,11 @@ except ValueError:
 
 CONVERSATION_TIMEOUT_SECONDS = CONVERSATION_TIMEOUT_HOURS * 3600
 
+# First line of the history block build_conversation_history emits. Tools check
+# for it to tell a prompt that server.py already embedded the history in from
+# one they must reconstruct history for (issue #187), so both sides use this.
+CONVERSATION_HISTORY_MARKER = "=== CONVERSATION HISTORY (CONTINUATION) ==="
+
 
 class ConversationTurn(BaseModel):
     """
@@ -877,7 +882,7 @@ def build_conversation_history(context: ThreadContext, model_context=None, read_
     logger.debug(f"[HISTORY]   Max history tokens: {max_history_tokens:,}")
 
     history_parts = [
-        "=== CONVERSATION HISTORY (CONTINUATION) ===",
+        CONVERSATION_HISTORY_MARKER,
         f"Thread: {context.thread_id}",
         f"Tool: {context.tool_name}",  # Original tool that started the conversation
         f"Turn {total_turns}/{MAX_CONVERSATION_TURNS}",
