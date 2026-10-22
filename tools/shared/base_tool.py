@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 from config import MCP_PROMPT_SIZE_LIMIT
 from providers import ModelProvider, ModelProviderRegistry
+from providers.shared import ProviderType
 from utils import estimate_tokens
 from utils.conversation_memory import (
     ConversationTurn,
@@ -30,6 +31,7 @@ from utils.conversation_memory import (
 )
 from utils.env import get_env
 from utils.file_utils import read_file_content, read_files
+from utils.model_restrictions import DISABLED_MODELS_ENV, ModelRestrictionService, _parse_disabled_models
 
 # Import models from tools.models for compatibility
 try:
@@ -432,32 +434,37 @@ class BaseTool(ABC):
         return head + [item for item in ranked if item[1].lower() not in position]
 
     def _get_restriction_note(self) -> str | None:
-        """Return a string describing active per-provider allowlists, if any."""
+        """Return a string describing active per-provider allowlists and DISABLED_MODELS, if any.
 
-        env_labels = {
-            "OPENAI_ALLOWED_MODELS": "OpenAI",
-            "GOOGLE_ALLOWED_MODELS": "Google",
-            "XAI_ALLOWED_MODELS": "X.AI",
-            "OPENROUTER_ALLOWED_MODELS": "OpenRouter",
-            "DIAL_ALLOWED_MODELS": "DIAL",
-        }
+        Variables resolve through ``ModelRestrictionService.env_vars_for`` -- the
+        same lookup the policy itself uses -- so no provider can fall out of the note (#188).
+        """
 
         notes: list[str] = []
-        for env_var, label in env_labels.items():
-            raw = get_env(env_var)
-            if not raw:
-                continue
+        for provider_type in ProviderType:
+            for env_var in ModelRestrictionService.env_vars_for(provider_type):
+                raw = get_env(env_var)
+                models = sorted({token.strip() for token in (raw or "").split(",") if token.strip()})
+                if not models:
+                    continue
+                provider_cls = ModelProviderRegistry.provider_class_for(provider_type)
+                label = provider_cls.display_label() if provider_cls else provider_type.value
+                notes.append(f"{label}: {', '.join(models)}")
+                break
 
-            models = sorted({token.strip() for token in raw.split(",") if token.strip()})
-            if not models:
-                continue
+        parts: list[str] = []
+        if notes:
+            parts.append("Policy allows only → " + "; ".join(notes))
 
-            notes.append(f"{label}: {', '.join(models)}")
+        disabled = _parse_disabled_models(get_env(DISABLED_MODELS_ENV))
+        if disabled:
+            names = ", ".join(f"{scope.value}:{name}" if scope else name for scope, name in disabled)
+            parts.append(f"Disabled: {names}")
 
-        if not notes:
+        if not parts:
             return None
 
-        return "Policy allows only → " + "; ".join(notes)
+        return ". ".join(parts)
 
     def _build_model_unavailable_message(self, model_name: str) -> str:
         """Compose a consistent error message for unavailable model scenarios."""
