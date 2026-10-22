@@ -208,6 +208,15 @@ class TestOpenAIProvider:
         assert capabilities.supports_temperature is False
         assert capabilities.intelligence_score == 20
 
+    def test_daybreak_aliases_use_responses_api(self):
+        """OpenAI serves both Daybreak aliases on /v1/responses only; Chat Completions is unsupported."""
+        provider = OpenAIModelProvider("test-key")
+
+        for name in ("gpt-daybreak-blue-latest", "gpt-daybreak-red-latest"):
+            capabilities = provider.get_capabilities(name)
+            assert capabilities.use_openai_response_api is True, name
+            assert "deprecated" in capabilities.description.lower(), name
+
     def test_extended_reasoning_prefers_gpt61_sol_over_gpt6_sol(self):
         """The Sol successor outranks its predecessor in the EXTENDED_REASONING preference list."""
         from tools.models import ToolModelCategory

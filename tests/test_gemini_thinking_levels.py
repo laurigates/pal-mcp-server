@@ -142,3 +142,26 @@ class TestGemini4ArgonRegistry:
     def test_shut_down_flash_lite_preview_removed(self):
         """gemini-3.1-flash-lite-preview was shut down by Google on 2026-05-25."""
         assert not _provider().validate_model_name("gemini-3.1-flash-lite-preview")
+
+    def test_extended_reasoning_ranks_by_intelligence_score(self, monkeypatch):
+        """A future flagship without 'pro' in its id wins on intelligence_score, with no code edit."""
+        from tools.models import ToolModelCategory
+
+        provider = _provider()
+        capability_map = dict(provider.get_all_model_capabilities())
+        capability_map["gemini-5-future"] = _capabilities("gemini-5-future", intelligence_score=20)
+        monkeypatch.setattr(provider, "get_all_model_capabilities", lambda: capability_map)
+
+        preferred = provider.get_preferred_model(
+            ToolModelCategory.EXTENDED_REASONING, ["gemini-4-argon", "gemini-3.1-pro-preview", "gemini-5-future"]
+        )
+        assert preferred == "gemini-5-future"
+
+    def test_extended_reasoning_score_tie_still_prefers_pro(self):
+        """Equal scores keep the existing 'pro' preference, newest id first."""
+        from tools.models import ToolModelCategory
+
+        preferred = _provider().get_preferred_model(
+            ToolModelCategory.EXTENDED_REASONING, ["gemini-2.5-pro", "gemini-3.1-pro-preview", "gemini-3.8-flash"]
+        )
+        assert preferred == "gemini-3.1-pro-preview"

@@ -470,22 +470,17 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             return sorted(candidates, reverse=True)[0] if candidates else None
 
         if category == ToolModelCategory.EXTENDED_REASONING:
-            # Flagship reasoning models whose ids do not carry the "pro" marker.
-            for flagship in ("gemini-4-argon",):
-                if flagship in allowed_models:
-                    return flagship
-            pro_thinking = [
-                m
-                for m in allowed_models
-                if "pro" in m and m in capability_map and capability_map[m].supports_extended_thinking
-            ]
-            if pro_thinking:
-                return find_best(pro_thinking)
-            any_thinking = [
+            # Rank by the registry's intelligence_score first, so a flagship whose id
+            # lacks the "pro" marker (gemini-4-argon) wins without a code edit. Ties
+            # prefer a "pro" id, as the substring heuristic always has.
+            thinking = [
                 m for m in allowed_models if m in capability_map and capability_map[m].supports_extended_thinking
             ]
-            if any_thinking:
-                return find_best(any_thinking)
+            if thinking:
+                top_score = max(capability_map[m].intelligence_score for m in thinking)
+                top = [m for m in thinking if capability_map[m].intelligence_score == top_score]
+                top_pro = [m for m in top if "pro" in m]
+                return find_best(top_pro or top)
             pro_models = [m for m in allowed_models if "pro" in m]
             if pro_models:
                 return find_best(pro_models)
