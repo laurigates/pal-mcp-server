@@ -202,11 +202,11 @@ CUSTOM_MODEL_NAME=your-loaded-model
 **Using model aliases (from the registry files):**
 ```
 # OpenRouter models:
-"Use opus for deep analysis"         # → anthropic/claude-opus-4
-"Use sonnet to review this code"     # → anthropic/claude-sonnet-4
-"Use pro via pal to analyze this"    # → google/gemini-2.5-pro
-"Use gpt4o via pal to analyze this"  # → openai/gpt-4o
-"Use mistral via pal to optimize"    # → mistral/mistral-large
+"Use opus for deep analysis"         # → anthropic/claude-opus-5
+"Use sonnet to review this code"     # → anthropic/claude-sonnet-5
+"Use pro via pal to analyze this"    # → google/gemini-3.1-pro-preview
+"Use gpt5.2 via pal to analyze this" # → openai/gpt-5.2
+"Use mistral via pal to optimize"    # → mistralai/mistral-large-2512
 
 # Local models (with custom URL configured):
 "Use local-llama to analyze this code"     # → llama3.2 (local)

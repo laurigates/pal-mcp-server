@@ -36,6 +36,7 @@ from utils.model_restrictions import (
     DISABLED_MODELS_ENV,
     ModelRestrictionService,
     format_disabled_models,
+    parse_allowed_models,
     parse_disabled_models,
 )
 
@@ -454,8 +455,8 @@ class BaseTool(ABC):
         notes: list[str] = []
         for provider_type in ProviderType:
             for env_var in ModelRestrictionService.env_vars_for(provider_type):
-                raw = get_env(env_var)
-                models = sorted({token.strip() for token in (raw or "").split(",") if token.strip()})
+                # The policy's own parser, so entries read lowercased and deduplicated as matched.
+                models = sorted(parse_allowed_models(get_env(env_var)))
                 if not models:
                     continue
                 provider_cls = ModelProviderRegistry.provider_class_for(provider_type)
