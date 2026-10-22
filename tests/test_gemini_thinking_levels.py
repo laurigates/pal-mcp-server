@@ -117,3 +117,28 @@ class TestNoRecordedSetIsUnchanged:
         config = provider._thinking_config("gemini-3.6-flash", "medium", None)
         assert config is not None
         assert config.thinking_level == types.ThinkingLevel.MEDIUM
+
+
+class TestGemini4ArgonRegistry:
+    def test_argon_is_promoted_with_vendor_limits(self):
+        """Gemini 4 Argon carries the limits from Google's model page and owns the ``pro`` alias."""
+        provider = _provider()
+        capabilities = provider.get_capabilities("pro")
+        assert capabilities.model_name == "gemini-4-argon"
+        assert capabilities.context_window == 1048576
+        assert capabilities.max_output_tokens == 65536
+        assert capabilities.supported_thinking_levels == ["low", "medium", "high"]
+
+    def test_extended_reasoning_prefers_argon(self):
+        """The flagship reasoning model wins EXTENDED_REASONING even though its id lacks 'pro'."""
+        from tools.models import ToolModelCategory
+
+        provider = _provider()
+        preferred = provider.get_preferred_model(
+            ToolModelCategory.EXTENDED_REASONING, ["gemini-3.1-pro-preview", "gemini-4-argon", "gemini-3.8-flash"]
+        )
+        assert preferred == "gemini-4-argon"
+
+    def test_shut_down_flash_lite_preview_removed(self):
+        """gemini-3.1-flash-lite-preview was shut down by Google on 2026-05-25."""
+        assert not _provider().validate_model_name("gemini-3.1-flash-lite-preview")

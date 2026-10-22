@@ -33,7 +33,7 @@ Regardless of your default configuration, you can specify models per request:
 
 | Model | Provider | Context | Strengths | Auto Mode Usage |
 |-------|----------|---------|-----------|------------------|
-| **`pro`** (resolves to `gemini-3.1-pro-preview`) | Google | 1M tokens | Extended thinking — see [Thinking Modes](#thinking-modes), deep analysis | Complex architecture, security reviews, deep debugging |
+| **`pro`** (resolves to `gemini-4-argon`) | Google | 1M tokens | Extended thinking — see [Thinking Modes](#thinking-modes), deep analysis | Complex architecture, security reviews, deep debugging |
 | **`flash`** (resolves to `gemini-3.8-flash`) | Google | 1M tokens | Fast responses with extended thinking — see [Thinking Modes](#thinking-modes) | Quick checks, formatting, simple analysis |
 | **`flashlite`** (resolves to `gemini-3.5-flash-lite`) | Google | 1M tokens | Lightweight model, supports extended thinking — see [Thinking Modes](#thinking-modes) | Fast, high-volume text/image processing |
 | **`o3`** | OpenAI | 200K tokens | Strong logical reasoning | Debugging logic errors, systematic analysis |
@@ -41,7 +41,7 @@ Regardless of your default configuration, you can specify models per request:
 | **`o4-mini`** | OpenAI | 200K tokens | Latest reasoning model | Optimized for shorter contexts |
 | **`gpt4.1`** | OpenAI | 1M tokens | Latest GPT-4 with extended context | Large codebase analysis, comprehensive reviews |
 | **`gpt5.2`** (GPT-5.2) | OpenAI | 400K tokens | Flagship reasoning model with configurable thinking effort | Complex problems, balanced agent/coding flows |
-| **`sol`** (GPT-5.6 Sol) | OpenAI | 1.05M tokens | Frontier reasoning tier (Responses API) | Hardest problems, structured code generation |
+| **`sol`** (GPT-6.1 Sol) | OpenAI | 1.05M tokens | Frontier reasoning tier (Responses API) | Hardest problems, structured code generation |
 | **`terra`** (GPT-5.6 Terra) | OpenAI | 1.05M tokens | Balanced 5.6 tier | Everyday agent and coding flows |
 | **`luna`** (GPT-5.6 Luna) | OpenAI | 1.05M tokens | Cost-efficient 5.6 tier | High-volume work |
 | **`codex`** (GPT-5.3 Codex) | OpenAI | 400K tokens | Agentic coding specialization (Responses API) | Advanced coding tasks, structured code generation |
@@ -62,7 +62,7 @@ cloud models (expensive/powerful) AND local models (free/private) in the same co
 
 **Model Capabilities:**
 - **Gemini Models**: Support thinking modes, web search, 1M context — see [Thinking Modes](#thinking-modes) for per-generation budgets/levels
-  - **`pro`** (resolves to `gemini-3.1-pro-preview`): Deep analysis, extended thinking
+  - **`pro`** (resolves to `gemini-4-argon`): Deep analysis, extended thinking
   - **`flash`** (resolves to `gemini-3.8-flash`): Fast responses, extended thinking, multimodal input
   - **`flashlite`** (resolves to `gemini-3.5-flash-lite`): Lightweight model, extended thinking support
 - **O3/O4 Models**: Excellent reasoning, systematic analysis, 200K context
@@ -361,7 +361,7 @@ To help choose the right tool for your needs:
 The PAL MCP server supports vision-capable models for analyzing images, diagrams, screenshots, and visual content. Vision support works seamlessly with all tools and conversation threading.
 
 **Supported Models:**
-- **Gemini models**: Excellent for diagrams, architecture analysis, UI mockups — **`pro`** (resolves to `gemini-3.1-pro-preview`) allows up to 32MB total; **`flash`** (resolves to `gemini-3.8-flash`) and **`flashlite`** (resolves to `gemini-3.5-flash-lite`) allow up to 20MB total
+- **Gemini models**: Excellent for diagrams, architecture analysis, UI mockups — **`pro`** (resolves to `gemini-4-argon`) allows up to 32MB total; **`flash`** (resolves to `gemini-3.8-flash`) and **`flashlite`** (resolves to `gemini-3.5-flash-lite`) allow up to 20MB total
 - **OpenAI O3/O4 series**: Strong for visual debugging, error screenshots (up to 20MB total)
 - **Claude models via OpenRouter**: Good for code screenshots, visual analysis (up to 5MB total)
 - **Custom models**: Support varies by model, with 40MB maximum enforced for abuse prevention

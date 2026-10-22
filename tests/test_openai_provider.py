@@ -196,6 +196,32 @@ class TestOpenAIProvider:
         assert capabilities.use_openai_response_api is True
         assert capabilities.allow_code_generation is True
 
+    def test_get_capabilities_gpt61_sol(self):
+        """GPT-6.1 Sol is a promoted Responses-API frontier entry, not a disabled stub."""
+        provider = OpenAIModelProvider("test-key")
+
+        capabilities = provider.get_capabilities("sol")
+        assert capabilities.model_name == "gpt-6.1-sol"
+        assert capabilities.context_window == 1050000
+        assert capabilities.max_output_tokens == 128000
+        assert capabilities.use_openai_response_api is True
+        assert capabilities.supports_temperature is False
+        assert capabilities.intelligence_score == 20
+
+    def test_extended_reasoning_prefers_gpt61_sol_over_gpt6_sol(self):
+        """The Sol successor outranks its predecessor in the EXTENDED_REASONING preference list."""
+        from tools.models import ToolModelCategory
+
+        provider = OpenAIModelProvider("test-key")
+        preferred = provider.get_preferred_model(ToolModelCategory.EXTENDED_REASONING, ["gpt-6-sol", "gpt-6.1-sol"])
+        assert preferred == "gpt-6.1-sol"
+
+    def test_shut_down_chat_latest_models_removed(self):
+        """gpt-5.2/5.3-chat-latest were shut down by OpenAI on 2026-08-10."""
+        provider = OpenAIModelProvider("test-key")
+        assert not provider.validate_model_name("gpt-5.2-chat-latest")
+        assert not provider.validate_model_name("gpt-5.3-chat-latest")
+
     @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_generate_content_resolves_alias_before_api_call(self, mock_openai_class):
         """Test that generate_content resolves aliases before making API calls.

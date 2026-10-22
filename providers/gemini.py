@@ -470,6 +470,10 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             return sorted(candidates, reverse=True)[0] if candidates else None
 
         if category == ToolModelCategory.EXTENDED_REASONING:
+            # Flagship reasoning models whose ids do not carry the "pro" marker.
+            for flagship in ("gemini-4-argon",):
+                if flagship in allowed_models:
+                    return flagship
             pro_thinking = [
                 m
                 for m in allowed_models

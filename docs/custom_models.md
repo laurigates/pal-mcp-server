@@ -92,7 +92,8 @@ The GPT-6 family is the current flagship tier in `conf/openai_models.json`, with
 | Model | Highlights | Notes |
 |-------|------------|-------|
 | `gpt-6-astra` | Most capable GPT-6 tier, 1.05M context | Responses API; aliased `astra`, `gpt6` |
-| `gpt-6-sol` | GPT-6 tier for complex coding and agentic work | Responses API; aliased `sol` |
+| `gpt-6.1-sol` | Near-Astra GPT-6.1 Sol tier at lower cost, 1.05M context | Responses API; aliased `sol`, `gpt6.1` |
+| `gpt-6-sol` | GPT-6 tier for complex coding and agentic work | Responses API; aliased `gpt6-sol` |
 | `gpt-6-luna` | Cost-efficient GPT-6 tier | Aliased `luna` |
 | `gpt-5.6-sol` | Frontier GPT-5.6 tier, 1.05M context | Responses API; aliased `gpt5.6` |
 | `gpt-5.6-terra` | Balanced 5.6 tier | Aliased `terra` |
