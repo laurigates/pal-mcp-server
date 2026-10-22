@@ -177,3 +177,91 @@ class TestServerContinuationReloadsTheThread:
 
         assert FIRST_REPLY in enhanced["prompt"]
         assert FOLLOW_UP in enhanced["prompt"]
+
+
+def _write_file_over_history_budget(path, model_context):
+    """Write a file the history's file budget cannot hold but the remaining content budget can."""
+    from utils.file_utils import estimate_file_tokens
+
+    path.write_text("x" * 1000)
+    chars_per_token = 1000 / estimate_file_tokens(str(path))
+    file_tokens = model_context.calculate_token_allocation().file_tokens
+    line = "OVERSIZE_SENTINEL = 1\n"
+    path.write_text(line * (int(file_tokens * 1.2 * chars_per_token) // len(line)))
+    assert estimate_file_tokens(str(path)) > file_tokens
+
+
+class TestServerContinuationFileOverTheHistoryBudget:
+    @pytest.mark.asyncio
+    async def test_file_the_history_skips_is_embedded_by_the_tool(self, tmp_path):
+        # A small window keeps the file under the per-file read cap.
+        provider = create_mock_provider(model_name="flash", context_window=200_000)
+        big = tmp_path / "big.py"
+        _write_file_over_history_budget(big, _model_context(provider))
+        thread_id = _chat_thread(tmp_path)
+
+        await _continue(tmp_path, thread_id, provider, files=[str(big)])
+
+        prompt = _sent_prompt(provider)
+        # The history's budget leaves it out, so the tool must embed it, once.
+        assert prompt.count(f"--- BEGIN FILE: {big} ") == 1
+
+
+class TestServerContinuationPromptFile:
+    @pytest.mark.asyncio
+    async def test_prompt_file_with_an_inline_prompt_reaches_the_model_once(self, tmp_path):
+        prompt_file = tmp_path / "prompt.txt"
+        prompt_file.write_text("PROMPT_FILE_SENTINEL: explain the fallback")
+        context_file = tmp_path / "loader.py"
+        context_file.write_text("LOADER_SENTINEL = 1\n")
+        thread_id = _chat_thread(tmp_path)
+        provider = create_mock_provider(model_name="flash")
+
+        await _continue(tmp_path, thread_id, provider, files=[str(prompt_file), str(context_file)])
+
+        prompt = _sent_prompt(provider)
+        assert prompt.count("PROMPT_FILE_SENTINEL") == 1
+        assert "LOADER_SENTINEL" in prompt
+
+    @pytest.mark.asyncio
+    async def test_prompt_file_is_not_recorded_as_a_conversation_file(self, tmp_path):
+        prompt_file = tmp_path / "prompt.txt"
+        prompt_file.write_text("PROMPT_FILE_SENTINEL: explain the fallback")
+        context_file = tmp_path / "loader.py"
+        context_file.write_text("LOADER_SENTINEL = 1\n")
+        thread_id = _chat_thread(tmp_path)
+        provider = create_mock_provider(model_name="flash")
+
+        await _continue(tmp_path, thread_id, provider, files=[str(prompt_file), str(context_file)])
+
+        recorded = [path for turn in get_thread(thread_id).turns for path in (turn.files or [])]
+        assert str(prompt_file) not in recorded
+        assert str(context_file) in recorded
+
+    @pytest.mark.asyncio
+    async def test_prompt_file_as_the_only_file_is_not_embedded_as_context(self, tmp_path):
+        prompt_file = tmp_path / "prompt.txt"
+        prompt_file.write_text("PROMPT_FILE_SENTINEL: explain the fallback")
+        thread_id = _chat_thread(tmp_path)
+        provider = create_mock_provider(model_name="flash")
+
+        await _continue(tmp_path, thread_id, provider, files=[str(prompt_file)])
+
+        prompt = _sent_prompt(provider)
+        assert prompt.count("PROMPT_FILE_SENTINEL") == 1
+        recorded = [path for turn in get_thread(thread_id).turns for path in (turn.files or [])]
+        assert str(prompt_file) not in recorded
+
+    @pytest.mark.asyncio
+    async def test_prompt_file_replaces_the_inline_prompt_as_on_a_first_turn(self, tmp_path):
+        prompt_file = tmp_path / "prompt.txt"
+        prompt_file.write_text("PROMPT_FILE_SENTINEL: explain the fallback")
+        thread_id = _chat_thread(tmp_path)
+        provider = create_mock_provider(model_name="flash")
+
+        await _continue(tmp_path, thread_id, provider, files=[str(prompt_file)])
+
+        prompt = _sent_prompt(provider)
+        slot_start = prompt.index(NEW_USER_INPUT_MARKER) + len(NEW_USER_INPUT_MARKER) + 1
+        assert prompt[slot_start:].startswith("PROMPT_FILE_SENTINEL: explain the fallback\n\n")
+        assert FOLLOW_UP not in prompt[slot_start:]

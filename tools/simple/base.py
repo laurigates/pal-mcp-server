@@ -957,23 +957,26 @@ Please provide a thoughtful, comprehensive response:"""
         if files:
             prompt_content, updated_files = self.handle_prompt_file(files)
 
-            # Update request files list if needed
-            if updated_files is not None:
-                self.set_request_files(request, updated_files)
+            # Drop prompt.txt from the request files, also when it was the only
+            # one (updated_files is then None): left there, it is embedded as a
+            # context file and recorded on the turn.
+            self.set_request_files(request, updated_files or [])
         else:
             prompt_content = None
 
         # Use prompt.txt content if available, otherwise use the prompt field. When
         # server.py embedded the conversation history in the prompt field, keep it
         # and put the prompt.txt request in its NEW USER INPUT slot, ahead of the
-        # follow-up instructions.
+        # follow-up instructions. As on a first turn, it replaces the inline
+        # prompt server.py put there (kept in _original_user_prompt).
         from utils.conversation_memory import CONVERSATION_HISTORY_MARKER, NEW_USER_INPUT_MARKER
 
         request_prompt = self.get_request_prompt(request)
         if prompt_content and CONVERSATION_HISTORY_MARKER in request_prompt:
             head, slot, tail = request_prompt.rpartition(f"{NEW_USER_INPUT_MARKER}\n")
             if slot:
-                user_content = f"{head}{slot}{prompt_content}{tail}"
+                inline_prompt = (getattr(self, "_current_arguments", None) or {}).get("_original_user_prompt") or ""
+                user_content = f"{head}{slot}{prompt_content}{tail.removeprefix(inline_prompt)}"
             else:
                 user_content = f"{request_prompt}\n\n{prompt_content}"
         else:

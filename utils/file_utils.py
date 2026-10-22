@@ -426,6 +426,15 @@ def expand_paths(paths: list[str], extensions: set[str] | None = None) -> list[s
     return expanded_files
 
 
+def is_prompt_file(path: str) -> bool:
+    """Whether ``path`` is a prompt.txt: the request itself, not a context file.
+
+    Matches the exact basename, so ``myprompt.txt`` or ``prompt.txt.bak`` are
+    ordinary files.
+    """
+    return os.path.basename(path) == "prompt.txt"
+
+
 def expand_directories(paths: list[str]) -> list[str]:
     """Replace each absolute directory in ``paths`` with the files inside it.
 
