@@ -81,6 +81,11 @@ class BaseTool(ABC):
     4. Register the tool in server.py's TOOLS dictionary
     """
 
+    # Whether the tool reads ``prompt``. On a continuation server.py embeds the
+    # conversation history in ``prompt``, which re-reads every file the thread
+    # referenced; tools that never read it skip that build (issue #202).
+    consumes_prompt = True
+
     # Class-level cache for OpenRouter registry to avoid multiple loads
     _openrouter_registry_cache = None
     _custom_registry_cache = None

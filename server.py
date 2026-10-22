@@ -846,7 +846,7 @@ async def _dispatch_tool_call(
             # resumption. Surface at DEBUG for post-mortem.
             logger.debug("Activity log write failed for CONVERSATION_RESUME", exc_info=True)
 
-        arguments = await reconstruct_thread_context(arguments)
+        arguments = await reconstruct_thread_context(arguments, tool_name=name)
         logger.debug(f"[CONVERSATION_DEBUG] After thread reconstruction, arguments keys: {list(arguments.keys())}")
         if "_remaining_tokens" in arguments:
             logger.debug(f"[CONVERSATION_DEBUG] Remaining token budget: {arguments['_remaining_tokens']:,}")
@@ -1070,7 +1070,7 @@ Remember: Only suggest follow-ups when they would genuinely add value to the dis
 "The agent to use the continuation_id when you do."""
 
 
-async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any]:
+async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str | None = None) -> dict[str, Any]:
     """
     Reconstruct conversation context for stateless-to-stateful thread continuation.
 
@@ -1124,6 +1124,9 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         arguments: Original request arguments dictionary containing:
                   - continuation_id (required): UUID of conversation thread to resume
                   - Other tool-specific arguments that will be preserved
+        tool_name: The tool being called. When its ``consumes_prompt`` is
+                  False (workflow tools), the history-enhanced prompt is not
+                  built. Defaults to the tool that started the thread.
 
     Returns:
         dict[str, Any]: Enhanced arguments dictionary with conversation context:
@@ -1203,30 +1206,37 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
     arguments["_model_context"] = model_context
     arguments["_resolved_model_name"] = model_context.model_name
 
-    # Build the enhanced prompt and recompute the remaining token
-    # budget left for file payloads.
-    logger.debug(f"[CONVERSATION_DEBUG] Building conversation history for thread {continuation_id}")
-    logger.debug(f"[CONVERSATION_DEBUG] Thread has {len(context.turns)} turns, tool: {context.tool_name}")
-    logger.debug(f"[CONVERSATION_DEBUG] Using model: {model_context.model_name}")
-
-    original_prompt = arguments.get("prompt", "")
-    follow_up_instructions = get_follow_up_instructions(len(context.turns))
-    enhanced_prompt, remaining_tokens = build_enhanced_prompt(
-        thread_context=context,
-        model_context=model_context,
-        user_prompt=original_prompt,
-        follow_up_instructions=follow_up_instructions,
-    )
-
     enhanced_arguments = arguments.copy()
-    enhanced_arguments["prompt"] = enhanced_prompt
-    enhanced_arguments["_original_user_prompt"] = original_prompt
-    enhanced_arguments["_remaining_tokens"] = remaining_tokens
-    enhanced_arguments["_model_context"] = model_context
 
-    logger.debug(
-        f"[CONVERSATION_DEBUG] Token budget — model={model_context.model_name}, remaining={remaining_tokens:,}"
-    )
+    # Tools that never read ``prompt`` get no history: building it re-reads
+    # every file the thread referenced for nothing (issue #202).
+    called_tool = TOOLS.get(tool_name) if tool_name else tool
+    if called_tool is not None and not called_tool.consumes_prompt:
+        logger.debug(f"[CONVERSATION_DEBUG] {tool_name} does not read prompt; skipping history build")
+    else:
+        # Build the enhanced prompt and recompute the remaining token
+        # budget left for file payloads.
+        logger.debug(f"[CONVERSATION_DEBUG] Building conversation history for thread {continuation_id}")
+        logger.debug(f"[CONVERSATION_DEBUG] Thread has {len(context.turns)} turns, tool: {context.tool_name}")
+        logger.debug(f"[CONVERSATION_DEBUG] Using model: {model_context.model_name}")
+
+        original_prompt = arguments.get("prompt", "")
+        follow_up_instructions = get_follow_up_instructions(len(context.turns))
+        enhanced_prompt, remaining_tokens = build_enhanced_prompt(
+            thread_context=context,
+            model_context=model_context,
+            user_prompt=original_prompt,
+            follow_up_instructions=follow_up_instructions,
+        )
+
+        enhanced_arguments["prompt"] = enhanced_prompt
+        enhanced_arguments["_original_user_prompt"] = original_prompt
+        enhanced_arguments["_remaining_tokens"] = remaining_tokens
+        enhanced_arguments["_model_context"] = model_context
+
+        logger.debug(
+            f"[CONVERSATION_DEBUG] Token budget — model={model_context.model_name}, remaining={remaining_tokens:,}"
+        )
 
     # Merge initial-turn parameters that the current request did not
     # override (e.g. originally-attached files).

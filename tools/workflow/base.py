@@ -64,6 +64,10 @@ class WorkflowTool(BaseTool, BaseWorkflowMixin):
                 return len(consolidated_findings.relevant_files) > 0
     """
 
+    # Workflow tools take their input from ``step``, so a continuation does not
+    # build the history-enhanced ``prompt`` for them.
+    consumes_prompt = False
+
     def __init__(self):
         """Initialize WorkflowTool with proper multiple inheritance."""
         BaseTool.__init__(self)

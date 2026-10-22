@@ -14,29 +14,20 @@ from utils.conversation_memory import ConversationTurn, ThreadContext
 @pytest.mark.asyncio
 @pytest.mark.no_mock_provider
 async def test_conversation_history_field_mapping():
-    """Test that enhanced prompts are mapped to prompt field for all tools"""
+    """Test that enhanced prompts are mapped to prompt field for tools that read it.
 
-    # Test data for different tools - all use 'prompt' now
+    Workflow tools read ``step``, not ``prompt``, and get no history-enhanced
+    prompt (issue #202); tests/test_workflow_continuation_history.py covers them.
+    """
+
     test_cases = [
-        {
-            "tool_name": "analyze",
-            "original_value": "What does this code do?",
-        },
         {
             "tool_name": "chat",
             "original_value": "Explain this concept",
         },
         {
-            "tool_name": "debug",
-            "original_value": "Getting undefined error",
-        },
-        {
-            "tool_name": "codereview",
-            "original_value": "Review this implementation",
-        },
-        {
-            "tool_name": "thinkdeep",
-            "original_value": "My analysis so far",
+            "tool_name": "challenge",
+            "original_value": "I think this is wrong",
         },
     ]
 
