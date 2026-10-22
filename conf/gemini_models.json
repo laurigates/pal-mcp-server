@@ -178,12 +178,37 @@
       "max_image_size_mb": 20.0
     },
     {
+      "model_name": "gemini-4-argon",
+      "friendly_name": "Gemini 4 Argon",
+      "aliases": [
+        "pro",
+        "gemini-pro",
+        "argon",
+        "gemini4",
+        "gemini-4"
+      ],
+      "intelligence_score": 19,
+      "description": "Gemini 4 Argon (1M context) - Google's stable flagship reasoning model for complex software engineering, deep math and science, and long-horizon autonomous agents (released October 2026)",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "supported_thinking_levels": ["low", "medium", "high"],
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "allow_code_generation": true,
+      "max_image_size_mb": 32.0
+    },
+    {
       "model_name": "gemini-3.1-pro-preview",
       "friendly_name": "Gemini Pro 3.1 Preview",
       "aliases": [
-        "pro",
+        "pro3.1",
         "gemini3",
-        "gemini-pro"
+        "gemini-pro-3.1"
       ],
       "intelligence_score": 18,
       "description": "Deep reasoning + thinking mode (1M context) - Complex problems, architecture, deep analysis",
@@ -273,16 +298,6 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "gemini-3.1-flash-lite-preview",
-      "description": "Gemini 3.1 Flash Lite Preview",
-      "context_window": 1048576,
-      "max_output_tokens": 65536,
-      "supports_images": true,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "gemini-3.1-pro-preview-customtools",
       "description": "Gemini 3.1 Pro Preview Custom Tools",
       "context_window": 1048576,
@@ -350,6 +365,16 @@
       "supports_images": true,
       "supports_function_calling": false,
       "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-pro-latest",
+      "description": "Gemini Pro Latest - Hot-swapped alias for the latest Gemini Pro release; pin a versioned id instead",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
       "enabled_by_default": false
     }
   ]
