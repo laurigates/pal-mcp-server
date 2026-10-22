@@ -846,7 +846,7 @@ async def _dispatch_tool_call(
             # resumption. Surface at DEBUG for post-mortem.
             logger.debug("Activity log write failed for CONVERSATION_RESUME", exc_info=True)
 
-        arguments = await reconstruct_thread_context(arguments)
+        arguments = await reconstruct_thread_context(arguments, tool_name=name)
         logger.debug(f"[CONVERSATION_DEBUG] After thread reconstruction, arguments keys: {list(arguments.keys())}")
         if "_remaining_tokens" in arguments:
             logger.debug(f"[CONVERSATION_DEBUG] Remaining token budget: {arguments['_remaining_tokens']:,}")
@@ -1070,7 +1070,7 @@ Remember: Only suggest follow-ups when they would genuinely add value to the dis
 "The agent to use the continuation_id when you do."""
 
 
-async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any]:
+async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str | None = None) -> dict[str, Any]:
     """
     Reconstruct conversation context for stateless-to-stateful thread continuation.
 
@@ -1124,6 +1124,9 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         arguments: Original request arguments dictionary containing:
                   - continuation_id (required): UUID of conversation thread to resume
                   - Other tool-specific arguments that will be preserved
+        tool_name: The tool being called. When its ``consumes_prompt`` is
+                  False (workflow tools), the history-enhanced prompt is not
+                  built. Defaults to the tool that started the thread.
 
     Returns:
         dict[str, Any]: Enhanced arguments dictionary with conversation context:
@@ -1161,6 +1164,20 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
     # races between get_thread and add_turn).
     _record_user_turn_or_raise(continuation_id, context, arguments)
 
+    # Turns before this one: the follow-up budget and the logs count these.
+    previous_turn_count = len(context.turns)
+
+    # Reload so the history built below holds that turn and the files it
+    # attached: the tool sees the history is already embedded and does not
+    # rebuild it (issue #187). On a storage fault keep the loaded thread; the
+    # tool then embeds this turn's files itself.
+    from utils.conversation_memory import ConversationMemoryStorageError, get_thread
+
+    try:
+        context = get_thread(continuation_id) or context
+    except ConversationMemoryStorageError:
+        logger.warning(f"Reloading thread {continuation_id} failed; building history from the loaded copy")
+
     # Resolve the model used to rebuild conversation history. The
     # resolver encapsulates the fallback cascade
     # (requested → ModelContext → tool fallback → globally-available).
@@ -1196,30 +1213,37 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
     arguments["_model_context"] = model_context
     arguments["_resolved_model_name"] = model_context.model_name
 
-    # Build the enhanced prompt and recompute the remaining token
-    # budget left for file payloads.
-    logger.debug(f"[CONVERSATION_DEBUG] Building conversation history for thread {continuation_id}")
-    logger.debug(f"[CONVERSATION_DEBUG] Thread has {len(context.turns)} turns, tool: {context.tool_name}")
-    logger.debug(f"[CONVERSATION_DEBUG] Using model: {model_context.model_name}")
-
-    original_prompt = arguments.get("prompt", "")
-    follow_up_instructions = get_follow_up_instructions(len(context.turns))
-    enhanced_prompt, remaining_tokens = build_enhanced_prompt(
-        thread_context=context,
-        model_context=model_context,
-        user_prompt=original_prompt,
-        follow_up_instructions=follow_up_instructions,
-    )
-
     enhanced_arguments = arguments.copy()
-    enhanced_arguments["prompt"] = enhanced_prompt
-    enhanced_arguments["_original_user_prompt"] = original_prompt
-    enhanced_arguments["_remaining_tokens"] = remaining_tokens
-    enhanced_arguments["_model_context"] = model_context
 
-    logger.debug(
-        f"[CONVERSATION_DEBUG] Token budget — model={model_context.model_name}, remaining={remaining_tokens:,}"
-    )
+    # Tools that never read ``prompt`` get no history: building it re-reads
+    # every file the thread referenced for nothing (issue #202).
+    called_tool = TOOLS.get(tool_name) if tool_name else tool
+    if called_tool is not None and not called_tool.consumes_prompt:
+        logger.debug(f"[CONVERSATION_DEBUG] {tool_name} does not read prompt; skipping history build")
+    else:
+        # Build the enhanced prompt and recompute the remaining token
+        # budget left for file payloads.
+        logger.debug(f"[CONVERSATION_DEBUG] Building conversation history for thread {continuation_id}")
+        logger.debug(f"[CONVERSATION_DEBUG] Thread has {len(context.turns)} turns, tool: {context.tool_name}")
+        logger.debug(f"[CONVERSATION_DEBUG] Using model: {model_context.model_name}")
+
+        original_prompt = arguments.get("prompt", "")
+        follow_up_instructions = get_follow_up_instructions(previous_turn_count)
+        enhanced_prompt, remaining_tokens = build_enhanced_prompt(
+            thread_context=context,
+            model_context=model_context,
+            user_prompt=original_prompt,
+            follow_up_instructions=follow_up_instructions,
+        )
+
+        enhanced_arguments["prompt"] = enhanced_prompt
+        enhanced_arguments["_original_user_prompt"] = original_prompt
+        enhanced_arguments["_remaining_tokens"] = remaining_tokens
+        enhanced_arguments["_model_context"] = model_context
+
+        logger.debug(
+            f"[CONVERSATION_DEBUG] Token budget — model={model_context.model_name}, remaining={remaining_tokens:,}"
+        )
 
     # Merge initial-turn parameters that the current request did not
     # override (e.g. originally-attached files).
@@ -1228,15 +1252,15 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
             if key not in enhanced_arguments and key not in ["temperature", "thinking_mode", "model"]:
                 enhanced_arguments[key] = value
 
-    logger.info(f"Reconstructed context for thread {continuation_id} (turn {len(context.turns)})")
+    logger.info(f"Reconstructed context for thread {continuation_id} (turn {previous_turn_count})")
 
     # Log to activity file for monitoring. Activity log failures must
     # not break context reconstruction; surface them at DEBUG only.
     try:
         mcp_activity_logger = logging.getLogger("mcp_activity")
         mcp_activity_logger.info(
-            f"CONVERSATION_CONTINUATION: Thread {continuation_id} turn {len(context.turns)} - "
-            f"{len(context.turns)} previous turns loaded"
+            f"CONVERSATION_CONTINUATION: Thread {continuation_id} turn {previous_turn_count} - "
+            f"{previous_turn_count} previous turns loaded"
         )
     except (OSError, ValueError, TypeError):
         logger.debug("Activity log write failed for CONVERSATION_CONTINUATION", exc_info=True)
@@ -1308,7 +1332,12 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
     if not user_prompt:
         return
 
-    user_files = arguments.get("absolute_file_paths") or []
+    # The history embeds only regular files, and the tool skips any path the
+    # history already lists, so a directory recorded as-is would reach the model
+    # as neither. Record the files inside it instead.
+    from utils.file_utils import expand_directories
+
+    user_files = expand_directories(arguments.get("absolute_file_paths") or [])
     logger.debug(f"[CONVERSATION_DEBUG] Adding user turn to thread {continuation_id}")
 
     try:

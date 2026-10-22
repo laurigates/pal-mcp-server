@@ -29,7 +29,7 @@ from utils.conversation_memory import (
     get_thread,
 )
 from utils.env import get_env
-from utils.file_utils import read_file_content, read_files
+from utils.file_utils import expand_directories, read_file_content, read_files
 
 # Import models from tools.models for compatibility
 try:
@@ -80,6 +80,11 @@ class BaseTool(ABC):
     3. Define a request model that inherits from ToolRequest
     4. Register the tool in server.py's TOOLS dictionary
     """
+
+    # Whether the tool reads ``prompt``. On a continuation server.py embeds the
+    # conversation history in ``prompt``, which re-reads every file the thread
+    # referenced; tools that never read it skip that build (issue #202).
+    consumes_prompt = True
 
     # Class-level cache for OpenRouter registry to avoid multiple loads
     _openrouter_registry_cache = None
@@ -784,6 +789,10 @@ class BaseTool(ABC):
                     f"[FILES] {self.name}: No embedded files found, returning all {len(requested_files)} requested files"
                 )
                 return requested_files
+
+            # History lists the files inside an attached directory, not the
+            # directory itself, so compare those files against it.
+            requested_files = expand_directories(requested_files)
 
             # Return only files that haven't been embedded yet
             new_files = [f for f in requested_files if f not in embedded_files]
