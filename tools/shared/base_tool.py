@@ -27,10 +27,11 @@ from utils import estimate_tokens
 from utils.conversation_memory import (
     ConversationTurn,
     get_conversation_file_list,
+    get_history_embedded_files,
     get_thread,
 )
 from utils.env import get_env
-from utils.file_utils import expand_directories, read_file_content, read_files
+from utils.file_utils import expand_directories, is_prompt_file, read_file_content, read_files
 from utils.model_restrictions import (
     DISABLED_MODELS_ENV,
     ModelRestrictionService,
@@ -762,7 +763,14 @@ class BaseTool(ABC):
             # Thread not found, no files embedded
             return []
 
-        embedded_files = get_conversation_file_list(thread_context)
+        # A listed file the history's budget left out is not embedded: count
+        # only what the history built for this model holds, so the tool embeds
+        # the rest itself (or the size gate refuses it) instead of dropping it.
+        model_context = getattr(self, "_model_context", None)
+        if model_context is not None:
+            embedded_files = get_history_embedded_files(thread_context, model_context)
+        else:
+            embedded_files = get_conversation_file_list(thread_context)
         logger.debug(f"[FILES] {self.name}: Found {len(embedded_files)} embedded files")
         return embedded_files
 
@@ -892,9 +900,7 @@ class BaseTool(ABC):
         updated_files = []
 
         for file_path in files:
-            # Check if the filename is exactly "prompt.txt"
-            # This ensures we don't match files like "myprompt.txt" or "prompt.txt.bak"
-            if os.path.basename(file_path) == "prompt.txt":
+            if is_prompt_file(file_path):
                 try:
                     # Read prompt.txt content and extract just the text
                     content, _ = read_file_content(file_path)

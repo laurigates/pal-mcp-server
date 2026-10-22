@@ -1335,9 +1335,13 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
     # The history embeds only regular files, and the tool skips any path the
     # history already lists, so a directory recorded as-is would reach the model
     # as neither. Record the files inside it instead.
-    from utils.file_utils import expand_directories
+    # A prompt.txt is the request, not a context file: the tool puts its content
+    # in the NEW USER INPUT slot, so recording it would embed it a second time
+    # here and again on every later turn. A first turn does not record it either.
+    from utils.file_utils import expand_directories, is_prompt_file
 
-    user_files = expand_directories(arguments.get("absolute_file_paths") or [])
+    attached = [path for path in arguments.get("absolute_file_paths") or [] if not is_prompt_file(path)]
+    user_files = expand_directories(attached)
     logger.debug(f"[CONVERSATION_DEBUG] Adding user turn to thread {continuation_id}")
 
     try:
