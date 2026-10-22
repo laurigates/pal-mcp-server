@@ -50,7 +50,9 @@ async def test_guidance_is_in_the_provider_request_when_enabled(monkeypatch, tmp
 
 
 @pytest.mark.asyncio
-async def test_guidance_is_absent_when_disabled(monkeypatch, tmp_path):
+async def test_no_guidance_section_when_instruction_is_empty(monkeypatch, tmp_path):
+    # There is no setting that turns web-search guidance off; this covers the
+    # empty-instruction path, where the user section must lead with the request.
     monkeypatch.setattr(ChatTool, "get_websearch_instruction", lambda self, tool_specific=None: "")
 
     captured = await _capture_chat_request(monkeypatch, tmp_path)

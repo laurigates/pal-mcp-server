@@ -1071,11 +1071,12 @@ Please provide a thoughtful, comprehensive response:"""
             marker = "\n\n=== USER REQUEST ===\n"
             if marker in full_prompt:
                 # The system prompt is sent separately, so drop it here. The web-search
-                # guidance sat between it and the marker; carry it in the user section so
-                # it reaches the model while the system prompt stays byte-stable for caching.
-                _, user_section = full_prompt.split(marker, 1)
+                # guidance build_standard_prompt put between it and the marker is kept and
+                # carried in the user section, so it reaches the model while the system
+                # prompt stays byte-stable for caching.
+                head, user_section = full_prompt.split(marker, 1)
                 user_part = f"=== USER REQUEST ===\n{user_section}"
-                websearch_instruction = self.get_websearch_instruction(websearch_guidance).strip()
+                websearch_instruction = head.removeprefix(system_prompt).strip()
                 if websearch_instruction:
                     return f"{websearch_instruction}\n\n{user_part}"
                 return user_part
