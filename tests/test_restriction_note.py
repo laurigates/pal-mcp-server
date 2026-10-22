@@ -84,3 +84,13 @@ def test_whitespace_only_values_produce_no_note(clean_policy_env):
     clean_policy_env.setenv("DISABLED_MODELS", " ")
 
     assert _note() is None
+
+
+def test_note_falls_through_blank_azure_variable_to_fallback(clean_policy_env):
+    clean_policy_env.setenv("AZURE_OPENAI_ALLOWED_MODELS", " ")
+    clean_policy_env.setenv("AZURE_ALLOWED_MODELS", "gpt-4o")
+
+    note = _note()
+
+    assert note is not None
+    assert f"{_label(ProviderType.AZURE)}: gpt-4o" in note

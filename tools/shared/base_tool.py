@@ -31,7 +31,12 @@ from utils.conversation_memory import (
 )
 from utils.env import get_env
 from utils.file_utils import read_file_content, read_files
-from utils.model_restrictions import DISABLED_MODELS_ENV, ModelRestrictionService, _parse_disabled_models
+from utils.model_restrictions import (
+    DISABLED_MODELS_ENV,
+    ModelRestrictionService,
+    format_disabled_models,
+    parse_disabled_models,
+)
 
 # Import models from tools.models for compatibility
 try:
@@ -456,10 +461,10 @@ class BaseTool(ABC):
         if notes:
             parts.append("Policy allows only → " + "; ".join(notes))
 
-        disabled = _parse_disabled_models(get_env(DISABLED_MODELS_ENV))
+        # The policy's own parser, so entries read lowercased -- the form they are matched in.
+        disabled = parse_disabled_models(get_env(DISABLED_MODELS_ENV))
         if disabled:
-            names = ", ".join(f"{scope.value}:{name}" if scope else name for scope, name in disabled)
-            parts.append(f"Disabled: {names}")
+            parts.append(f"Disabled: {format_disabled_models(disabled)}")
 
         if not parts:
             return None
