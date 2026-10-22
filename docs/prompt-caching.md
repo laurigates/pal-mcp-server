@@ -381,6 +381,5 @@ Control calls:
   keeps only the text after `=== USER REQUEST ===`, and the guidance sits before it
   (`tools/simple/base.py:1076-1080`).
 - codereview's expert prompt contains literal `\n` sequences from f-strings.
-- `customize_expert_analysis_prompt` in thinkdeep is never called (`tools/thinkdeep.py:285`).
 - For workflow tools, the server builds the full conversation history and then discards
   it (`server.py:1195-1205`).
