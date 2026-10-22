@@ -290,40 +290,40 @@ class AnalyzeTool(WorkflowTool):
     def prepare_expert_analysis_context(self, consolidated_findings) -> str:
         """Prepare context for external model call for final analysis validation."""
         context_parts = [
-            f"=== ANALYSIS REQUEST ===\\n{self.initial_request or 'Code analysis workflow initiated'}\\n=== END REQUEST ==="
+            f"=== ANALYSIS REQUEST ===\n{self.initial_request or 'Code analysis workflow initiated'}\n=== END REQUEST ==="
         ]
 
         # Add investigation summary
         investigation_summary = self._build_analysis_summary(consolidated_findings)
         context_parts.append(
-            f"\\n=== AGENT'S ANALYSIS INVESTIGATION ===\\n{investigation_summary}\\n=== END INVESTIGATION ==="
+            f"\n=== AGENT'S ANALYSIS INVESTIGATION ===\n{investigation_summary}\n=== END INVESTIGATION ==="
         )
 
         # Add analysis configuration context if available
         if self.analysis_config:
-            config_text = "\\n".join(f"- {key}: {value}" for key, value in self.analysis_config.items() if value)
-            context_parts.append(f"\\n=== ANALYSIS CONFIGURATION ===\\n{config_text}\\n=== END CONFIGURATION ===")
+            config_text = "\n".join(f"- {key}: {value}" for key, value in self.analysis_config.items() if value)
+            context_parts.append(f"\n=== ANALYSIS CONFIGURATION ===\n{config_text}\n=== END CONFIGURATION ===")
 
         # Add relevant code elements if available
         if consolidated_findings.relevant_context:
-            methods_text = "\\n".join(f"- {method}" for method in consolidated_findings.relevant_context)
-            context_parts.append(f"\\n=== RELEVANT CODE ELEMENTS ===\\n{methods_text}\\n=== END CODE ELEMENTS ===")
+            methods_text = "\n".join(f"- {method}" for method in consolidated_findings.relevant_context)
+            context_parts.append(f"\n=== RELEVANT CODE ELEMENTS ===\n{methods_text}\n=== END CODE ELEMENTS ===")
 
         # Add assessment evolution if available
         if consolidated_findings.hypotheses:
-            assessments_text = "\\n".join(
+            assessments_text = "\n".join(
                 f"Step {h['step']}: {h['hypothesis']}" for h in consolidated_findings.hypotheses
             )
-            context_parts.append(f"\\n=== ASSESSMENT EVOLUTION ===\\n{assessments_text}\\n=== END ASSESSMENTS ===")
+            context_parts.append(f"\n=== ASSESSMENT EVOLUTION ===\n{assessments_text}\n=== END ASSESSMENTS ===")
 
         # Add images if available
         if consolidated_findings.images:
-            images_text = "\\n".join(f"- {img}" for img in consolidated_findings.images)
+            images_text = "\n".join(f"- {img}" for img in consolidated_findings.images)
             context_parts.append(
-                f"\\n=== VISUAL ANALYSIS INFORMATION ===\\n{images_text}\\n=== END VISUAL INFORMATION ==="
+                f"\n=== VISUAL ANALYSIS INFORMATION ===\n{images_text}\n=== END VISUAL INFORMATION ==="
             )
 
-        return "\\n".join(context_parts)
+        return "\n".join(context_parts)
 
     def _build_analysis_summary(self, consolidated_findings) -> str:
         """Prepare a comprehensive summary of the analysis investigation."""
@@ -340,7 +340,7 @@ class AnalyzeTool(WorkflowTool):
         for finding in consolidated_findings.findings:
             summary_parts.append(finding)
 
-        return "\\n".join(summary_parts)
+        return "\n".join(summary_parts)
 
     def should_include_files_in_expert_prompt(self) -> bool:
         """Include files in expert analysis for comprehensive validation."""
@@ -512,16 +512,16 @@ class AnalyzeTool(WorkflowTool):
         elif step_number < request.total_steps:
             next_steps = (
                 f"STOP! Do NOT call {self.get_name()} again yet. Based on your findings, you've identified areas that need "
-                f"deeper analysis. MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\\n"
-                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                + f"\\n\\nOnly call {self.get_name()} again with step_number: {step_number + 1} AFTER "
+                f"deeper analysis. MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\n"
+                + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                + f"\n\nOnly call {self.get_name()} again with step_number: {step_number + 1} AFTER "
                 + "completing these analysis tasks."
             )
         else:
             next_steps = (
-                f"WAIT! Your analysis needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\\n"
-                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                + f"\\n\\nREMEMBER: Ensure you have identified all significant architectural insights and strategic "
+                f"WAIT! Your analysis needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\n"
+                + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                + f"\n\nREMEMBER: Ensure you have identified all significant architectural insights and strategic "
                 f"opportunities across all areas. Document findings with specific file references and "
                 f"code examples where applicable, then call {self.get_name()} with step_number: {step_number + 1}."
             )

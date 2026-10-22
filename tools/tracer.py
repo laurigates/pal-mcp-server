@@ -397,13 +397,13 @@ class TracerTool(WorkflowTool):
             if self.get_trace_mode() == "ask":
                 response_data["next_steps"] = (
                     f"STOP! You MUST ask the user to choose a tracing mode before proceeding. "
-                    f"Present these options clearly:\\n\\n"
+                    f"Present these options clearly:\n\n"
                     f"**PRECISION MODE**: Traces execution flow, call chains, and usage patterns. "
                     f"Best for understanding how a specific method or function works, what it calls, "
-                    f"and how data flows through the execution path.\\n\\n"
+                    f"and how data flows through the execution path.\n\n"
                     f"**DEPENDENCIES MODE**: Maps structural relationships and bidirectional dependencies. "
                     f"Best for understanding how a class or module relates to other components, "
-                    f"what depends on it, and what it depends on.\\n\\n"
+                    f"what depends on it, and what it depends on.\n\n"
                     f"After the user selects a mode, call {self.get_name()} again with step_number: 1 "
                     f"but with the chosen trace_mode (either 'precision' or 'dependencies')."
                 )
@@ -421,18 +421,18 @@ class TracerTool(WorkflowTool):
             next_step = request.step_number + 1
             response_data["next_steps"] = (
                 f"STOP! Do NOT call {self.get_name()} again yet. Based on your findings, you've identified areas that need "
-                f"deeper tracing analysis. MANDATORY ACTIONS before calling {self.get_name()} step {next_step}:\\n"
-                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                + f"\\n\\nOnly call {self.get_name()} again with step_number: {next_step} AFTER "
+                f"deeper tracing analysis. MANDATORY ACTIONS before calling {self.get_name()} step {next_step}:\n"
+                + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                + f"\n\nOnly call {self.get_name()} again with step_number: {next_step} AFTER "
                 + "completing these tracing investigations."
             )
         elif request.confidence in ["medium", "high"]:
             next_step = request.step_number + 1
             response_data["next_steps"] = (
                 f"WAIT! Your tracing analysis needs final verification. DO NOT call {self.get_name()} immediately. "
-                f"REQUIRED ACTIONS:\\n"
-                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                + f"\\n\\nREMEMBER: Ensure you have traced all significant relationships and execution paths. "
+                f"REQUIRED ACTIONS:\n"
+                + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                + f"\n\nREMEMBER: Ensure you have traced all significant relationships and execution paths. "
                 f"Document findings with specific file references and method signatures, then call {self.get_name()} "
                 f"with step_number: {next_step}."
             )

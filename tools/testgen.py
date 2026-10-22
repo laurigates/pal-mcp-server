@@ -290,7 +290,7 @@ class TestGenTool(WorkflowTool):
         for finding in consolidated_findings.findings:
             summary_parts.append(finding)
 
-        return "\\n".join(summary_parts)
+        return "\n".join(summary_parts)
 
     def should_include_files_in_expert_prompt(self) -> bool:
         """Include files in expert analysis for comprehensive test generation."""
@@ -396,7 +396,7 @@ class TestGenTool(WorkflowTool):
         if expert_analysis_used:
             expert_guidance = self.get_expert_analysis_guidance()
             if expert_guidance:
-                return f"{base_message}\\n\\n{expert_guidance}"
+                return f"{base_message}\n\n{expert_guidance}"
 
         return base_message
 
@@ -440,16 +440,16 @@ class TestGenTool(WorkflowTool):
         elif confidence in ["exploring", "low"]:
             next_steps = (
                 f"STOP! Do NOT call {self.get_name()} again yet. Based on your findings, you've identified areas that need "
-                f"deeper analysis for test generation. MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\\n"
-                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                + f"\\n\\nOnly call {self.get_name()} again with step_number: {step_number + 1} AFTER "
+                f"deeper analysis for test generation. MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\n"
+                + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                + f"\n\nOnly call {self.get_name()} again with step_number: {step_number + 1} AFTER "
                 + "completing these test planning tasks."
             )
         elif confidence in ["medium", "high"]:
             next_steps = (
-                f"WAIT! Your test generation analysis needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\\n"
-                + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                + f"\\n\\nREMEMBER: Ensure you have identified all test scenarios including edge cases and error conditions. "
+                f"WAIT! Your test generation analysis needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\n"
+                + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                + f"\n\nREMEMBER: Ensure you have identified all test scenarios including edge cases and error conditions. "
                 f"Document findings with specific test cases to implement, then call {self.get_name()} "
                 f"with step_number: {step_number + 1}."
             )
