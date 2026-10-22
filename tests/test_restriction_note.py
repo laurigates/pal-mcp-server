@@ -94,3 +94,14 @@ def test_note_falls_through_blank_azure_variable_to_fallback(clean_policy_env):
 
     assert note is not None
     assert f"{_label(ProviderType.AZURE)}: gpt-4o" in note
+
+
+def test_note_lists_allowlist_entries_as_the_policy_reads_them(clean_policy_env):
+    clean_policy_env.setenv("OPENAI_ALLOWED_MODELS", "GPT-4o, gpt-4o, o3")
+
+    note = _note()
+
+    assert note is not None
+    assert f"{_label(ProviderType.OPENAI)}: gpt-4o, o3" in note
+    assert "GPT-4o" not in note
+    assert ModelRestrictionService().get_allowed_models(ProviderType.OPENAI) == {"gpt-4o", "o3"}
