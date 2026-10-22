@@ -58,9 +58,25 @@ def test_debug_final_step_does_not_claim_files_reached_expert(source_file):
     file_context = response["file_context"]
     assert file_context["type"] == "not_sent_to_expert"
     assert file_context["files_embedded"] == 0
-    assert file_context["files_read"] == 1
+    assert file_context["files_read_this_step"] == 1
+    assert file_context["files_in_history"] == 0
     assert "Full file content embedded for expert analysis" not in file_context["context_optimization"]
     assert "not included in the expert prompt" in file_context["context_optimization"]
+
+
+def test_not_sent_to_expert_keeps_history_files_apart_from_this_steps_reads(source_file):
+    """Files an earlier turn carries are skipped on this step, not read."""
+    tool = DebugIssueTool()
+    tool._actually_processed_files = [source_file]
+    tool._files_in_history = ["/repo/earlier_a.py", "/repo/earlier_b.py"]
+
+    assert tool._embedded_file_context() == {
+        "type": "not_sent_to_expert",
+        "files_embedded": 0,
+        "files_read_this_step": 1,
+        "files_in_history": 2,
+        "context_optimization": "File content was not included in the expert prompt",
+    }
 
 
 def test_codereview_final_step_still_reports_fully_embedded(source_file):

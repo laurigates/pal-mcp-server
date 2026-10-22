@@ -980,7 +980,8 @@ class BaseWorkflowMixin(ABC):
             return {
                 "type": "not_sent_to_expert",
                 "files_embedded": 0,
-                "files_read": this_step + in_history,
+                "files_read_this_step": this_step,
+                "files_in_history": in_history,
                 "context_optimization": "File content was not included in the expert prompt",
             }
         return {
