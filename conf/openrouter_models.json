@@ -1815,7 +1815,7 @@
     },
     {
       "model_name": "nousresearch/hermes-3-llama-3.1-405b",
-      "description": "Nous: Hermes 3 405B Instruct (shuts down on OpenRouter 2026-11-02; replaced by nousresearch/hermes-4-405b)",
+      "description": "Nous: Hermes 3 405B Instruct (shuts down on OpenRouter 2026-11-02; no replacement named)",
       "context_window": 131072,
       "max_output_tokens": 16384,
       "supports_images": false,
@@ -1825,7 +1825,7 @@
     },
     {
       "model_name": "nousresearch/hermes-3-llama-3.1-70b",
-      "description": "Nous: Hermes 3 70B Instruct (shuts down on OpenRouter 2026-11-02; replaced by nousresearch/hermes-4-405b)",
+      "description": "Nous: Hermes 3 70B Instruct (shuts down on OpenRouter 2026-11-02; no replacement named)",
       "context_window": 131072,
       "max_output_tokens": 16384,
       "supports_images": false,
@@ -3159,6 +3159,7 @@
       "model_name": "typesafe/jev-router",
       "description": "TypeSafe: Jev Router",
       "context_window": 1000000,
+      "max_output_tokens": 65536,
       "supports_images": true,
       "supports_function_calling": false,
       "supports_extended_thinking": false,
@@ -3326,7 +3327,7 @@
     },
     {
       "model_name": "z-ai/glm-4.5",
-      "description": "Z.ai: GLM 4.5 (shuts down on OpenRouter 2026-12-31; replaced by z-ai/glm-4.6)",
+      "description": "Z.ai: GLM 4.5 (shuts down on OpenRouter 2026-12-31; no replacement named)",
       "context_window": 131072,
       "max_output_tokens": 98304,
       "supports_images": false,
