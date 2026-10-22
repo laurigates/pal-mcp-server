@@ -188,7 +188,7 @@ GOOGLE_ALLOWED_MODELS=flash,pro
 XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
 
 # OpenCode Go model restrictions
-OPENCODE_GO_ALLOWED_MODELS=glm-5.2,deepseek-v4-pro,deepseek-v4-flash
+OPENCODE_GO_ALLOWED_MODELS=glm-5.2,deepseek-v4-pro,deepseek-v4.1-flash
 
 # OpenRouter model restrictions (affects models via custom provider)
 OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral

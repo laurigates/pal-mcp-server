@@ -82,7 +82,7 @@ class TestOpenCodeGoProvider:
     def test_model_validation(self):
         provider = OpenCodeGoProvider("test-key")
         assert provider.validate_model_name("glm-5.3") is True
-        assert provider.validate_model_name("deepseek-v4-flash") is True
+        assert provider.validate_model_name("deepseek-v4.1-flash") is True
         assert provider.validate_model_name("kimi-k2.7-code") is True
         # aliases
         assert provider.validate_model_name("glm") is True
@@ -111,7 +111,7 @@ class TestOpenCodeGoProvider:
         assert glm.context_window == 1_000_000
         assert glm.supports_function_calling is True
 
-        flash = provider.get_capabilities("deepseek-v4-flash")
+        flash = provider.get_capabilities("deepseek-v4.1-flash")
         assert flash.context_window == 1_000_000
         assert flash.max_output_tokens == 384_000
 
@@ -130,10 +130,22 @@ class TestOpenCodeGoProvider:
     def test_catalogue_size(self):
         provider = OpenCodeGoProvider("test-key")
         caps = provider.get_all_model_capabilities()
-        # 22 curated models published by the OpenCode Go plan (models.dev);
+        # 21 curated models listed by the OpenCode Go gateway (/models and docs);
         # the rest of the catalog is present but disabled by default (#149)
-        assert len([c for c in caps.values() if c.enabled_by_default]) == 22
+        assert len([c for c in caps.values() if c.enabled_by_default]) == 21
         assert all(c.provider == ProviderType.OPENCODE_GO for c in caps.values())
+
+    def test_withdrawn_and_delisted_models(self):
+        provider = OpenCodeGoProvider("test-key")
+        caps = provider.get_all_model_capabilities()
+        # The gateway answers "Model is unavailable" for space-bunny, as it does
+        # for an id it never served: withdrawn, so no entry at all.
+        assert "space-bunny" not in caps
+        assert provider.validate_model_name("space-bunny") is False
+        # deepseek-v4-flash still routes but the gateway's /models list and docs
+        # dropped it for deepseek-v4.1-flash: out of auto mode, still nameable.
+        assert caps["deepseek-v4-flash"].enabled_by_default is False
+        assert provider.validate_model_name("deepseek-v4-flash") is True
 
     # ------------------------------------------------------------------
     # Restrictions

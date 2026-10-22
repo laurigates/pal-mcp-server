@@ -276,7 +276,7 @@
       "friendly_name": "OpenCode Go (DeepSeek V4 Flash)",
       "aliases": [],
       "intelligence_score": 11,
-      "description": "DeepSeek V4 Flash via OpenCode Go (1000K context) - flat-rate coding gateway",
+      "description": "DeepSeek V4 Flash via OpenCode Go (1000K context) - flat-rate coding gateway. Delisted from the gateway's /models list and docs (2026-10-22) but still routed; superseded by deepseek-v4.1-flash",
       "context_window": 1000000,
       "max_output_tokens": 384000,
       "supports_extended_thinking": false,
@@ -286,7 +286,8 @@
       "supports_json_mode": true,
       "supports_images": false,
       "supports_temperature": true,
-      "max_image_size_mb": 0.0
+      "max_image_size_mb": 0.0,
+      "enabled_by_default": false
     },
     {
       "model_name": "glm-5.1",
@@ -411,7 +412,7 @@
     },
     {
       "model_name": "deepseek-v4-flash-vision-exp",
-      "description": "DeepSeek V4 Flash Vision Exp",
+      "description": "DeepSeek V4 Flash Vision Exp. Delisted from the gateway's /models list and docs (2026-10-22) but still routed",
       "context_window": 1000000,
       "max_output_tokens": 384000,
       "supports_images": true,
@@ -495,7 +496,7 @@
     },
     {
       "model_name": "longcat-2.5-preview-free",
-      "description": "LongCat 2.5 Preview Free",
+      "description": "LongCat 2.5 Preview Free. Limited-time free model per the OpenCode Go docs (2026-10-22)",
       "context_window": 1000000,
       "max_output_tokens": 131072,
       "supports_images": true,
@@ -534,10 +535,54 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "space-bunny",
-      "description": "Space Bunny",
+      "model_name": "beam-free",
+      "description": "Beam Free",
       "context_window": 1048576,
-      "max_output_tokens": 524288,
+      "max_output_tokens": 131072,
+      "supports_images": false,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "claude-haiku-5-5",
+      "description": "Claude Haiku 5.5",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-4-argon-contributor",
+      "description": "Gemini 4 Argon Contributor",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "minimax-m3.1-flash",
+      "description": "MiniMax M3.1 Flash",
+      "context_window": 1000000,
+      "max_output_tokens": 512000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "step-5-preview",
+      "description": "Step 5 Preview",
+      "context_window": 1000000,
+      "max_output_tokens": 65536,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
