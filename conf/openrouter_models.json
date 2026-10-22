@@ -255,13 +255,31 @@
       "intelligence_score": 8
     },
     {
-      "model_name": "google/gemini-3.1-pro-preview",
+      "model_name": "google/gemini-4-argon",
       "aliases": [
         "pro",
         "gemini-pro",
         "gemini",
-        "gemini3",
-        "pro-openrouter"
+        "pro-openrouter",
+        "argon",
+        "gemini4",
+        "gemini-4"
+      ],
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_extended_thinking": true,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "allow_code_generation": true,
+      "description": "Google's Gemini 4 Argon via OpenRouter - flagship reasoning model for complex software engineering, deep math and science, and autonomous multi-step agents",
+      "intelligence_score": 19
+    },
+    {
+      "model_name": "google/gemini-3.1-pro-preview",
+      "aliases": [
+        "gemini3"
       ],
       "context_window": 1048576,
       "max_output_tokens": 65536,
@@ -271,7 +289,7 @@
       "supports_images": true,
       "max_image_size_mb": 20.0,
       "allow_code_generation": true,
-      "description": "Google's Gemini 3.0 Pro via OpenRouter with vision",
+      "description": "Google's Gemini 3.1 Pro Preview via OpenRouter with vision (superseded by google/gemini-4-argon)",
       "intelligence_score": 18
     },
     {
@@ -3564,16 +3582,6 @@
       "description": "Google: Gemini 2.5 Flash Lite",
       "context_window": 1048576,
       "max_output_tokens": 65535,
-      "supports_images": true,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "google/gemini-4-argon",
-      "description": "Google: Gemini 4 Argon",
-      "context_window": 1048576,
-      "max_output_tokens": 943718,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,

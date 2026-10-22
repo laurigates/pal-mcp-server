@@ -22,21 +22,29 @@ class TestModelResolutionBug:
         self.consensus_tool = ConsensusTool()
 
     def test_openrouter_registry_resolves_gemini_alias(self):
-        """Test that OpenRouter registry properly resolves 'gemini' to 'google/gemini-3.1-pro-preview'."""
-        # Test the registry directly
+        """Generic Gemini aliases on OpenRouter follow the frontier (google/gemini-4-argon)."""
         provider = OpenRouterProvider("test_key")
 
-        # Test alias resolution
-        resolved_model_name = provider._resolve_model_name("gemini")
-        assert resolved_model_name == "google/gemini-3.1-pro-preview", (
-            f"Expected 'google/gemini-3.1-pro-preview', got '{resolved_model_name}'"
-        )
+        for alias in ("gemini", "pro", "gemini-pro", "pro-openrouter"):
+            resolved = provider._resolve_model_name(alias)
+            assert resolved == "google/gemini-4-argon", (
+                f"Expected '{alias}' -> 'google/gemini-4-argon', got '{resolved}'"
+            )
 
-        # Test that it also works with 'pro' alias
-        resolved_pro = provider._resolve_model_name("pro")
-        assert resolved_pro == "google/gemini-3.1-pro-preview", (
-            f"Expected 'google/gemini-3.1-pro-preview', got '{resolved_pro}'"
-        )
+    def test_openrouter_version_pinned_gemini_alias_stays_on_3_1(self):
+        """The version-pinned alias keeps reaching the superseded Gemini 3.1 Pro Preview."""
+        provider = OpenRouterProvider("test_key")
+
+        assert provider._resolve_model_name("gemini3") == "google/gemini-3.1-pro-preview"
+
+    def test_openrouter_gemini_4_argon_is_promoted(self):
+        """Argon is enabled in auto mode and ranks above the 3.1 Pro Preview it supersedes."""
+        provider = OpenRouterProvider("test_key")
+
+        argon = provider.get_capabilities("google/gemini-4-argon")
+        previous = provider.get_capabilities("google/gemini-3.1-pro-preview")
+        assert argon.enabled_by_default
+        assert argon.intelligence_score > previous.intelligence_score
 
     # DELETED: test_provider_registry_returns_openrouter_for_gemini
     # This test had a flawed mock setup - it mocked get_provider() but called get_provider_for_model().
