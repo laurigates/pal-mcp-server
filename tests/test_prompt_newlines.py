@@ -6,6 +6,8 @@ two-character backslash-n rather than a line break. The expert model then
 received each section as one line with literal ``\\n`` text in it.
 """
 
+import io
+import tokenize
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -141,13 +143,40 @@ def test_tracer_ask_mode_prompt_uses_real_newlines():
     _assert_real_newlines(response["next_steps"])
 
 
+def _escaped_newline_literals(source: str) -> list[int]:
+    """Line numbers of string literals whose source text spells ``\\\\n``.
+
+    Only string tokens are inspected, so comments that mention the bug do not
+    trip the guard. Docstrings and deliberate escapes (a regex, a JSON example)
+    are string literals too and are still flagged: that is intentional, since
+    tools/ has none today and a new one should be a conscious, reviewed choice.
+    """
+    string_types = {tokenize.STRING}
+    if hasattr(tokenize, "FSTRING_MIDDLE"):  # Python 3.12+ splits f-strings into parts
+        string_types.add(tokenize.FSTRING_MIDDLE)
+    return [
+        token.start[0]
+        for token in tokenize.generate_tokens(io.StringIO(source).readline)
+        if token.type in string_types and "\\\\n" in token.string
+    ]
+
+
+def test_escaped_newline_guard_detects_the_original_bug():
+    buggy = 'header = "=== CODE REVIEW REQUEST ===\\\\n"\n# a comment about "\\\\n" is fine\n'
+    fstring = 'line = f"{x}\\\\n"\n'
+
+    assert _escaped_newline_literals(buggy) == [1]
+    assert _escaped_newline_literals(fstring) == [1]
+    # A single backslash in source is a real newline escape, not the bug.
+    assert _escaped_newline_literals('ok = "a\\nb"\n') == []
+
+
 def test_tool_sources_contain_no_escaped_newline_literals():
     """Guard against reintroducing ``"\\\\n"`` in any prompt builder under tools/."""
     tools_dir = Path(__file__).resolve().parent.parent / "tools"
     offenders = [
         f"{path.relative_to(tools_dir.parent)}:{lineno}"
         for path in sorted(tools_dir.rglob("*.py"))
-        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
-        if "\\\\n" in line
+        for lineno in _escaped_newline_literals(path.read_text(encoding="utf-8"))
     ]
     assert not offenders, f"Escaped newline literals found: {offenders}"
