@@ -1164,12 +1164,19 @@ async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str |
     # races between get_thread and add_turn).
     _record_user_turn_or_raise(continuation_id, context, arguments)
 
+    # Turns before this one: the follow-up budget and the logs count these.
+    previous_turn_count = len(context.turns)
+
     # Reload so the history built below holds that turn and the files it
     # attached: the tool sees the history is already embedded and does not
-    # rebuild it (issue #187).
-    from utils.conversation_memory import get_thread
+    # rebuild it (issue #187). On a storage fault keep the loaded thread; the
+    # tool then embeds this turn's files itself.
+    from utils.conversation_memory import ConversationMemoryStorageError, get_thread
 
-    context = get_thread(continuation_id) or context
+    try:
+        context = get_thread(continuation_id) or context
+    except ConversationMemoryStorageError:
+        logger.warning(f"Reloading thread {continuation_id} failed; building history from the loaded copy")
 
     # Resolve the model used to rebuild conversation history. The
     # resolver encapsulates the fallback cascade
@@ -1221,7 +1228,7 @@ async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str |
         logger.debug(f"[CONVERSATION_DEBUG] Using model: {model_context.model_name}")
 
         original_prompt = arguments.get("prompt", "")
-        follow_up_instructions = get_follow_up_instructions(len(context.turns))
+        follow_up_instructions = get_follow_up_instructions(previous_turn_count)
         enhanced_prompt, remaining_tokens = build_enhanced_prompt(
             thread_context=context,
             model_context=model_context,
@@ -1245,15 +1252,15 @@ async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str |
             if key not in enhanced_arguments and key not in ["temperature", "thinking_mode", "model"]:
                 enhanced_arguments[key] = value
 
-    logger.info(f"Reconstructed context for thread {continuation_id} (turn {len(context.turns)})")
+    logger.info(f"Reconstructed context for thread {continuation_id} (turn {previous_turn_count})")
 
     # Log to activity file for monitoring. Activity log failures must
     # not break context reconstruction; surface them at DEBUG only.
     try:
         mcp_activity_logger = logging.getLogger("mcp_activity")
         mcp_activity_logger.info(
-            f"CONVERSATION_CONTINUATION: Thread {continuation_id} turn {len(context.turns)} - "
-            f"{len(context.turns)} previous turns loaded"
+            f"CONVERSATION_CONTINUATION: Thread {continuation_id} turn {previous_turn_count} - "
+            f"{previous_turn_count} previous turns loaded"
         )
     except (OSError, ValueError, TypeError):
         logger.debug("Activity log write failed for CONVERSATION_CONTINUATION", exc_info=True)
@@ -1328,14 +1335,9 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
     # The history embeds only regular files, and the tool skips any path the
     # history already lists, so a directory recorded as-is would reach the model
     # as neither. Record the files inside it instead.
-    from utils.file_utils import expand_paths
+    from utils.file_utils import expand_directories
 
-    user_files = []
-    for path in arguments.get("absolute_file_paths") or []:
-        if os.path.isabs(path) and os.path.isdir(path):
-            user_files.extend(expand_paths([path]))
-        else:
-            user_files.append(path)
+    user_files = expand_directories(arguments.get("absolute_file_paths") or [])
     logger.debug(f"[CONVERSATION_DEBUG] Adding user turn to thread {continuation_id}")
 
     try:

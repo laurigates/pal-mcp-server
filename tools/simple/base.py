@@ -965,12 +965,17 @@ Please provide a thoughtful, comprehensive response:"""
 
         # Use prompt.txt content if available, otherwise use the prompt field. When
         # server.py embedded the conversation history in the prompt field, keep it
-        # ahead of the prompt.txt request rather than dropping it.
-        from utils.conversation_memory import CONVERSATION_HISTORY_MARKER
+        # and put the prompt.txt request in its NEW USER INPUT slot, ahead of the
+        # follow-up instructions.
+        from utils.conversation_memory import CONVERSATION_HISTORY_MARKER, NEW_USER_INPUT_MARKER
 
         request_prompt = self.get_request_prompt(request)
         if prompt_content and CONVERSATION_HISTORY_MARKER in request_prompt:
-            user_content = f"{request_prompt}\n\n{prompt_content}"
+            head, slot, tail = request_prompt.rpartition(f"{NEW_USER_INPUT_MARKER}\n")
+            if slot:
+                user_content = f"{head}{slot}{prompt_content}{tail}"
+            else:
+                user_content = f"{request_prompt}\n\n{prompt_content}"
         else:
             user_content = prompt_content if prompt_content else request_prompt
 

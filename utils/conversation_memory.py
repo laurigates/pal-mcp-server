@@ -167,6 +167,10 @@ CONVERSATION_TIMEOUT_SECONDS = CONVERSATION_TIMEOUT_HOURS * 3600
 # one they must reconstruct history for (issue #187), so both sides use this.
 CONVERSATION_HISTORY_MARKER = "=== CONVERSATION HISTORY (CONTINUATION) ==="
 
+# Heads the current turn's request after the embedded history; a prompt.txt
+# request on a continuation is placed right after it.
+NEW_USER_INPUT_MARKER = "=== NEW USER INPUT ==="
+
 
 class ConversationTurn(BaseModel):
     """

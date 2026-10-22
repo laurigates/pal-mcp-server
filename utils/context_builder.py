@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from utils.conversation_memory import build_conversation_history
+from utils.conversation_memory import NEW_USER_INPUT_MARKER, build_conversation_history
 
 if TYPE_CHECKING:
     from utils.conversation_memory import ThreadContext
@@ -57,7 +57,9 @@ def build_enhanced_prompt(
     conversation_history, conversation_tokens = build_conversation_history(thread_context, model_context)
 
     if conversation_history:
-        enhanced_prompt = f"{conversation_history}\n\n=== NEW USER INPUT ===\n{user_prompt}\n\n{follow_up_instructions}"
+        enhanced_prompt = (
+            f"{conversation_history}\n\n{NEW_USER_INPUT_MARKER}\n{user_prompt}\n\n{follow_up_instructions}"
+        )
     else:
         enhanced_prompt = f"{user_prompt}\n\n{follow_up_instructions}"
 
