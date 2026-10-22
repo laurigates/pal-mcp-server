@@ -878,8 +878,8 @@ class BaseWorkflowMixin(ABC):
         # Prioritize embedded content over references for final steps
         if embedded_content:
             # Final step - include embedded file information
-            logger.debug(f"[WORKFLOW_FILES] {self.get_name()}: Adding fully_embedded file context")
-            response_data["file_context"] = self._fully_embedded_file_context()
+            logger.debug(f"[WORKFLOW_FILES] {self.get_name()}: Adding embedded file context")
+            response_data["file_context"] = self._embedded_file_context()
         elif reference_note:
             # Intermediate step - include file reference note
             logger.debug(f"[WORKFLOW_FILES] {self.get_name()}: Adding reference_only file context")
@@ -962,15 +962,27 @@ class BaseWorkflowMixin(ABC):
         except AttributeError:
             return []
 
-    def _fully_embedded_file_context(self) -> dict[str, Any]:
-        """file_context for a step that embedded files for the expert.
+    def _embedded_file_context(self) -> dict[str, Any]:
+        """file_context for a step that read its files for the expert.
 
         ``files_embedded`` counts every file the expert receives: those read in
         this step plus those an earlier turn of the thread already carries, which
         this step skips rather than embedding twice (issue #178).
+
+        Only tools whose ``should_include_files_in_expert_prompt()`` is true put
+        that content in the expert prompt; for the rest the expert receives none
+        of it, and the report says so instead of claiming it was embedded
+        (issue #189).
         """
         this_step = len(self.get_actually_processed_files())
         in_history = len(getattr(self, "_files_in_history", None) or [])
+        if not self.should_include_files_in_expert_prompt():
+            return {
+                "type": "not_sent_to_expert",
+                "files_embedded": 0,
+                "files_read": this_step + in_history,
+                "context_optimization": "File content was not included in the expert prompt",
+            }
         return {
             "type": "fully_embedded",
             "files_embedded": this_step + in_history,
@@ -1227,7 +1239,7 @@ class BaseWorkflowMixin(ABC):
 
             # Prioritize embedded content over references for final steps
             if embedded_content:
-                response_data["file_context"] = self._fully_embedded_file_context()
+                response_data["file_context"] = self._embedded_file_context()
             elif reference_note:
                 response_data["file_context"] = {
                     "type": "reference_only",
