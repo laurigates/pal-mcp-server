@@ -65,7 +65,10 @@ jobs:
 
       - name: Start the stub provider
         run: |
-          nohup uv run python -m simulator_tests.stub_provider --port 11500 \
+          # The venv's interpreter, not `uv run`: a backgrounded `uv run` holds
+          # the uv cache lock until the job ends, and setup-uv's post-job
+          # `uv cache prune` then times out waiting for it.
+          nohup .venv/bin/python -m simulator_tests.stub_provider --port 11500 \
             > "$RUNNER_TEMP/stub.log" 2>&1 &
           for _ in $(seq 30); do
             if curl -sf "$CUSTOM_API_URL/models" > /dev/null; then

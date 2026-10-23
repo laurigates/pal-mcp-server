@@ -426,6 +426,31 @@ def expand_paths(paths: list[str], extensions: set[str] | None = None) -> list[s
     return expanded_files
 
 
+def is_prompt_file(path: str) -> bool:
+    """Whether ``path`` is a prompt.txt: the request itself, not a context file.
+
+    Matches the exact basename, so ``myprompt.txt`` or ``prompt.txt.bak`` are
+    ordinary files.
+    """
+    return os.path.basename(path) == "prompt.txt"
+
+
+def expand_directories(paths: list[str]) -> list[str]:
+    """Replace each absolute directory in ``paths`` with the files inside it.
+
+    Other entries are kept as given and in place. Conversation history records
+    and embeds the files inside an attached directory, never the directory, so
+    this is the form to record a turn's files in or compare them against.
+    """
+    result = []
+    for path in paths:
+        if os.path.isabs(path) and os.path.isdir(path):
+            result.extend(expand_paths([path]))
+        else:
+            result.append(path)
+    return result
+
+
 def read_file_content(
     file_path: str, max_size: int = 1_000_000, *, include_line_numbers: bool | None = None
 ) -> tuple[str, int]:

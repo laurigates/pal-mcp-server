@@ -49,7 +49,12 @@ PREFERRED_MODELS_ENV = "PREFERRED_MODELS"
 _PROVIDER_BY_VALUE = {provider_type.value: provider_type for provider_type in ProviderType}
 
 
-def _parse_disabled_models(raw: str | None) -> tuple[tuple[ProviderType | None, str], ...]:
+def parse_allowed_models(raw: str | None) -> set[str]:
+    """Split a ``*_ALLOWED_MODELS`` value into the lowercase names the policy matches."""
+    return {cleaned for token in (raw or "").split(",") if (cleaned := token.strip().lower())}
+
+
+def parse_disabled_models(raw: str | None) -> tuple[tuple[ProviderType | None, str], ...]:
     """Split ``DISABLED_MODELS`` into ``(provider scope or None, lowercase name)`` pairs.
 
     A prefix before the first ``:`` scopes the entry only when it names a
@@ -67,6 +72,11 @@ def _parse_disabled_models(raw: str | None) -> tuple[tuple[ProviderType | None, 
         else:
             entries.append((None, cleaned))
     return tuple(dict.fromkeys(entries))
+
+
+def format_disabled_models(entries: tuple[tuple[ProviderType | None, str], ...]) -> str:
+    """Render parsed ``DISABLED_MODELS`` entries back to ``scope:name`` / ``name`` form."""
+    return ", ".join(f"{scope.value}:{name}" if scope else name for scope, name in entries)
 
 
 def _recognizes(provider, name: str) -> bool:
@@ -145,12 +155,7 @@ class ModelRestrictionService:
                 if env_value is None or env_value == "":
                     continue
 
-                models = set()
-                for model in env_value.split(","):
-                    cleaned = model.strip().lower()
-                    if cleaned:
-                        models.add(cleaned)
-
+                models = parse_allowed_models(env_value)
                 if models:
                     self.restrictions[provider_type] = models
                     self._env_var_used[provider_type] = env_var
@@ -161,7 +166,7 @@ class ModelRestrictionService:
             else:
                 logger.debug(f"No allow-list set for {provider_type.value} - all models allowed")
 
-        self.disabled_models = _parse_disabled_models(get_env(DISABLED_MODELS_ENV))
+        self.disabled_models = parse_disabled_models(get_env(DISABLED_MODELS_ENV))
         if self.disabled_models:
             logger.info(f"Disabled models: {self._format_disabled_models()}")
 
@@ -310,7 +315,7 @@ class ModelRestrictionService:
         return False
 
     def _format_disabled_models(self) -> str:
-        return ", ".join(f"{scope.value}:{name}" if scope else name for scope, name in self.disabled_models)
+        return format_disabled_models(self.disabled_models)
 
     def is_allowed(self, provider_type: ProviderType, model_name: str, original_name: str | None = None) -> bool:
         """

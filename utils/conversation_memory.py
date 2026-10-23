@@ -162,6 +162,15 @@ except ValueError:
 
 CONVERSATION_TIMEOUT_SECONDS = CONVERSATION_TIMEOUT_HOURS * 3600
 
+# First line of the history block build_conversation_history emits. Tools check
+# for it to tell a prompt that server.py already embedded the history in from
+# one they must reconstruct history for (issue #187), so both sides use this.
+CONVERSATION_HISTORY_MARKER = "=== CONVERSATION HISTORY (CONTINUATION) ==="
+
+# Heads the current turn's request after the embedded history; a prompt.txt
+# request on a continuation is placed right after it.
+NEW_USER_INPUT_MARKER = "=== NEW USER INPUT ==="
+
 
 class ConversationTurn(BaseModel):
     """
@@ -717,6 +726,42 @@ def _plan_file_inclusion_by_size(all_files: list[str], max_file_tokens: int) -> 
     return files_to_include, files_to_skip, total_tokens
 
 
+def _history_turns_and_files(context: ThreadContext) -> tuple[list[ConversationTurn], list[str]]:
+    """Return the turns the history covers and the files they list, newest file first.
+
+    A thread with a parent covers its whole chain, so files from newer turns in
+    any thread of it take precedence over older ones.
+    """
+    if not context.parent_thread_id:
+        return context.turns, get_conversation_file_list(context)
+
+    chain = get_thread_chain(context.thread_id)
+    all_turns = [turn for thread in chain for turn in thread.turns]
+    merged = ThreadContext(
+        thread_id="merged_chain",
+        created_at=context.created_at,
+        last_updated_at=context.last_updated_at,
+        tool_name=context.tool_name,
+        turns=all_turns,  # All turns from entire chain in chronological order
+        initial_context=context.initial_context,
+    )
+    logger.debug(f"[THREAD] Built history from {len(chain)} threads with {len(all_turns)} total turns")
+    return all_turns, get_conversation_file_list(merged)
+
+
+def get_history_embedded_files(context: ThreadContext, model_context) -> list[str]:
+    """Return the files ``build_conversation_history`` embeds for this thread and model.
+
+    A listed file the history's file budget cannot hold is left out of the
+    history, so a tool must embed it itself rather than treat it as embedded.
+    """
+    _, all_files = _history_turns_and_files(context)
+    files_to_include, _, _ = _plan_file_inclusion_by_size(
+        all_files, model_context.calculate_token_allocation().file_tokens
+    )
+    return files_to_include
+
+
 def build_conversation_history(context: ThreadContext, model_context=None, read_files_func=None) -> tuple[str, int]:
     """
     Build formatted conversation history for tool prompts with embedded file contents.
@@ -814,38 +859,8 @@ def build_conversation_history(context: ThreadContext, model_context=None, read_
         - In-memory persistence with automatic TTL management
         - Graceful degradation when files are inaccessible or too large
     """
-    # Get the complete thread chain
-    if context.parent_thread_id:
-        # This thread has a parent, get the full chain
-        chain = get_thread_chain(context.thread_id)
-
-        # Collect all turns from all threads in chain
-        all_turns = []
-        total_turns = 0
-
-        for thread in chain:
-            all_turns.extend(thread.turns)
-            total_turns += len(thread.turns)
-
-        # Use centralized file collection logic for consistency across the entire chain
-        # This ensures files from newer turns across ALL threads take precedence
-        # over files from older turns, maintaining the newest-first prioritization
-        # even when threads are chained together
-        temp_context = ThreadContext(
-            thread_id="merged_chain",
-            created_at=context.created_at,
-            last_updated_at=context.last_updated_at,
-            tool_name=context.tool_name,
-            turns=all_turns,  # All turns from entire chain in chronological order
-            initial_context=context.initial_context,
-        )
-        all_files = get_conversation_file_list(temp_context)  # Applies newest-first logic to entire chain
-        logger.debug(f"[THREAD] Built history from {len(chain)} threads with {total_turns} total turns")
-    else:
-        # Single thread, no parent chain
-        all_turns = context.turns
-        total_turns = len(context.turns)
-        all_files = get_conversation_file_list(context)
+    all_turns, all_files = _history_turns_and_files(context)
+    total_turns = len(all_turns)
 
     if not all_turns:
         return "", 0
@@ -877,7 +892,7 @@ def build_conversation_history(context: ThreadContext, model_context=None, read_
     logger.debug(f"[HISTORY]   Max history tokens: {max_history_tokens:,}")
 
     history_parts = [
-        "=== CONVERSATION HISTORY (CONTINUATION) ===",
+        CONVERSATION_HISTORY_MARKER,
         f"Thread: {context.thread_id}",
         f"Tool: {context.tool_name}",  # Original tool that started the conversation
         f"Turn {total_turns}/{MAX_CONVERSATION_TURNS}",

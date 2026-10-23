@@ -377,10 +377,10 @@ Control calls:
 
 ## Noticed while investigating (not part of this work)
 
-- Chat's web-search guidance never reaches the model: `prepare_chat_style_prompt`
-  keeps only the text after `=== USER REQUEST ===`, and the guidance sits before it
-  (`tools/simple/base.py:1076-1080`).
+- Chat's web-search guidance never reached the model: `prepare_chat_style_prompt`
+  kept only the text after `=== USER REQUEST ===`, and the guidance sat before it.
+  Fixed in #199: the guidance now rides in the user section, so the system prompt
+  stays byte-stable.
 - codereview's expert prompt contains literal `\n` sequences from f-strings.
-- `customize_expert_analysis_prompt` in thinkdeep is never called (`tools/thinkdeep.py:285`).
 - For workflow tools, the server builds the full conversation history and then discards
   it (`server.py:1195-1205`).

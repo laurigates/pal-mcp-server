@@ -382,48 +382,48 @@ class PrecommitTool(WorkflowTool):
     def prepare_expert_analysis_context(self, consolidated_findings) -> str:
         """Prepare context for external model call for final pre-commit validation."""
         context_parts = [
-            f"=== PRE-COMMIT ANALYSIS REQUEST ===\\n{self.initial_request or 'Pre-commit validation initiated'}\\n=== END REQUEST ==="
+            f"=== PRE-COMMIT ANALYSIS REQUEST ===\n{self.initial_request or 'Pre-commit validation initiated'}\n=== END REQUEST ==="
         ]
 
         # Add investigation summary
         investigation_summary = self._build_precommit_summary(consolidated_findings)
         context_parts.append(
-            f"\\n=== AGENT'S PRE-COMMIT INVESTIGATION ===\\n{investigation_summary}\\n=== END INVESTIGATION ==="
+            f"\n=== AGENT'S PRE-COMMIT INVESTIGATION ===\n{investigation_summary}\n=== END INVESTIGATION ==="
         )
 
         # Add git configuration context if available
         if self.git_config:
-            config_text = "\\n".join(f"- {key}: {value}" for key, value in self.git_config.items())
-            context_parts.append(f"\\n=== GIT CONFIGURATION ===\\n{config_text}\\n=== END CONFIGURATION ===")
+            config_text = "\n".join(f"- {key}: {value}" for key, value in self.git_config.items())
+            context_parts.append(f"\n=== GIT CONFIGURATION ===\n{config_text}\n=== END CONFIGURATION ===")
 
         # Add relevant methods/functions if available
         if consolidated_findings.relevant_context:
-            methods_text = "\\n".join(f"- {method}" for method in consolidated_findings.relevant_context)
-            context_parts.append(f"\\n=== RELEVANT CODE ELEMENTS ===\\n{methods_text}\\n=== END CODE ELEMENTS ===")
+            methods_text = "\n".join(f"- {method}" for method in consolidated_findings.relevant_context)
+            context_parts.append(f"\n=== RELEVANT CODE ELEMENTS ===\n{methods_text}\n=== END CODE ELEMENTS ===")
 
         # Add issues found evolution if available
         if consolidated_findings.issues_found:
-            issues_text = "\\n".join(
+            issues_text = "\n".join(
                 f"[{issue.get('severity', 'unknown').upper()}] {issue.get('description', 'No description')}"
                 for issue in consolidated_findings.issues_found
             )
-            context_parts.append(f"\\n=== ISSUES IDENTIFIED ===\\n{issues_text}\\n=== END ISSUES ===")
+            context_parts.append(f"\n=== ISSUES IDENTIFIED ===\n{issues_text}\n=== END ISSUES ===")
 
         # Add assessment evolution if available
         if consolidated_findings.hypotheses:
-            assessments_text = "\\n".join(
+            assessments_text = "\n".join(
                 f"Step {h['step']}: {h['hypothesis']}" for h in consolidated_findings.hypotheses
             )
-            context_parts.append(f"\\n=== ASSESSMENT EVOLUTION ===\\n{assessments_text}\\n=== END ASSESSMENTS ===")
+            context_parts.append(f"\n=== ASSESSMENT EVOLUTION ===\n{assessments_text}\n=== END ASSESSMENTS ===")
 
         # Add images if available
         if consolidated_findings.images:
-            images_text = "\\n".join(f"- {img}" for img in consolidated_findings.images)
+            images_text = "\n".join(f"- {img}" for img in consolidated_findings.images)
             context_parts.append(
-                f"\\n=== VISUAL VALIDATION INFORMATION ===\\n{images_text}\\n=== END VISUAL INFORMATION ==="
+                f"\n=== VISUAL VALIDATION INFORMATION ===\n{images_text}\n=== END VISUAL INFORMATION ==="
             )
 
-        return "\\n".join(context_parts)
+        return "\n".join(context_parts)
 
     def _build_precommit_summary(self, consolidated_findings) -> str:
         """Prepare a comprehensive summary of the pre-commit investigation."""
@@ -441,7 +441,7 @@ class PrecommitTool(WorkflowTool):
         for finding in consolidated_findings.findings:
             summary_parts.append(finding)
 
-        return "\\n".join(summary_parts)
+        return "\n".join(summary_parts)
 
     def should_include_files_in_expert_prompt(self) -> bool:
         """Include files in expert analysis for comprehensive validation."""
@@ -645,9 +645,9 @@ class PrecommitTool(WorkflowTool):
                 # Fast-track mode for external continuations
                 next_steps = (
                     "You are on step 1 of MAXIMUM 2 steps. CRITICAL: Gather and save the complete git changeset NOW. "
-                    "MANDATORY ACTIONS:\\n"
-                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                    + "\\n\\nMANDATORY: The changeset may be large. You MUST save the required changeset as a 'pal_precommit.changeset' file "
+                    "MANDATORY ACTIONS:\n"
+                    + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                    + "\n\nMANDATORY: The changeset may be large. You MUST save the required changeset as a 'pal_precommit.changeset' file "
                     "(replacing any existing one) in your work directory and include the FULL absolute path in relevant_files (exclude any "
                     "binary files). ONLY include the code changes, no extra commentary."
                     "Set next_step_required=True and step_number=2 for the next call."
@@ -656,16 +656,16 @@ class PrecommitTool(WorkflowTool):
                 # Internal validation mode
                 next_steps = (
                     "Continuing previous conversation with internal validation only. The analysis will build "
-                    "upon the prior findings without external model validation. REQUIRED ACTIONS:\\n"
-                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                    "upon the prior findings without external model validation. REQUIRED ACTIONS:\n"
+                    + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
                 )
             else:
                 # Normal flow for new validations
                 next_steps = (
                     f"MANDATORY: DO NOT call the {self.get_name()} tool again immediately. You MUST first investigate "
-                    f"the git repositories and changes using appropriate tools. CRITICAL AWARENESS: You need to:\\n"
-                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                    + f"\\n\\nOnly call {self.get_name()} again AFTER completing your investigation. "
+                    f"the git repositories and changes using appropriate tools. CRITICAL AWARENESS: You need to:\n"
+                    + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                    + f"\n\nOnly call {self.get_name()} again AFTER completing your investigation. "
                     f"When you call {self.get_name()} next time, use step_number: {step_number + 1} "
                     f"and report specific files examined, changes analyzed, and validation findings discovered."
                 )
@@ -697,9 +697,9 @@ class PrecommitTool(WorkflowTool):
                 # Normal flow - deeper analysis needed
                 next_steps = (
                     f"STOP! Do NOT call {self.get_name()} again yet. You are on step 2 of {request.total_steps} minimum required steps. "
-                    f"MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\\n"
-                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                    + f"\\n\\nRemember: You MUST set next_step_required=True until step {request.total_steps}. "
+                    f"MANDATORY ACTIONS before calling {self.get_name()} step {step_number + 1}:\n"
+                    + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                    + f"\n\nRemember: You MUST set next_step_required=True until step {request.total_steps}. "
                     + f"Only call {self.get_name()} again with step_number: {step_number + 1} AFTER completing these validations."
                 )
 
@@ -714,9 +714,9 @@ class PrecommitTool(WorkflowTool):
             else:
                 # Later steps - final verification
                 next_steps = (
-                    f"WAIT! Your validation needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\\n"
-                    + "\\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
-                    + f"\\n\\nREMEMBER: Ensure you have identified all potential issues and verified commit readiness. "
+                    f"WAIT! Your validation needs final verification. DO NOT call {self.get_name()} immediately. REQUIRED ACTIONS:\n"
+                    + "\n".join(f"{i + 1}. {action}" for i, action in enumerate(required_actions))
+                    + f"\n\nREMEMBER: Ensure you have identified all potential issues and verified commit readiness. "
                     f"Document findings with specific file references and issue descriptions, then call {self.get_name()} "
                     f"with step_number: {step_number + 1}."
                 )

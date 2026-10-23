@@ -21,7 +21,8 @@ class TestSupportedModelsAliases:
         # Test specific aliases
         assert "flash" in provider.MODEL_CAPABILITIES["gemini-3.8-flash"].aliases
         assert "flash3.5" in provider.MODEL_CAPABILITIES["gemini-3.5-flash"].aliases
-        assert "pro" in provider.MODEL_CAPABILITIES["gemini-3.1-pro-preview"].aliases
+        assert "pro" in provider.MODEL_CAPABILITIES["gemini-4-argon"].aliases
+        assert "pro3.1" in provider.MODEL_CAPABILITIES["gemini-3.1-pro-preview"].aliases
         assert "flash3" in provider.MODEL_CAPABILITIES["gemini-3-flash-preview"].aliases
         assert "flashlite" in provider.MODEL_CAPABILITIES["gemini-3.5-flash-lite"].aliases
         assert "flash-lite" in provider.MODEL_CAPABILITIES["gemini-3.5-flash-lite"].aliases
@@ -29,13 +30,15 @@ class TestSupportedModelsAliases:
 
         # Test alias resolution
         assert provider._resolve_model_name("flash") == "gemini-3.8-flash"
-        assert provider._resolve_model_name("pro") == "gemini-3.1-pro-preview"
+        assert provider._resolve_model_name("pro") == "gemini-4-argon"
+        assert provider._resolve_model_name("argon") == "gemini-4-argon"
+        assert provider._resolve_model_name("pro3.1") == "gemini-3.1-pro-preview"
         assert provider._resolve_model_name("flash3") == "gemini-3-flash-preview"
         assert provider._resolve_model_name("flashlite") == "gemini-3.5-flash-lite"
 
         # Test case insensitive resolution
         assert provider._resolve_model_name("Flash") == "gemini-3.8-flash"
-        assert provider._resolve_model_name("PRO") == "gemini-3.1-pro-preview"
+        assert provider._resolve_model_name("PRO") == "gemini-4-argon"
 
     def test_openai_provider_aliases(self):
         """Test OpenAI provider's alias structure."""
@@ -68,6 +71,10 @@ class TestSupportedModelsAliases:
         assert provider._resolve_model_name("gpt5.1") == "gpt-5.2"
         assert provider._resolve_model_name("gpt5.1-codex") == "gpt-5.3-codex"
         assert provider._resolve_model_name("codex-mini") == "gpt-5.3-codex-spark"
+        # "sol" follows the Sol frontier; the superseded model keeps its pinned alias
+        assert provider._resolve_model_name("sol") == "gpt-6.1-sol"
+        assert provider._resolve_model_name("gpt6.1") == "gpt-6.1-sol"
+        assert provider._resolve_model_name("gpt6-sol") == "gpt-6-sol"
 
         # Test case insensitive resolution
         assert provider._resolve_model_name("Mini") == "gpt-5-mini"  # mini -> gpt-5-mini now

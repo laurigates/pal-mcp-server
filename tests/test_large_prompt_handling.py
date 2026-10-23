@@ -625,7 +625,9 @@ class TestLargePromptHandling:
 
         # Mock huge conversation history (simulates many turns of conversation)
         # Calculate repetitions needed to exceed MCP_PROMPT_SIZE_LIMIT
-        base_text = "=== CONVERSATION HISTORY ===\n"
+        from utils.conversation_memory import CONVERSATION_HISTORY_MARKER
+
+        base_text = f"{CONVERSATION_HISTORY_MARKER}\n"
         repeat_text = "Previous message content\n"
         # Add buffer to ensure we exceed the limit
         target_size = config.MCP_PROMPT_SIZE_LIMIT + 1000
@@ -671,6 +673,8 @@ class TestLargePromptHandling:
                 "model": "flash",
                 "continuation_id": "test_thread_123",
                 "working_directory_absolute_path": temp_dir,
+                # server.py keeps the caller's prompt here for the size check
+                "_original_user_prompt": small_continuation_prompt,
             }
 
             # Mock the conversation history embedding to simulate server.py behavior
@@ -682,7 +686,7 @@ class TestLargePromptHandling:
                     # Simulate the case where conversation history is already embedded in prompt
                     # by server.py before calling the tool
                     field_value = arguments.get("prompt", "")
-                    if "=== CONVERSATION HISTORY ===" in field_value:
+                    if CONVERSATION_HISTORY_MARKER in field_value:
                         # Set the flag that history is embedded
                         self._has_embedded_history = True
 

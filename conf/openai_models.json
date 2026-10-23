@@ -53,11 +53,37 @@
       "temperature_constraint": "fixed"
     },
     {
+      "model_name": "gpt-6.1-sol",
+      "friendly_name": "OpenAI (GPT-6.1 Sol)",
+      "aliases": [
+        "gpt6.1-sol",
+        "gpt6.1",
+        "gpt-6.1",
+        "6.1",
+        "sol"
+      ],
+      "intelligence_score": 20,
+      "description": "GPT-6.1 Sol (1.05M context, 128K output) - Near-Astra performance for complex coding, computer use, and professional work at a lower cost",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": false,
+      "max_image_size_mb": 20.0,
+      "use_openai_response_api": true,
+      "default_reasoning_effort": "high",
+      "allow_code_generation": true,
+      "temperature_constraint": "fixed"
+    },
+    {
       "model_name": "gpt-6-sol",
       "friendly_name": "OpenAI (GPT-6 Sol)",
       "aliases": [
-        "gpt6-sol",
-        "sol"
+        "gpt6-sol"
       ],
       "intelligence_score": 20,
       "description": "GPT-6 Sol (1.05M context, 128K output) - GPT-6 tier built for complex coding and agentic workflows",
@@ -402,7 +428,7 @@
         "o3mini"
       ],
       "intelligence_score": 12,
-      "description": "Fast O3 variant (200K context) - Balanced performance/speed, moderate complexity (shuts down 2026-12-11; replaced by gpt-5.6-sol)",
+      "description": "Fast O3 variant (200K context) - Balanced performance/speed, moderate complexity (shuts down 2026-10-23; replaced by gpt-5.6-sol)",
       "context_window": 200000,
       "max_output_tokens": 100000,
       "supports_extended_thinking": false,
@@ -463,7 +489,7 @@
         "gpt4.1"
       ],
       "intelligence_score": 13,
-      "description": "GPT-4.1 (1M context) - Advanced reasoning model with large context window",
+      "description": "GPT-4.1 (1M context) - Advanced reasoning model with large context window (shuts down 2027-01-14; replaced by gpt-6-luna)",
       "context_window": 1047576,
       "max_output_tokens": 32768,
       "supports_extended_thinking": false,
@@ -504,7 +530,7 @@
     },
     {
       "model_name": "gpt-3.5-turbo",
-      "description": "GPT-3.5-turbo",
+      "description": "GPT-3.5-turbo (shuts down 2026-10-23; replaced by gpt-5.6-terra)",
       "context_window": 16385,
       "max_output_tokens": 4096,
       "supports_images": false,
@@ -514,7 +540,7 @@
     },
     {
       "model_name": "gpt-4",
-      "description": "GPT-4",
+      "description": "GPT-4 (shuts down 2026-10-23; replaced by gpt-5.6-sol)",
       "context_window": 8192,
       "max_output_tokens": 8192,
       "supports_images": true,
@@ -524,7 +550,7 @@
     },
     {
       "model_name": "gpt-4-turbo",
-      "description": "GPT-4 Turbo",
+      "description": "GPT-4 Turbo (shuts down 2026-10-23; replaced by gpt-5.6-sol)",
       "context_window": 128000,
       "max_output_tokens": 4096,
       "supports_images": true,
@@ -534,7 +560,7 @@
     },
     {
       "model_name": "gpt-4.1-mini",
-      "description": "GPT-4.1 mini",
+      "description": "GPT-4.1 mini (shuts down 2027-01-14; replaced by gpt-6-luna)",
       "context_window": 1047576,
       "max_output_tokens": 32768,
       "supports_images": true,
@@ -544,7 +570,7 @@
     },
     {
       "model_name": "gpt-4.1-nano",
-      "description": "GPT-4.1 nano",
+      "description": "GPT-4.1 nano (shuts down 2026-10-23; replaced by gpt-5.6-luna)",
       "context_window": 1047576,
       "max_output_tokens": 32768,
       "supports_images": true,
@@ -554,7 +580,7 @@
     },
     {
       "model_name": "gpt-4o",
-      "description": "GPT-4o",
+      "description": "GPT-4o (shuts down 2027-01-14; replaced by gpt-6-luna)",
       "context_window": 128000,
       "max_output_tokens": 16384,
       "supports_images": true,
@@ -564,7 +590,7 @@
     },
     {
       "model_name": "gpt-4o-2024-05-13",
-      "description": "GPT-4o (2024-05-13)",
+      "description": "GPT-4o (2024-05-13) (shuts down 2026-10-23; replaced by gpt-5.6-sol)",
       "context_window": 128000,
       "max_output_tokens": 4096,
       "supports_images": true,
@@ -574,7 +600,7 @@
     },
     {
       "model_name": "gpt-4o-2024-08-06",
-      "description": "GPT-4o (2024-08-06)",
+      "description": "GPT-4o (2024-08-06) (shuts down 2027-01-14; replaced by gpt-6-luna)",
       "context_window": 128000,
       "max_output_tokens": 16384,
       "supports_images": true,
@@ -584,7 +610,7 @@
     },
     {
       "model_name": "gpt-4o-2024-11-20",
-      "description": "GPT-4o (2024-11-20)",
+      "description": "GPT-4o (2024-11-20) (shuts down 2027-01-14; replaced by gpt-6-luna)",
       "context_window": 128000,
       "max_output_tokens": 16384,
       "supports_images": true,
@@ -604,7 +630,7 @@
     },
     {
       "model_name": "gpt-5-pro",
-      "description": "GPT-5 Pro",
+      "description": "GPT-5 Pro (shuts down 2026-12-11; replaced by gpt-5.6-sol at reasoning.mode: pro)",
       "context_window": 400000,
       "max_output_tokens": 272000,
       "supports_images": true,
@@ -612,28 +638,6 @@
       "supports_extended_thinking": true,
       "supports_temperature": false,
       "temperature_constraint": "fixed",
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "gpt-5.2-chat-latest",
-      "description": "GPT-5.2 Chat",
-      "context_window": 128000,
-      "max_output_tokens": 16384,
-      "supports_images": true,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "supports_temperature": false,
-      "temperature_constraint": "fixed",
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "gpt-5.3-chat-latest",
-      "description": "GPT-5.3 Chat (latest)",
-      "context_window": 128000,
-      "max_output_tokens": 16384,
-      "supports_images": true,
-      "supports_function_calling": true,
-      "supports_extended_thinking": false,
       "enabled_by_default": false
     },
     {
@@ -680,7 +684,7 @@
     },
     {
       "model_name": "o1",
-      "description": "o1",
+      "description": "o1 (shuts down 2026-10-23; replaced by gpt-5.6-sol)",
       "context_window": 200000,
       "max_output_tokens": 100000,
       "supports_images": true,
@@ -692,7 +696,7 @@
     },
     {
       "model_name": "o1-pro",
-      "description": "o1-pro",
+      "description": "o1-pro (shuts down 2026-10-23; replaced by gpt-5.6-sol at reasoning.mode: pro)",
       "context_window": 200000,
       "max_output_tokens": 100000,
       "supports_images": true,
@@ -700,6 +704,32 @@
       "supports_extended_thinking": true,
       "supports_temperature": false,
       "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-daybreak-blue-latest",
+      "description": "Daybreak Blue - Deprecated alias (OpenAI: use the latest cyber model available to you; no shutdown date announced). Default snapshot gpt-5.6-sol, with safeguards for defensive cybersecurity work; requires separate Daybreak program approval. Responses API only",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "use_openai_response_api": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gpt-daybreak-red-latest",
+      "description": "Daybreak Red - Deprecated alias (OpenAI: use the latest cyber model available to you; no shutdown date announced). Default snapshot gpt-5.6-cyber, purpose-trained for authorized vulnerability research; requires separate Daybreak program approval. Responses API only",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "use_openai_response_api": true,
       "enabled_by_default": false
     }
   ]

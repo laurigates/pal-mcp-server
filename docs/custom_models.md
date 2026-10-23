@@ -55,7 +55,8 @@ The curated defaults in `conf/openrouter_models.json` include popular entries su
 | `opus`, `claude-opus` | `anthropic/claude-opus-5` | Flagship Claude reasoning model with vision |
 | `sonnet`, `sonnet5` | `anthropic/claude-sonnet-5` | Balanced Claude with 1M context and adaptive thinking |
 | `haiku` | `anthropic/claude-haiku-4.5` | Fast Claude option with vision |
-| `pro`, `gemini` | `google/gemini-3.1-pro-preview` | Frontier Gemini with extended thinking |
+| `pro`, `gemini`, `argon` | `google/gemini-4-argon` | Flagship Gemini reasoning model with extended thinking |
+| `gemini3` | `google/gemini-3.1-pro-preview` | Previous-generation Gemini Pro |
 | `flash`, `gemini-flash` | `google/gemini-3.8-flash` | Ultra-fast multimodal Gemini |
 | `mistral`, `mistral-large` | `mistralai/mistral-large-2512` | Frontier Mistral (Large 3) with vision |
 | `llama`, `llama3` | `meta-llama/llama-3.3-70b-instruct` | Large open-weight text model |
@@ -92,7 +93,8 @@ The GPT-6 family is the current flagship tier in `conf/openai_models.json`, with
 | Model | Highlights | Notes |
 |-------|------------|-------|
 | `gpt-6-astra` | Most capable GPT-6 tier, 1.05M context | Responses API; aliased `astra`, `gpt6` |
-| `gpt-6-sol` | GPT-6 tier for complex coding and agentic work | Responses API; aliased `sol` |
+| `gpt-6.1-sol` | Near-Astra GPT-6.1 Sol tier at lower cost, 1.05M context | Responses API; aliased `sol`, `gpt6.1` |
+| `gpt-6-sol` | GPT-6 tier for complex coding and agentic work | Responses API; aliased `gpt6-sol` |
 | `gpt-6-luna` | Cost-efficient GPT-6 tier | Aliased `luna` |
 | `gpt-5.6-sol` | Frontier GPT-5.6 tier, 1.05M context | Responses API; aliased `gpt5.6` |
 | `gpt-5.6-terra` | Balanced 5.6 tier | Aliased `terra` |
@@ -201,11 +203,11 @@ CUSTOM_MODEL_NAME=your-loaded-model
 **Using model aliases (from the registry files):**
 ```
 # OpenRouter models:
-"Use opus for deep analysis"         # → anthropic/claude-opus-4
-"Use sonnet to review this code"     # → anthropic/claude-sonnet-4
-"Use pro via pal to analyze this"    # → google/gemini-2.5-pro
-"Use gpt4o via pal to analyze this"  # → openai/gpt-4o
-"Use mistral via pal to optimize"    # → mistral/mistral-large
+"Use opus for deep analysis"         # → anthropic/claude-opus-5
+"Use sonnet to review this code"     # → anthropic/claude-sonnet-5
+"Use pro via pal to analyze this"    # → google/gemini-4-argon
+"Use gpt5.2 via pal to analyze this" # → openai/gpt-5.2
+"Use mistral via pal to optimize"    # → mistralai/mistral-large-2512
 
 # Local models (with custom URL configured):
 "Use local-llama to analyze this code"     # → llama3.2 (local)

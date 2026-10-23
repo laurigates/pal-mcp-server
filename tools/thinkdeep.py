@@ -194,7 +194,13 @@ class ThinkDeepTool(WorkflowTool):
         """
         step_data = super().prepare_step_data(request)
 
-        self.stored_request_params = {}
+        # problem_context and focus_areas describe the whole investigation, so a
+        # later step that omits them keeps step 1's; a new step 1 starts afresh.
+        previous = self.stored_request_params if request.step_number > 1 else {}
+        self.stored_request_params = {
+            "problem_context": getattr(request, "problem_context", None) or previous.get("problem_context"),
+            "focus_areas": getattr(request, "focus_areas", None) or previous.get("focus_areas"),
+        }
         try:
             self.stored_request_params["temperature"] = request.temperature
         except AttributeError:
@@ -282,45 +288,6 @@ class ThinkDeepTool(WorkflowTool):
         """Message for completion without expert analysis."""
         return "Deep thinking analysis complete with certain confidence. Proceed with implementation based on the analysis."
 
-    def customize_expert_analysis_prompt(self, base_prompt: str, request, file_content: str = "") -> str:
-        """
-        Customize the expert analysis prompt for deep thinking validation
-        """
-        thinking_context = f"""
-DEEP THINKING ANALYSIS VALIDATION
-
-You are reviewing a comprehensive deep thinking analysis completed through systematic investigation.
-Your role is to validate the thinking process, identify any gaps, challenge assumptions, and provide
-additional insights or alternative perspectives.
-
-ANALYSIS SCOPE:
-- Problem Context: {self._get_problem_context(request)}
-- Focus Areas: {", ".join(self._get_focus_areas(request))}
-- Investigation Confidence: {request.confidence}
-- Steps Completed: {request.step_number} of {request.total_steps}
-
-THINKING SUMMARY:
-{request.findings}
-
-KEY INSIGHTS AND CONTEXT:
-{", ".join(request.relevant_context) if request.relevant_context else "No specific context identified"}
-
-VALIDATION OBJECTIVES:
-1. Assess the depth and quality of the thinking process
-2. Identify any logical gaps, missing considerations, or flawed assumptions
-3. Suggest alternative approaches or perspectives not considered
-4. Validate the conclusions and recommendations
-5. Provide actionable next steps for implementation
-
-Be thorough but constructive in your analysis. Challenge the thinking where appropriate,
-but also acknowledge strong insights and valid conclusions.
-"""
-
-        if file_content:
-            thinking_context += f"\n\nFILE CONTEXT:\n{file_content}"
-
-        return f"{thinking_context}\n\n{base_prompt}"
-
     def get_expert_analysis_instructions(self) -> str:
         """
         Return instructions for expert analysis specific to deep thinking validation
@@ -354,20 +321,6 @@ but also acknowledge strong insights and valid conclusions.
         except AttributeError:
             pass
         return super().get_request_thinking_mode(request)
-
-    def _get_problem_context(self, request) -> str:
-        """Get problem context from request. Override for custom context handling."""
-        try:
-            return request.problem_context or "General analysis"
-        except AttributeError:
-            return "General analysis"
-
-    def _get_focus_areas(self, request) -> list[str]:
-        """Get focus areas from request. Override for custom focus area handling."""
-        try:
-            return request.focus_areas or ["comprehensive analysis"]
-        except AttributeError:
-            return ["comprehensive analysis"]
 
     def get_required_actions(
         self, step_number: int, confidence: str, findings: str, total_steps: int, request=None
@@ -460,7 +413,15 @@ but also acknowledge strong insights and valid conclusions.
         """
         Prepare context for expert analysis specific to deep thinking.
         """
-        context_parts = []
+        # Stable investigation scope first; confidence and step counts change
+        # between calls, so they follow it (docs/prompt-caching.md).
+        scope = self.stored_request_params
+        context_parts = [
+            "ANALYSIS SCOPE:",
+            f"Problem context: {scope.get('problem_context') or 'General analysis'}",
+            f"Focus areas: {', '.join(scope.get('focus_areas') or ['comprehensive analysis'])}",
+            "",
+        ]
 
         context_parts.append("DEEP THINKING ANALYSIS SUMMARY:")
         context_parts.append(f"Steps completed: {len(consolidated_findings.findings)}")

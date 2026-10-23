@@ -703,29 +703,24 @@ def validate_input(data):
             if not response3_data:
                 return False
 
-            # Check file context - should be fully_embedded for final step
+            # Check file context - the tool reads its files on the final step but does not
+            # put them in the expert prompt, so it must not claim they were embedded (#189)
             file_context3 = response3_data.get("file_context", {})
-            if file_context3.get("type") != "fully_embedded":
+            if file_context3.get("type") != "not_sent_to_expert":
                 self.logger.error(
-                    f"Expected fully_embedded file context for final step, got: {file_context3.get('type')}"
+                    f"Expected not_sent_to_expert file context for final step, got: {file_context3.get('type')}"
                 )
                 return False
 
-            if "Full file content embedded for expert analysis" not in file_context3.get("context_optimization", ""):
-                self.logger.error("Expected expert analysis optimization message for fully_embedded")
+            if "not included in the expert prompt" not in file_context3.get("context_optimization", ""):
+                self.logger.error("Expected not_sent_to_expert optimization message")
                 return False
 
-            # Should show files embedded count
-            files_embedded = file_context3.get("files_embedded", 0)
-            if files_embedded == 0:
-                # This is OK - files might already be in conversation history
-                self.logger.info(
-                    "    ℹ️ Files embedded count is 0 - files already in conversation history (smart deduplication)"
-                )
-            else:
-                self.logger.info(f"    ✅ Files embedded count: {files_embedded}")
+            if file_context3.get("files_embedded") != 0:
+                self.logger.error(f"Expected files_embedded 0, got: {file_context3.get('files_embedded')}")
+                return False
 
-            self.logger.info("    ✅ Final step correctly uses fully_embedded file context")
+            self.logger.info("    ✅ Final step correctly reports files not sent to expert")
 
             # Verify expert analysis was called for final step
             if response3_data.get("status") != "calling_expert_analysis":
@@ -916,14 +911,14 @@ class DatabaseServer:
 
             response4_data = self._parse_debug_response(response4)
 
-            # Validate step 4 - should use fully_embedded for expert analysis
+            # Validate step 4 - files are read but not put in the expert prompt (#189)
             file_context4 = response4_data.get("file_context", {})
-            if file_context4.get("type") != "fully_embedded":
-                self.logger.error("Step 4 (final) should use fully_embedded file context")
+            if file_context4.get("type") != "not_sent_to_expert":
+                self.logger.error("Step 4 (final) should use not_sent_to_expert file context")
                 return False
 
-            if "expert analysis" not in file_context4.get("context_optimization", "").lower():
-                self.logger.error("Final step should mention expert analysis in context optimization")
+            if "expert prompt" not in file_context4.get("context_optimization", "").lower():
+                self.logger.error("Final step should mention the expert prompt in context optimization")
                 return False
 
             # Verify expert analysis was triggered
@@ -937,14 +932,14 @@ class DatabaseServer:
                 self.logger.error("Expert analysis should be present in final step")
                 return False
 
-            self.logger.info("    ✅ Step 4: fully_embedded file context with expert analysis")
+            self.logger.info("    ✅ Step 4: not_sent_to_expert file context with expert analysis")
 
             # Validate the complete workflow progression
             progression_summary = {
                 "step_1": "reference_only (new conversation, intermediate)",
                 "step_2": "reference_only (continuation, intermediate)",
                 "step_3": "reference_only (continuation, intermediate)",
-                "step_4": "fully_embedded (continuation, final)",
+                "step_4": "not_sent_to_expert (continuation, final)",
             }
 
             self.logger.info("    📋 File context progression:")

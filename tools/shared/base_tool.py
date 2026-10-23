@@ -22,14 +22,23 @@ if TYPE_CHECKING:
 
 from config import MCP_PROMPT_SIZE_LIMIT
 from providers import ModelProvider, ModelProviderRegistry
+from providers.shared import ProviderType
 from utils import estimate_tokens
 from utils.conversation_memory import (
     ConversationTurn,
     get_conversation_file_list,
+    get_history_embedded_files,
     get_thread,
 )
 from utils.env import get_env
-from utils.file_utils import read_file_content, read_files
+from utils.file_utils import expand_directories, is_prompt_file, read_file_content, read_files
+from utils.model_restrictions import (
+    DISABLED_MODELS_ENV,
+    ModelRestrictionService,
+    format_disabled_models,
+    parse_allowed_models,
+    parse_disabled_models,
+)
 
 # Import models from tools.models for compatibility
 try:
@@ -80,6 +89,11 @@ class BaseTool(ABC):
     3. Define a request model that inherits from ToolRequest
     4. Register the tool in server.py's TOOLS dictionary
     """
+
+    # Whether the tool reads ``prompt``. On a continuation server.py embeds the
+    # conversation history in ``prompt``, which re-reads every file the thread
+    # referenced; tools that never read it skip that build (issue #202).
+    consumes_prompt = True
 
     # Class-level cache for OpenRouter registry to avoid multiple loads
     _openrouter_registry_cache = None
@@ -432,32 +446,37 @@ class BaseTool(ABC):
         return head + [item for item in ranked if item[1].lower() not in position]
 
     def _get_restriction_note(self) -> str | None:
-        """Return a string describing active per-provider allowlists, if any."""
+        """Return a string describing active per-provider allowlists and DISABLED_MODELS, if any.
 
-        env_labels = {
-            "OPENAI_ALLOWED_MODELS": "OpenAI",
-            "GOOGLE_ALLOWED_MODELS": "Google",
-            "XAI_ALLOWED_MODELS": "X.AI",
-            "OPENROUTER_ALLOWED_MODELS": "OpenRouter",
-            "DIAL_ALLOWED_MODELS": "DIAL",
-        }
+        Variables resolve through ``ModelRestrictionService.env_vars_for`` -- the
+        same lookup the policy itself uses -- so no provider can fall out of the note (#188).
+        """
 
         notes: list[str] = []
-        for env_var, label in env_labels.items():
-            raw = get_env(env_var)
-            if not raw:
-                continue
+        for provider_type in ProviderType:
+            for env_var in ModelRestrictionService.env_vars_for(provider_type):
+                # The policy's own parser, so entries read lowercased and deduplicated as matched.
+                models = sorted(parse_allowed_models(get_env(env_var)))
+                if not models:
+                    continue
+                provider_cls = ModelProviderRegistry.provider_class_for(provider_type)
+                label = provider_cls.display_label() if provider_cls else provider_type.value
+                notes.append(f"{label}: {', '.join(models)}")
+                break
 
-            models = sorted({token.strip() for token in raw.split(",") if token.strip()})
-            if not models:
-                continue
+        parts: list[str] = []
+        if notes:
+            parts.append("Policy allows only → " + "; ".join(notes))
 
-            notes.append(f"{label}: {', '.join(models)}")
+        # The policy's own parser, so entries read lowercased -- the form they are matched in.
+        disabled = parse_disabled_models(get_env(DISABLED_MODELS_ENV))
+        if disabled:
+            parts.append(f"Disabled: {format_disabled_models(disabled)}")
 
-        if not notes:
+        if not parts:
             return None
 
-        return "Policy allows only → " + "; ".join(notes)
+        return ". ".join(parts)
 
     def _build_model_unavailable_message(self, model_name: str) -> str:
         """Compose a consistent error message for unavailable model scenarios."""
@@ -745,7 +764,14 @@ class BaseTool(ABC):
             # Thread not found, no files embedded
             return []
 
-        embedded_files = get_conversation_file_list(thread_context)
+        # A listed file the history's budget left out is not embedded: count
+        # only what the history built for this model holds, so the tool embeds
+        # the rest itself (or the size gate refuses it) instead of dropping it.
+        model_context = getattr(self, "_model_context", None)
+        if model_context is not None:
+            embedded_files = get_history_embedded_files(thread_context, model_context)
+        else:
+            embedded_files = get_conversation_file_list(thread_context)
         logger.debug(f"[FILES] {self.name}: Found {len(embedded_files)} embedded files")
         return embedded_files
 
@@ -784,6 +810,10 @@ class BaseTool(ABC):
                     f"[FILES] {self.name}: No embedded files found, returning all {len(requested_files)} requested files"
                 )
                 return requested_files
+
+            # History lists the files inside an attached directory, not the
+            # directory itself, so compare those files against it.
+            requested_files = expand_directories(requested_files)
 
             # Return only files that haven't been embedded yet
             new_files = [f for f in requested_files if f not in embedded_files]
@@ -871,9 +901,7 @@ class BaseTool(ABC):
         updated_files = []
 
         for file_path in files:
-            # Check if the filename is exactly "prompt.txt"
-            # This ensures we don't match files like "myprompt.txt" or "prompt.txt.bak"
-            if os.path.basename(file_path) == "prompt.txt":
+            if is_prompt_file(file_path):
                 try:
                     # Read prompt.txt content and extract just the text
                     content, _ = read_file_content(file_path)
