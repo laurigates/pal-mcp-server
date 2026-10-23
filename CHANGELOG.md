@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [11.8.1](https://github.com/laurigates/pal-mcp-server/compare/v11.8.0...v11.8.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* refresh model registry and fix open conversation, workflow and prompt bugs ([#208](https://github.com/laurigates/pal-mcp-server/issues/208)) ([bde935e](https://github.com/laurigates/pal-mcp-server/commit/bde935ec0e0104af8b192542ad60dcbb54d5b647))
+
 ## [11.8.0](https://github.com/laurigates/pal-mcp-server/compare/v11.7.0...v11.8.0) (2026-10-09)
 
 
