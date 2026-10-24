@@ -1,0 +1,23 @@
+# gitleaks configuration.
+#
+# The [extend] block is load-bearing. A .gitleaks.toml with only an
+# [allowlist] replaces the built-in rules with none, gitleaks auto-discovers
+# this file in both `gitleaks dir` and `gitleaks git` mode, and every scan
+# then reports "no leaks found". gitleaks prints no rule count, so the way to
+# check a change here is to scan a planted fake key with this config and
+# require a detection.
+title = "pal-mcp-server gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures that contain fake credentials on purpose"
+# (^|/) so the pattern holds whether gitleaks reports a repo-relative path
+# (git mode) or an absolute one (dir mode with an absolute source).
+paths = [
+    # Fake provider keys fed through the PII sanitizer.
+    '''(^|/)tests/test_pii_sanitizer\.py$''',
+    # A deliberately insecure config file written for the model to review.
+    '''(^|/)simulator_tests/test_codereview_validation\.py$''',
+]
