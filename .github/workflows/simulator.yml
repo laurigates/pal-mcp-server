@@ -95,14 +95,51 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  # The nightly schedule re-tests whatever main points at. When a push,
+  # dispatch or earlier scheduled run already went green on that SHA, the
+  # ollama tier would repeat the same scenarios against the same lockfile:
+  # from 2026-09-24, 31 scheduled runs covered 8 distinct SHAs at ~23 minutes
+  # each. Only schedule is gated; a dispatch always runs the tier.
+  dedupe:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Look for a green non-PR run on this SHA
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          n=$(gh run list -R "$REPO" --workflow simulator.yml --commit "$SHA" \
+                --status success --json event \
+                --jq '[.[] | select(.event != "pull_request")] | length')
+          if [ "$n" -gt 0 ]; then
+            echo "::notice::$n green run(s) already cover $SHA; skipping the ollama tier."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # The honest one: a real OpenAI-compatible server, so the request PAL builds
   # has to be acceptable to something we did not write. Not run on PRs, where
   # its ~25 minutes would be merge latency -- except on a PR labelled
   # `simulator-full`, for changes to the provider or transport layer.
   ollama:
+    needs: dedupe
+    # !cancelled() lets this run when dedupe is skipped (every non-schedule
+    # event) and when dedupe itself fails, so a broken check costs a run
+    # instead of silently skipping one.
     if: >-
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'simulator-full')
+      !cancelled() &&
+      needs.dedupe.outputs.skip != 'true' &&
+      (github.event_name != 'pull_request' ||
+       contains(github.event.pull_request.labels.*.name, 'simulator-full'))
     runs-on: ubuntu-latest
     # A CPU-served 1B model is slow but bounded; the cap is there to kill a hung
     # session rather than to be a realistic budget.
