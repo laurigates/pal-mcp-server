@@ -121,6 +121,12 @@ jobs:
           # stacking a new one every Monday.
           branch: chore/model-registry-drift
           base: main
+          # Only the staged copies. The default commits every new or modified
+          # file, which put the scratch audit-report.{txt,json} from the repo
+          # root on main via #147, #163 and #206.
+          add-paths: |
+            docs/model-audit/latest-audit.txt
+            docs/model-audit/latest-audit.json
           # Conventional commit: release-please parses these, and a bare
           # subject would land in the changelog as an unclassified entry.
           commit-message: "chore(models): refresh model registry drift report"
