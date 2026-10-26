@@ -39,8 +39,8 @@ jobs:
           # the lockfile revision would redden every open PR at once.
           # Keep in step with [tool.uv] required-version in pyproject.toml and
           # the uv base image in Dockerfile — three places, not two.
-          # The annotation below is inert unless the org Renovate config enables a
-          # matching customManager; assume this bump is manual.
+          # Renovate's github-actions manager reads this `version:` natively (as
+          # astral-sh/uv); renovate.json disables that package, so the bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.13.4"
           enable-cache: true
@@ -69,8 +69,8 @@ jobs:
           # the lockfile revision would redden every open PR at once.
           # Keep in step with [tool.uv] required-version in pyproject.toml and
           # the uv base image in Dockerfile — three places, not two.
-          # The annotation below is inert unless the org Renovate config enables a
-          # matching customManager; assume this bump is manual.
+          # Renovate's github-actions manager reads this `version:` natively (as
+          # astral-sh/uv); renovate.json disables that package, so the bump is manual.
           # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.13.4"
           enable-cache: true

@@ -8,8 +8,8 @@
   },
   "packageRules": [
     {
-      "description": "uv is pinned in three places that must move together (pyproject required-version, setup-uv version, this image); bump them by hand, see CLAUDE.md.",
-      "matchPackageNames": ["ghcr.io/astral-sh/uv"],
+      "description": "uv is pinned in three places that must move together (pyproject required-version, setup-uv version, the Dockerfile image); bump them by hand, see CLAUDE.md. astral-sh/uv is setup-uv's `with.version`, which the github-actions manager reads natively; #205 bumped it alone and broke every uv step on main.",
+      "matchPackageNames": ["ghcr.io/astral-sh/uv", "astral-sh/uv"],
       "enabled": false
     },
     {
