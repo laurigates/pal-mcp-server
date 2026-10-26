@@ -1,31 +1,23 @@
 === COVERAGE ===
-OpenRouter: configured=316 catalog=469 source=openrouter
-Gemini: configured=21 catalog=40 source=modelsdev
-OpenAI: configured=39 catalog=53 source=modelsdev
+OpenRouter: configured=343 catalog=467 source=openrouter
+Gemini: configured=22 catalog=38 source=modelsdev
+OpenAI: configured=40 catalog=51 source=modelsdev
 xAI: configured=8 catalog=13 source=modelsdev
-OpenCode Zen (go): configured=35 catalog=33 source=modelsdev
+OpenCode Zen (go): configured=39 catalog=37 source=modelsdev
 DIAL: configured=9 catalog=0 source=unverifiable (enterprise aggregator, no public keyless catalog)
 Custom: configured=1 catalog=0 source=unverifiable (user-supplied local endpoints (Ollama, vLLM))
 Azure: configured=0 catalog=0 source=unverifiable (per-deployment names chosen by the operator)
 
-=== DEPRECATED (39) ===
-openrouter_models.json: google/gemini-2.5-pro -- catalog sets expiration_date=2026-10-20
-openrouter_models.json: google/gemini-2.5-flash -- catalog sets expiration_date=2026-10-20
-openrouter_models.json: anthropic/claude-sonnet-4 -- absent from the openrouter catalog
-openrouter_models.json: deepseek/deepseek-r1 -- absent from the openrouter catalog
-openrouter_models.json: inclusionai/ling-3.0-flash-fin -- absent from the openrouter catalog
-openrouter_models.json: kwaipilot/kat-coder-pro-v2.5 -- absent from the openrouter catalog
-openrouter_models.json: microsoft/wizardlm-2-8x22b -- absent from the openrouter catalog
+=== DEPRECATED (30) ===
+openrouter_models.json: arcee-ai/trinity-large-thinking -- catalog sets expiration_date=2026-10-26
+openrouter_models.json: nousresearch/hermes-3-llama-3.1-405b -- catalog sets expiration_date=2026-11-02
+openrouter_models.json: nousresearch/hermes-3-llama-3.1-70b -- catalog sets expiration_date=2026-11-02
+openrouter_models.json: openai/gpt-3.5-turbo -- absent from the openrouter catalog
+openrouter_models.json: openai/gpt-3.5-turbo-instruct -- absent from the openrouter catalog
 openrouter_models.json: poolside/laguna-s-2.1 -- catalog sets expiration_date=2026-10-31
 openrouter_models.json: poolside/laguna-xs-2.1 -- catalog sets expiration_date=2026-10-31
-openrouter_models.json: qwen/qwen3.5-9b -- catalog sets expiration_date=2026-10-21
-openrouter_models.json: sao10k/l3.3-euryale-70b -- absent from the openrouter catalog
-openrouter_models.json: stealth/space-bunny-alpha -- absent from the openrouter catalog
-openrouter_models.json: unbiased/pareto -- absent from the openrouter catalog
-openrouter_models.json: xiaomi/mimo-v2.5 -- catalog sets expiration_date=2026-10-21
-openrouter_models.json: xiaomi/mimo-v2.5-pro -- catalog sets expiration_date=2026-10-21
 openrouter_models.json: z-ai/glm-4.5 -- catalog sets expiration_date=2026-12-31
-gemini_models.json: gemini-3.1-flash-lite-preview -- catalog sets status=deprecated [review]
+openrouter_models.json: z-ai/glm-4.5v -- catalog sets expiration_date=2026-12-31
 openai_models.json: o3-mini -- catalog sets status=deprecated [review]
 openai_models.json: o4-mini -- catalog sets status=deprecated [review]
 openai_models.json: gpt-3.5-turbo -- catalog sets status=deprecated [review]
@@ -33,8 +25,6 @@ openai_models.json: gpt-4 -- catalog sets status=deprecated [review]
 openai_models.json: gpt-4-turbo -- catalog sets status=deprecated [review]
 openai_models.json: gpt-4.1-nano -- catalog sets status=deprecated [review]
 openai_models.json: gpt-4o-2024-05-13 -- catalog sets status=deprecated [review]
-openai_models.json: gpt-5.2-chat-latest -- catalog sets status=deprecated [review]
-openai_models.json: gpt-5.3-chat-latest -- catalog sets status=deprecated [review]
 openai_models.json: o1 -- catalog sets status=deprecated [review]
 openai_models.json: o1-pro -- catalog sets status=deprecated [review]
 opencode_go_models.json: qwen3.7-max -- absent from the modelsdev catalog [review]
@@ -46,41 +36,21 @@ opencode_go_models.json: qwen3.6-plus -- absent from the modelsdev catalog [revi
 opencode_go_models.json: minimax-m2.5 -- absent from the modelsdev catalog [review]
 opencode_go_models.json: deepseek-v4-flash-vision-exp -- absent from the modelsdev catalog [review]
 opencode_go_models.json: grok-4.6 -- absent from the modelsdev catalog [review]
+opencode_go_models.json: longcat-2.5-preview-free -- catalog sets status=deprecated [review]
 opencode_go_models.json: omen-alpha -- absent from the modelsdev catalog [review]
-opencode_go_models.json: space-bunny -- catalog sets status=deprecated [review]
+opencode_go_models.json: gemini-4-argon-contributor -- catalog sets status=deprecated [review]
 
-=== STALE METADATA (31) ===
-openrouter_models.json: deepseek/deepseek-chat-v3-0324 -- max_output_tokens: configured 147,456 vs catalog 115,200
-openrouter_models.json: deepseek/deepseek-v4-flash -- max_output_tokens: configured 131,072 vs catalog 943,717
-openrouter_models.json: deepseek/deepseek-v4-flash-0731 -- context_window: configured 1,310,720 vs catalog 1,048,576
-openrouter_models.json: deepseek/deepseek-v4-pro-0813 -- max_output_tokens: configured 943,718 vs catalog 384,000
-openrouter_models.json: deepseek/deepseek-v4.1-flash -- max_output_tokens: configured 384,000 vs catalog 943,718
-openrouter_models.json: inclusionai/ling-3.0-flash-vl -- context_window: configured 262,144 vs catalog 131,072
-openrouter_models.json: meta-llama/llama-3.2-3b-instruct -- max_output_tokens: configured 117,964 vs catalog 72,000
-openrouter_models.json: meta-llama/llama-4-maverick -- context_window: configured 1,048,576 vs catalog 524,288
-openrouter_models.json: minimax/minimax-m2.5 -- max_output_tokens: configured 128,000 vs catalog 32,768
-openrouter_models.json: minimax/minimax-m2.7 -- max_output_tokens: configured 176,947 vs catalog 131,072
-openrouter_models.json: morph/morph-v3-fast -- context_window: configured 81,920 vs catalog 262,144
-openrouter_models.json: morph/morph-v3-fast -- max_output_tokens: configured 38,000 vs catalog 131,072
-openrouter_models.json: nvidia/nemotron-3.5-lightning -- context_window: configured 1,000,000 vs catalog 262,144
-openrouter_models.json: nvidia/nemotron-3.5-lightning -- max_output_tokens: configured 131,072 vs catalog 235,929
-openrouter_models.json: qwen/qwen3-14b -- context_window: configured 131,072 vs catalog 40,960
-openrouter_models.json: qwen/qwen3-235b-a22b-2507 -- max_output_tokens: configured 235,929 vs catalog 16,384
-openrouter_models.json: qwen/qwen3-30b-a3b -- context_window: configured 131,072 vs catalog 40,960
-openrouter_models.json: qwen/qwen3-next-80b-a3b-instruct -- max_output_tokens: configured 235,929 vs catalog 16,384
-openrouter_models.json: qwen/qwen3.5-122b-a10b -- max_output_tokens: configured 235,929 vs catalog 65,536
-openrouter_models.json: qwen/qwen3.5-35b-a3b -- max_output_tokens: configured 16,384 vs catalog 235,929
-openrouter_models.json: qwen/qwen3.6-27b -- max_output_tokens: configured 81,920 vs catalog 65,536
-openrouter_models.json: qwen/qwen3.8-27b -- max_output_tokens: configured 131,072 vs catalog 235,929
-openrouter_models.json: xiaomi/mimo-v2.6-flash -- context_window: configured 1,048,576 vs catalog 1,050,000
-openrouter_models.json: z-ai/glm-4.6 -- max_output_tokens: configured 16,384 vs catalog 131,072
-openrouter_models.json: z-ai/glm-5 -- max_output_tokens: configured 128,000 vs catalog 131,072
-openrouter_models.json: z-ai/glm-5.1 -- max_output_tokens: configured 131,072 vs catalog 128,000
-openrouter_models.json: z-ai/glm-5.2 -- max_output_tokens: configured 131,072 vs catalog 943,718
-openrouter_models.json: z-ai/glm-5.3 -- context_window: configured 1,310,720 vs catalog 1,048,576
-openrouter_models.json: z-ai/glm-5.3 -- max_output_tokens: configured 943,717 vs catalog 943,718
-openrouter_models.json: z-ai/glm-5.3-flash -- context_window: configured 1,310,720 vs catalog 1,048,576
-openrouter_models.json: z-ai/glm-5.3-flash -- max_output_tokens: configured 128,000 vs catalog 943,718
+=== STALE METADATA (10) ===
+openrouter_models.json: meta-llama/llama-3.2-3b-instruct -- max_output_tokens: configured 72,000 vs catalog 117,964
+openrouter_models.json: minimax/minimax-m2.5 -- max_output_tokens: configured 32,768 vs catalog 131,072
+openrouter_models.json: openai/gpt-4.1-nano -- max_output_tokens: configured 32,768 vs catalog 942,818
+openrouter_models.json: qwen/qwen3.5-9b -- max_output_tokens: configured 65,536 vs catalog 235,929
+openrouter_models.json: qwen/qwen3.6-27b -- max_output_tokens: configured 65,536 vs catalog 81,920
+openrouter_models.json: qwen/qwen3.8-27b -- max_output_tokens: configured 65,536 vs catalog 235,929
+openrouter_models.json: z-ai/glm-5.3 -- max_output_tokens: configured 262,144 vs catalog 943,718
+openrouter_models.json: z-ai/glm-5.3-flash -- max_output_tokens: configured 943,718 vs catalog 943,717
+openrouter_models.json: minimax/minimax-m3.1-flash -- context_window: configured 1,000,000 vs catalog 1,048,576
+gemini_models.json: gemini-4-argon -- max_output_tokens: configured 65,536 vs catalog 32,768 [review]
 
 === ALIAS COLLISIONS (0) ===
 
@@ -88,35 +58,19 @@ openrouter_models.json: z-ai/glm-5.3-flash -- max_output_tokens: configured 128,
 
 === SCHEMA (0) ===
 
-=== CANDIDATE ADDITIONS (21) ===
-openrouter_models.json: deepseek/deepseek-v4.1-flash-1017 -- live in catalog (released/created 1792225624), not configured [review]
-openrouter_models.json: elorian/glimpse -- live in catalog (released/created 1792206629), not configured [review]
-openrouter_models.json: reflection/beam-1.0-501b-a23b -- live in catalog (released/created 1792160499), not configured [review]
-openrouter_models.json: moondream/moondream3-preview -- live in catalog (released/created 1792102385), not configured [review]
-openrouter_models.json: moondream/moondream3.1-9b-a2b -- live in catalog (released/created 1792102373), not configured [review]
-openrouter_models.json: meta/muse-spark-open -- live in catalog (released/created 1792087069), not configured [review]
-openrouter_models.json: nvidia/nemotron-3.5-super-vl -- live in catalog (released/created 1792076662), not configured [review]
-openrouter_models.json: unbiased/pareto-26.10 -- live in catalog (released/created 1792073620), not configured [review]
-openrouter_models.json: unbiased/pareto-26.9 -- live in catalog (released/created 1791930537), not configured [review]
-openrouter_models.json: liquid/lfm-2.5-24b-a2b -- live in catalog (released/created 1791912025), not configured [review]
-openrouter_models.json: google/gemini-4-argon -- live in catalog (released/created 1791907477), not configured [review]
-openrouter_models.json: scaledown/summarize -- live in catalog (released/created 1791893360), not configured [review]
-gemini_models.json: gemini-4-argon -- live in catalog (released/created 2026-10-13), not configured [review]
-openai_models.json: gpt-6.1-sol -- live in catalog (released/created 2026-09-29), not configured [review]
-openai_models.json: gpt-daybreak-red-latest -- live in catalog (released/created 2026-08-07), not configured [review]
-openai_models.json: gpt-daybreak-blue-latest -- live in catalog (released/created 2026-08-07), not configured [review]
-opencode_go_models.json: minimax-m3.1-flash-free -- live in catalog (released/created 2026-10-19), not configured [review]
-opencode_go_models.json: gemini-4-argon-contributor -- live in catalog (released/created 2026-10-13), not configured [review]
-opencode_go_models.json: claude-haiku-5-5 -- live in catalog (released/created 2026-10-07), not configured [review]
-opencode_go_models.json: beam-free -- live in catalog (released/created 2026-10-05), not configured [review]
-opencode_go_models.json: step-5-preview -- live in catalog (released/created 2026-09-16), not configured [review]
+=== CANDIDATE ADDITIONS (5) ===
+openrouter_models.json: moonshotai/kimi-k3.1-pro -- live in catalog (released/created 1792778188), not configured [review]
+openrouter_models.json: liquid/lfm-2.5-2.6b -- live in catalog (released/created 1786470519), not configured [review]
+opencode_go_models.json: iceman-contributor-free -- live in catalog (released/created 2026-10-24), not configured [review]
+opencode_go_models.json: kimi-k3.1-pro -- live in catalog (released/created 2026-10-23), not configured [review]
+opencode_go_models.json: gemini-4-argon -- live in catalog (released/created 2026-10-13), not configured [review]
 
 === SUMMARY ===
-DEPRECATED=39
-STALE=31
+DEPRECATED=30
+STALE=10
 ALIAS_COLLISION=0
 ORPHAN_REF=0
 SCHEMA=0
-MISSING=21
-ACTIONABLE=70
+MISSING=5
+ACTIONABLE=40
 STATUS=DRIFT
