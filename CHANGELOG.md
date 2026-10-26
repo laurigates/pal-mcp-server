@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [11.8.2](https://github.com/laurigates/pal-mcp-server/compare/v11.8.1...v11.8.2) (2026-10-26)
+
+
+### Miscellaneous
+
+* release 11.8.2 ([#217](https://github.com/laurigates/pal-mcp-server/issues/217)) ([9cd1480](https://github.com/laurigates/pal-mcp-server/commit/9cd1480ba7d72a57e600efe7b33db9fee0bedde1))
+
 ## [11.8.1](https://github.com/laurigates/pal-mcp-server/compare/v11.8.0...v11.8.1) (2026-10-23)
 
 
