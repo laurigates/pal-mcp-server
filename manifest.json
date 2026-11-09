@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "pal-mcp-server",
   "display_name": "PAL",
-  "version": "11.8.2",
+  "version": "11.9.0",
   "description": "Consult Gemini, OpenAI, Grok, OpenRouter and local models from Claude.",
   "long_description": "PAL (Provider Abstraction Layer) lets Claude hand work to other models — second opinions, multi-model consensus, code review, debugging, planning, and CLI-to-CLI bridging (clink) — while keeping one conversation context. Configure at least one provider key; the rest can stay empty. Claude Desktop installs the Python dependencies with uv on first launch.",
   "author": {
