@@ -2,7 +2,7 @@
 
 Three properties, each a deterministic form of a constraint from issues #90/#91:
 
-* the registered tool-name set is exactly the 19 names below (#91: one name per
+* the registered tool-name set is exactly the 18 names below (#91: one name per
   capability; a deferring client routes on names alone),
 * every tool description fits the eager channel budget (#90: descriptions are
   what such a client pays every session), and
@@ -36,7 +36,6 @@ EXPECTED_TOOL_NAMES = frozenset(
         "consensus",
         "debug",
         "docgen",
-        "jules",
         "listmodels",
         "planner",
         "precommit",
@@ -48,7 +47,7 @@ EXPECTED_TOOL_NAMES = frozenset(
         "version",
     }
 )
-assert len(EXPECTED_TOOL_NAMES) == 19
+assert len(EXPECTED_TOOL_NAMES) == 18
 
 # Longest description any tool may ship. tools/tracer.py sits at the cap because its
 # tests pin four substrings; everything else has headroom.
@@ -110,12 +109,12 @@ def registered_tools() -> dict:
 
 
 class TestToolNames:
-    def test_registered_tool_names_are_exactly_the_nineteen(self, registered_tools):
+    def test_registered_tool_names_are_exactly_the_eighteen(self, registered_tools):
         assert set(registered_tools) == EXPECTED_TOOL_NAMES
 
     def test_measured_tool_names_match_registry(self, measured_surface):
         assert {row["tool"] for row in measured_surface["per_tool"]} == EXPECTED_TOOL_NAMES
-        assert measured_surface["all"]["tools"] == 19
+        assert measured_surface["all"]["tools"] == 18
 
 
 class TestDescriptionBudget:
@@ -156,7 +155,7 @@ class TestToolSurfaceScript:
         assert result.returncode == 0, result.stderr
         preset = json.loads(result.stdout)
         assert preset["disabled"] == ["analyze", "docgen", "refactor", "secaudit", "testgen", "tracer"]
-        assert preset["enabled"]["tools"] == 13
+        assert preset["enabled"]["tools"] == 12
         assert preset["all"] == measured_surface["all"]
         assert preset["enabled"]["full_chars"] < preset["all"]["full_chars"]
 
