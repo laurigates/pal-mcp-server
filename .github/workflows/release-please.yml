@@ -69,3 +69,36 @@ jobs:
       # No `password:` -- omitting it is what selects trusted publishing.
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  # Claude Desktop extension bundle (.mcpb), attached to the GitHub release.
+  # Built from the release tag so it matches the PyPI package of the same
+  # version; release-please bumps manifest.json via extra-files. Releases here
+  # are not immutable, so the asset can be added after the release is published.
+  mcpb:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4.4.0
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6.8.0
+        with:
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.13.4"
+          enable-cache: true
+
+      - name: Build and smoke-test MCPB bundle
+        run: uv run python scripts/build_mcpb.py && uv run python scripts/smoke_mcpb.py
+
+      - name: Attach bundle to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh release upload "$TAG" dist/*.mcpb --clobber
