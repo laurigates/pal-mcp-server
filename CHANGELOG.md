@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [11.9.0](https://github.com/laurigates/pal-mcp-server/compare/v11.8.2...v11.9.0) (2026-11-09)
+
+
+### Features
+
+* **mcpb:** build a Claude Desktop extension bundle ([#223](https://github.com/laurigates/pal-mcp-server/issues/223)) ([db0acf4](https://github.com/laurigates/pal-mcp-server/commit/db0acf4fa6ccf71896481ab485b97a8eacba10fe))
+
 ## [11.8.2](https://github.com/laurigates/pal-mcp-server/compare/v11.8.1...v11.8.2) (2026-10-26)
 
 
