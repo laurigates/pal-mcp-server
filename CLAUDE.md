@@ -73,6 +73,15 @@ tail -f ~/.local/state/pal-mcp-server/logs/mcp_server.log
 
 Logs go to `PAL_LOG_DIR`, else `<state dir>/logs` (`PAL_STATE_DIR`, else `$XDG_STATE_HOME/pal-mcp-server`, else `~/.local/state/pal-mcp-server`) — resolved by `utils/log_dir.py`, which the server, `run-server.sh -f` and the simulator log readers all call. Unit tests point `PAL_LOG_DIR` at a temp dir (`tests/conftest.py`).
 
+## Claude Desktop bundle (MCPB)
+
+```bash
+just mcpb-build    # dist/pal-mcp-server-<version>.mcpb
+just mcpb-smoke    # launch it from an empty HOME, require a non-empty tools/list
+```
+
+`manifest.json` uses the MCPB `uv` server type: the bundle ships source + `pyproject.toml` + `uv.lock` and the host installs dependencies, so one bundle covers every platform. `scripts/build_mcpb.py` packs an allowlist (`BUNDLE_PATHS`) of git-tracked files. **A new top-level module or data dir must be added there**, or the bundle ships without it; the `mcpb` job in `test.yml` catches that as a `ModuleNotFoundError`. A new provider key needs a `user_config` entry and a matching `mcp_config.env` line (`tests/test_mcpb_manifest.py` checks they correspond). release-please bumps `manifest.json`'s version via `extra-files`.
+
 ## Conventions
 
 - **Conventional commits** (`feat:`, `fix:`, `chore:`, `feat!:`) — release-please parses these to bump the version and write `CHANGELOG.md`.
