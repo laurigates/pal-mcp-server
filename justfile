@@ -78,3 +78,17 @@ tool-surface *ARGS:
 # Measure with the shipped DISABLED_TOOLS default applied
 tool-surface-preset:
     uv run python scripts/tool_surface.py measure --preset
+
+# --- Claude Desktop extension (MCPB) -----------------------------------------
+#
+# manifest.json uses the MCPB `uv` server type: the bundle ships source +
+# pyproject.toml + uv.lock and the host installs dependencies with uv, so one
+# bundle covers every platform. release-please.yml attaches it to each release.
+
+# Build dist/pal-mcp-server-<version>.mcpb
+mcpb-build:
+    uv run python scripts/build_mcpb.py
+
+# Launch the built bundle from an empty HOME and require a non-empty tools/list
+mcpb-smoke *ARGS:
+    uv run python scripts/smoke_mcpb.py {{ARGS}}
