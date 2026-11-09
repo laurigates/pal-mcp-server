@@ -1,0 +1,153 @@
+{
+  "manifest_version": "0.4",
+  "name": "pal-mcp-server",
+  "display_name": "PAL",
+  "version": "11.8.2",
+  "description": "Consult Gemini, OpenAI, Grok, OpenRouter and local models from Claude.",
+  "long_description": "PAL (Provider Abstraction Layer) lets Claude hand work to other models — second opinions, multi-model consensus, code review, debugging, planning, and CLI-to-CLI bridging (clink) — while keeping one conversation context. Configure at least one provider key; the rest can stay empty. Claude Desktop installs the Python dependencies with uv on first launch.",
+  "author": {
+    "name": "Lauri Gates",
+    "url": "https://github.com/laurigates"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laurigates/pal-mcp-server.git"
+  },
+  "homepage": "https://github.com/laurigates/pal-mcp-server#readme",
+  "documentation": "https://github.com/laurigates/pal-mcp-server/blob/main/docs/getting-started.md",
+  "support": "https://github.com/laurigates/pal-mcp-server/issues",
+  "license": "Apache-2.0",
+  "keywords": [
+    "gemini",
+    "openai",
+    "openrouter",
+    "multi-model",
+    "consensus",
+    "code-review"
+  ],
+  "server": {
+    "type": "uv",
+    "entry_point": "server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "--frozen",
+        "--no-dev",
+        "server.py"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${user_config.gemini_api_key}",
+        "OPENAI_API_KEY": "${user_config.openai_api_key}",
+        "OPENROUTER_API_KEY": "${user_config.openrouter_api_key}",
+        "XAI_API_KEY": "${user_config.xai_api_key}",
+        "AZURE_OPENAI_API_KEY": "${user_config.azure_openai_api_key}",
+        "AZURE_OPENAI_ENDPOINT": "${user_config.azure_openai_endpoint}",
+        "DIAL_API_KEY": "${user_config.dial_api_key}",
+        "OPENCODE_API_KEY": "${user_config.opencode_api_key}",
+        "CUSTOM_API_URL": "${user_config.custom_api_url}",
+        "DEFAULT_MODEL": "${user_config.default_model}",
+        "DISABLED_TOOLS": "${user_config.disabled_tools}"
+      }
+    }
+  },
+  "tools_generated": true,
+  "user_config": {
+    "gemini_api_key": {
+      "type": "string",
+      "title": "Gemini API key",
+      "description": "From https://aistudio.google.com/apikey. Leave empty to skip this provider.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "openai_api_key": {
+      "type": "string",
+      "title": "OpenAI API key",
+      "description": "From https://platform.openai.com/api-keys. Leave empty to skip this provider.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "openrouter_api_key": {
+      "type": "string",
+      "title": "OpenRouter API key",
+      "description": "From https://openrouter.ai/keys. One key for many vendors' models.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "xai_api_key": {
+      "type": "string",
+      "title": "X.AI API key",
+      "description": "From https://console.x.ai/. Leave empty to skip this provider.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "azure_openai_api_key": {
+      "type": "string",
+      "title": "Azure OpenAI API key",
+      "description": "Needs the Azure OpenAI endpoint below as well.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "azure_openai_endpoint": {
+      "type": "string",
+      "title": "Azure OpenAI endpoint",
+      "description": "e.g. https://your-resource.openai.azure.com/",
+      "required": false,
+      "default": ""
+    },
+    "dial_api_key": {
+      "type": "string",
+      "title": "DIAL API key",
+      "description": "From https://dialx.ai/. Leave empty to skip this provider.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "opencode_api_key": {
+      "type": "string",
+      "title": "OpenCode Go API key",
+      "description": "From https://opencode.ai/docs/go/. Leave empty to skip this provider.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "custom_api_url": {
+      "type": "string",
+      "title": "Custom / Ollama endpoint",
+      "description": "OpenAI-compatible URL for local models, e.g. http://localhost:11434/v1 for Ollama (the /v1 suffix is required).",
+      "required": false,
+      "default": ""
+    },
+    "default_model": {
+      "type": "string",
+      "title": "Default model",
+      "description": "Model name, or 'auto' to let Claude pick per task.",
+      "required": false,
+      "default": "auto"
+    },
+    "disabled_tools": {
+      "type": "string",
+      "title": "Disabled tools",
+      "description": "Comma-separated tool names to hide. Clear it to enable every tool.",
+      "required": false,
+      "default": "analyze,refactor,testgen,secaudit,docgen,tracer"
+    }
+  },
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  }
+}

@@ -39,7 +39,12 @@ You stay in control. Your CLI orchestrates the AI team, but you decide the workf
 
 **2. Install**
 
-Add PAL to your MCP client config (`~/.claude/settings.json`, `.mcp.json`, or your
+**Claude Desktop:** download `pal-mcp-server-<version>.mcpb` from the
+[latest release](https://github.com/laurigates/pal-mcp-server/releases/latest)
+and double-click it. Desktop asks for your provider keys (set at least one) and
+installs the Python dependencies with uv on first launch.
+
+**Other clients:** add PAL to your MCP client config (`~/.claude/settings.json`, `.mcp.json`, or your
 client's equivalent). `uvx` fetches [the published package](https://pypi.org/project/pal-mcp-server/)
 on first run — there is nothing to clone and no virtualenv to maintain.
 
