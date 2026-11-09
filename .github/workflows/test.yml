@@ -57,6 +57,27 @@ jobs:
           GEMINI_API_KEY: ""
           OPENAI_API_KEY: ""
 
+  # Claude Desktop extension: build the .mcpb from this tree, then launch it
+  # from an empty HOME and require a non-empty tools/list. Catches a module
+  # missing from build_mcpb.py's BUNDLE_PATHS, a manifest/pyproject version
+  # split, and an unresolvable mcp_config before release-please.yml ships it.
+  mcpb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.4.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6.8.0
+        with:
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.13.4"
+          enable-cache: true
+
+      - name: Build and smoke-test MCPB bundle
+        run: uv run python scripts/build_mcpb.py && uv run python scripts/smoke_mcpb.py
+
   lint:
     runs-on: ubuntu-latest
     steps:
