@@ -885,7 +885,7 @@ wheels = [
 
 [[package]]
 name = "pal-mcp-server"
-version = "11.9.0"
+version = "11.9.1"
 source = { editable = "." }
 dependencies = [
     { name = "google-genai", version = "2.33.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
