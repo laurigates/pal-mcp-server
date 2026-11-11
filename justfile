@@ -16,6 +16,11 @@ lint:
     uv run ruff check --fix .
     uv run ruff format .
 
+# Audit uv.lock for known vulnerabilities (same command as test.yml's lint job)
+audit:
+    uv export --frozen --no-dev --no-hashes --no-emit-project -o "${TMPDIR:-/tmp}/pal-requirements-audit.txt"
+    uvx pip-audit==2.10.1 -r "${TMPDIR:-/tmp}/pal-requirements-audit.txt" --no-deps --disable-pip
+
 # Type check (ty is pre-1.0; advisory)
 typecheck:
     uv run ty check .
