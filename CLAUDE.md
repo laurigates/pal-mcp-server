@@ -82,6 +82,19 @@ just mcpb-smoke    # launch it from an empty HOME, require a non-empty tools/lis
 
 `manifest.json` uses the MCPB `uv` server type: the bundle ships source + `pyproject.toml` + `uv.lock` and the host installs dependencies, so one bundle covers every platform. `scripts/build_mcpb.py` packs an allowlist (`BUNDLE_PATHS`) of git-tracked files. **A new top-level module or data dir must be added there**, or the bundle ships without it; the `mcpb` job in `test.yml` catches that as a `ModuleNotFoundError`. A new provider key needs a `user_config` entry and a matching `mcp_config.env` line (`tests/test_mcpb_manifest.py` checks they correspond). release-please bumps `manifest.json`'s version via `extra-files`.
 
+## Release image gate
+
+```bash
+just audit    # pip-audit over the locked runtime dependencies; the lint job in test.yml runs the same command
+```
+
+`container.yml`'s tag-phase `release / release` job scans the image with Trivy and publishes no `ghcr.io` release tag when it reports fixable CRITICAL or HIGH findings. v11.3.0 to v11.8.1 and v11.9.0 were tagged without an image this way ([#214](https://github.com/laurigates/pal-mcp-server/issues/214), [#227](https://github.com/laurigates/pal-mcp-server/issues/227)).
+
+- **Before merging a release PR**, read the scan result in its `build / build` job log. That job scans the `:next-<version>` image the tag run promotes.
+- **A blocked release is not fixed by re-running its job.** The re-run scans the image built from the same tag. Refresh the lock on main (`uv lock --upgrade-package <name>`), then cut a patch release.
+- **A lock refresh alone cuts no release.** `chore(deps)`, `ci` and `build` are hidden in `release-please-config.json`. Title the PR `fix(deps): …`, or give a commit a `Release-As: X.Y.Z` footer as #217 and #228 did. On a squash merge the footer has to be in the squash commit message.
+- `just audit` reads the Python lock only. Trivy also scans the base image's OS packages, so a clean audit does not guarantee a clean gate.
+
 ## Conventions
 
 - **Conventional commits** (`feat:`, `fix:`, `chore:`, `feat!:`) — release-please parses these to bump the version and write `CHANGELOG.md`.
