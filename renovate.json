@@ -3,6 +3,7 @@
   "extends": ["config:recommended", ":semanticCommits"],
   "forkProcessing": "enabled",
   "labels": ["dependencies"],
+  "osvVulnerabilityAlerts": true,
   "pre-commit": {
     "enabled": true
   },

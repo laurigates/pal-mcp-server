@@ -108,6 +108,16 @@ jobs:
       - name: Verify lockfile is current
         run: uv lock --check
 
+      # The only other vulnerability check on the dependency tree is the Trivy
+      # gate in container.yml's tag-phase release job, which runs after the
+      # tag exists: it left v11.3.0-v11.8.1 and v11.9.0 without a published
+      # image. Auditing the lock here reports the same class of finding on a
+      # PR (#214). Keep the command in step with `just audit`.
+      - name: Audit locked dependencies for known vulnerabilities
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project -o "$RUNNER_TEMP/requirements-audit.txt"
+          uvx pip-audit==2.10.1 -r "$RUNNER_TEMP/requirements-audit.txt" --no-deps --disable-pip
+
       - name: Sync dev dependencies
         run: uv sync --group dev
 
