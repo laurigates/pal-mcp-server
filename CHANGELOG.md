@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## [11.9.1](https://github.com/laurigates/pal-mcp-server/compare/v11.9.0...v11.9.1) (2026-11-11)
+
+
+### Continuous Integration
+
+* audit uv.lock for known vulnerabilities on every PR ([#228](https://github.com/laurigates/pal-mcp-server/issues/228)) ([e5afdcc](https://github.com/laurigates/pal-mcp-server/commit/e5afdcce15cc7877e23aec306898e8f8245fc204))
+
 ## [11.9.0](https://github.com/laurigates/pal-mcp-server/compare/v11.8.2...v11.9.0) (2026-11-09)
 
 
