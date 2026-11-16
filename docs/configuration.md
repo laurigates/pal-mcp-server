@@ -67,7 +67,7 @@ CUSTOM_MODEL_NAME=llama3.2                          # Default model
 
 **Default Model Selection:**
 ```env
-# Options: 'auto', 'pro', 'flash', 'sol', 'gpt5.6', 'gpt5.2', 'codex', 'codex-spark', 'o3', 'o3-mini', 'o4-mini', etc.
+# Options: 'auto', 'pro', 'flash', 'sol', 'gpt5.6', 'gpt5.2', 'codex', 'codex-spark', 'o3', 'terra', etc.
 DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
 ```
 
@@ -86,7 +86,7 @@ DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
 
   | Provider | Canonical Models | Notable Aliases |
   |----------|-----------------|-----------------|
-  | OpenAI | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5-pro`, `gpt-5.5`, `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`, `gpt-5.2-pro`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `o3`, `o3-mini`, `o3-pro`, `o4-mini` | `astra`, `gpt6`, `sol`, `gpt6.1`, `luna`, `terra`, `gpt5.6`, `5.6`, `codex`, `codex-5.3`, `codex-spark`, `gpt5.2`, `5.2`, `gpt5pro`, `mini`, `nano`, `o3mini`, `o3pro`, `o4mini` |
+  | OpenAI | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5-pro`, `gpt-5.5`, `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`, `gpt-5.2-pro`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `o3`, `o3-pro` | `astra`, `gpt6`, `sol`, `gpt6.1`, `luna`, `terra`, `gpt5.6`, `5.6`, `codex`, `codex-5.3`, `codex-spark`, `gpt5.2`, `5.2`, `gpt5pro`, `mini`, `nano`, `o3pro` |
   | Gemini | `gemini-4-argon`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-2.5-pro`, `gemini-2.5-flash` | `flash`, `flash3.8`, `flash3.7`, `flash-lite`, `pro`, `gemini-pro`, `argon`, `pro3.1`, `flash2.5` |
   | X.AI | `grok-4.7`, `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-build-0.1` | `grok`, `grok4`, `grok-4.1-fast`, `grok-4.1-fast-reasoning`, `grok-build` |
   | OpenCode Go | `glm-5.3`, `qwen3.8-max`, `mimo-v2.6-pro`, `deepseek-v4-pro`, `deepseek-v4.1-flash`, `kimi-k2.7-code`, `minimax-m3`, … (21 models) | `glm`, `glm-flash`, `qwen`, `qwen-flash`, `mimo`, `mimo-flash`, `deepseek`, `deepseek-flash`, `kimi`, `minimax` |
@@ -179,7 +179,7 @@ Control which models can be used from each provider for cost control, compliance
 # Empty or unset = all models allowed (default)
 
 # OpenAI model restrictions
-OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,o3-mini,o4-mini,mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra,mini
 
 # Gemini model restrictions  
 GOOGLE_ALLOWED_MODELS=flash,pro
@@ -231,7 +231,7 @@ OPENROUTER_ALLOWED_MODELS=opus,sonnet,qwen/qwen-2.5-coder-32b-instruct
 **Example Configurations:**
 ```env
 # Cost control - only cheap models
-OPENAI_ALLOWED_MODELS=o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.6-terra
 GOOGLE_ALLOWED_MODELS=flash
 
 # High-performance setup
@@ -239,12 +239,12 @@ OPENAI_ALLOWED_MODELS=gpt-5.3-codex,gpt-5.2
 GOOGLE_ALLOWED_MODELS=pro
 
 # Single model standardization
-OPENAI_ALLOWED_MODELS=o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.6-terra
 GOOGLE_ALLOWED_MODELS=pro
 
 # Balanced selection
 GOOGLE_ALLOWED_MODELS=flash,pro
-OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra
 XAI_ALLOWED_MODELS=grok,grok-4.3
 ```
 
@@ -351,7 +351,7 @@ DEFAULT_MODEL=auto
 GEMINI_API_KEY=your-gemini-key
 OPENAI_API_KEY=your-openai-key
 GOOGLE_ALLOWED_MODELS=flash,pro
-OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra
 XAI_API_KEY=your-xai-key
 LOG_LEVEL=DEBUG
 CONVERSATION_TIMEOUT_HOURS=1
@@ -364,7 +364,7 @@ DEFAULT_MODEL=auto
 GEMINI_API_KEY=your-gemini-key
 OPENAI_API_KEY=your-openai-key
 GOOGLE_ALLOWED_MODELS=flash
-OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5.6-terra
 LOG_LEVEL=INFO
 CONVERSATION_TIMEOUT_HOURS=3
 ```

@@ -149,8 +149,6 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
                     "gpt-5",
                     "gpt-5-mini",
                     "gpt-5.3-codex-spark",
-                    "o4-mini",
-                    "o3-mini",
                 ]
             )
             return preferred if preferred else allowed_models[0]
@@ -168,8 +166,6 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
                     "gpt-5.3-codex-spark",
                     "gpt-5.2-pro",
                     "gpt-5-mini",
-                    "o4-mini",
-                    "o3-mini",
                 ]
             )
             return preferred if preferred else allowed_models[0]

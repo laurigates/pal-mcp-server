@@ -51,7 +51,7 @@ security patterns and HIPAA compliance
 
 ```
 Start separate sub-tasks, in one start a secaudit for critical payment processing components focusing on PCI DSS with gemini pro, 
-and in the other for user management focusing on OWASP authentication vulnerabilities with o4-mini, then combine into a unified 
+and in the other for user management focusing on OWASP authentication vulnerabilities with terra, then combine into a unified 
 security remediation plan using planner 
 ```
 
@@ -85,7 +85,7 @@ security remediation plan using planner
 - `images`: Architecture diagrams, security documentation, or visual references
 
 **Initial Security Configuration (used in step 1):**
-- `model`: auto|pro|flash|flash-lite|o3|o3-mini|o4-mini|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
 - `security_scope`: Application context, technology stack, and security boundary definition (required)
 - `threat_level`: low|medium|high|critical (default: medium) - determines assessment depth and urgency
 - `compliance_requirements`: List of compliance frameworks to assess against (e.g., ["PCI DSS", "SOC2"])

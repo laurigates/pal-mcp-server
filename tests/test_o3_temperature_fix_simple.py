@@ -31,7 +31,7 @@ class TestO3TemperatureParameterFixSimple:
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Test response"
         mock_response.choices[0].finish_reason = "stop"
-        mock_response.model = "o3-mini"
+        mock_response.model = "o3"
         mock_response.id = "test-id"
         mock_response.created = 1234567890
         mock_response.usage = Mock()
@@ -50,9 +50,7 @@ class TestO3TemperatureParameterFixSimple:
         provider.validate_model_name = lambda name: True
 
         # Call generate_content with O3 model
-        await provider.generate_content(
-            prompt="Test prompt", model_name="o3-mini", temperature=0.5, max_output_tokens=100
-        )
+        await provider.generate_content(prompt="Test prompt", model_name="o3", temperature=0.5, max_output_tokens=100)
 
         # Verify the API call was made without temperature or max_tokens
         mock_client.chat.completions.create.assert_called_once()
@@ -60,7 +58,7 @@ class TestO3TemperatureParameterFixSimple:
 
         assert "temperature" not in call_kwargs, "O3 models should not include temperature parameter"
         assert "max_tokens" not in call_kwargs, "O3 models should not include max_tokens parameter"
-        assert call_kwargs["model"] == "o3-mini"
+        assert call_kwargs["model"] == "o3"
         assert "messages" in call_kwargs
 
     @patch("utils.model_restrictions.get_restriction_service")
@@ -187,7 +185,7 @@ class TestO3TemperatureParameterFixSimple:
         provider = OpenAIModelProvider(api_key="test-key")
 
         # Test O3/O4 models that should NOT support temperature parameter
-        o3_o4_models = ["o3", "o3-mini", "o3-pro", "o4-mini"]
+        o3_o4_models = ["o3", "o3-pro", "gpt-5.6-terra", "gpt-5.6-luna"]
 
         for model in o3_o4_models:
             capabilities = provider.get_capabilities(model)
@@ -223,7 +221,7 @@ class TestO3TemperatureParameterFixSimple:
         provider = OpenAIModelProvider(api_key="test-key")
 
         # Test O3 model constraints
-        o3_capabilities = provider.get_capabilities("o3-mini")
+        o3_capabilities = provider.get_capabilities("o3")
         assert o3_capabilities.temperature_constraint is not None
 
         # O3 models should have fixed temperature constraint

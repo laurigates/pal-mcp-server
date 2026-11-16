@@ -51,8 +51,7 @@ The tool displays:
 
 🔹 OpenAI - ✅ Configured  
   • o3 (o3) - 200K context, strong reasoning
-  • o3-mini (o3-mini) - 200K context, balanced
-  • o4-mini (o4-mini) - 200K context, latest reasoning
+  • gpt-5.6-terra (terra) - 1.05M context, balanced everyday tier
 
 🔹 Custom/Local - ✅ Configured
   • local-llama (llama3.2) - 128K context, local inference
@@ -76,7 +75,7 @@ The available models depend on your configuration:
 
 **API Keys Required:**
 - `GEMINI_API_KEY` - Enables Gemini Pro and Flash models
-- `OPENAI_API_KEY` - Enables OpenAI O3, O4-mini, and GPT models
+- `OPENAI_API_KEY` - Enables OpenAI O3 and GPT models
 - `OPENROUTER_API_KEY` - Enables access to multiple providers through OpenRouter
 - `CUSTOM_API_URL` - Enables local/custom models (Ollama, vLLM, etc.)
 

@@ -203,7 +203,7 @@ class TestAutoModeProviderSelection:
             # Set up environment with restrictions
             os.environ["GEMINI_API_KEY"] = "test-key"
             os.environ["OPENAI_API_KEY"] = "test-key"
-            os.environ["OPENAI_ALLOWED_MODELS"] = "o4-mini"  # Only allow o4-mini
+            os.environ["OPENAI_ALLOWED_MODELS"] = "gpt-5.6-terra"  # Only allow gpt-5.6-terra
 
             # Clear restriction service to pick up new restrictions
             import utils.model_restrictions
@@ -221,12 +221,12 @@ class TestAutoModeProviderSelection:
             available_models = ModelProviderRegistry.get_available_models(respect_restrictions=True)
 
             # Should include allowed OpenAI model
-            assert "o4-mini" in available_models
-            assert available_models["o4-mini"] == ProviderType.OPENAI
+            assert "gpt-5.6-terra" in available_models
+            assert available_models["gpt-5.6-terra"] == ProviderType.OPENAI
 
             # Should NOT include restricted OpenAI models
             assert "o3" not in available_models
-            assert "o3-mini" not in available_models
+            assert "gpt-5-nano" not in available_models
 
             # Should include all Gemini models (no restrictions)
             assert "gemini-2.5-flash" in available_models
@@ -319,7 +319,7 @@ class TestAutoModeProviderSelection:
                 ("flash", ProviderType.GOOGLE, "gemini-3.8-flash"),
                 ("pro", ProviderType.GOOGLE, "gemini-4-argon"),  # "pro" follows the flagship reasoning model
                 ("mini", ProviderType.OPENAI, "gpt-5-mini"),  # "mini" now resolves to gpt-5-mini
-                ("o3mini", ProviderType.OPENAI, "o3-mini"),
+                ("nano", ProviderType.OPENAI, "gpt-5-nano"),
                 ("grok", ProviderType.XAI, "grok-4.7"),
                 ("grok-4.1-fast-reasoning", ProviderType.XAI, "grok-4.3"),
             ]

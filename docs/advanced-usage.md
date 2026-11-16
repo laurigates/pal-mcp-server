@@ -26,7 +26,7 @@ Regardless of your default configuration, you can specify models per request:
 - "Use **pro** for deep security analysis of auth.py"
 - "Use **flash** to quickly format this code"
 - "Use **o3** to debug this logic error"
-- "Review with **o4-mini** for balanced analysis"
+- "Review with **terra** for balanced analysis"
 - "Use **gpt4.1** for comprehensive codebase analysis"
 
 **Claude's Auto Mode Decision Matrix:**
@@ -37,8 +37,6 @@ Regardless of your default configuration, you can specify models per request:
 | **`flash`** (resolves to `gemini-3.8-flash`) | Google | 1M tokens | Fast responses with extended thinking — see [Thinking Modes](#thinking-modes) | Quick checks, formatting, simple analysis |
 | **`flashlite`** (resolves to `gemini-3.5-flash-lite`) | Google | 1M tokens | Lightweight model, supports extended thinking — see [Thinking Modes](#thinking-modes) | Fast, high-volume text/image processing |
 | **`o3`** | OpenAI | 200K tokens | Strong logical reasoning | Debugging logic errors, systematic analysis |
-| **`o3-mini`** | OpenAI | 200K tokens | Balanced speed/quality | Moderate complexity tasks |
-| **`o4-mini`** | OpenAI | 200K tokens | Latest reasoning model | Optimized for shorter contexts |
 | **`gpt4.1`** | OpenAI | 1M tokens | Latest GPT-4 with extended context | Large codebase analysis, comprehensive reviews |
 | **`gpt5.2`** (GPT-5.2) | OpenAI | 400K tokens | Flagship reasoning model with configurable thinking effort | Complex problems, balanced agent/coding flows |
 | **`sol`** (GPT-6.1 Sol) | OpenAI | 1.05M tokens | Frontier reasoning tier (Responses API) | Hardest problems, structured code generation |
@@ -65,7 +63,7 @@ cloud models (expensive/powerful) AND local models (free/private) in the same co
   - **`pro`** (resolves to `gemini-4-argon`): Deep analysis, extended thinking
   - **`flash`** (resolves to `gemini-3.8-flash`): Fast responses, extended thinking, multimodal input
   - **`flashlite`** (resolves to `gemini-3.5-flash-lite`): Lightweight model, extended thinking support
-- **O3/O4 Models**: Excellent reasoning, systematic analysis, 200K context
+- **O3 Models**: Excellent reasoning, systematic analysis, 200K context
 - **GPT-4.1**: Extended context window (1M tokens), general capabilities
 - **GPT-5.2 Series**: Latest flagship reasoning models, 400K context
   - **GPT-5.2**: Flagship model with configurable thinking effort and vision
@@ -87,15 +85,15 @@ cloud models (expensive/powerful) AND local models (free/private) in the same co
 ```env
 # Development: Allow experimentation
 GOOGLE_ALLOWED_MODELS=flash,pro
-OPENAI_ALLOWED_MODELS=o4-mini,o3-mini
+OPENAI_ALLOWED_MODELS=terra,gpt5-mini
 
 # Production: Cost-optimized  
 GOOGLE_ALLOWED_MODELS=flash
-OPENAI_ALLOWED_MODELS=o4-mini
+OPENAI_ALLOWED_MODELS=terra
 
 # High-performance: Quality over cost
 GOOGLE_ALLOWED_MODELS=pro
-OPENAI_ALLOWED_MODELS=o3,o4-mini
+OPENAI_ALLOWED_MODELS=o3,terra
 ```
 
 **Important Notes:**
@@ -183,7 +181,7 @@ All tools that work with files support **both individual files and entire direct
 **`analyze`** - Analyze files or directories
 - `files`: List of file paths or directories (required)
 - `question`: What to analyze (required)  
-- `model`: auto|pro|flash|flash-lite|o3|o3-mini|o4-mini|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
 - `analysis_type`: architecture|performance|security|quality|general
 - `output_format`: summary|detailed|actionable
 - `thinking_mode`: minimal|low|medium|high|max (default: medium, Gemini only)
@@ -198,7 +196,7 @@ All tools that work with files support **both individual files and entire direct
 
 **`codereview`** - Review code files or directories
 - `files`: List of file paths or directories (required)
-- `model`: auto|pro|flash|flash-lite|o3|o3-mini|o4-mini|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
 - `review_type`: full|security|performance|quick
 - `focus_on`: Specific aspects to focus on
 - `standards`: Coding standards to enforce
@@ -214,7 +212,7 @@ All tools that work with files support **both individual files and entire direct
 
 **`debug`** - Debug with file context
 - `error_description`: Description of the issue (required)
-- `model`: auto|pro|flash|flash-lite|o3|o3-mini|o4-mini|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
 - `error_context`: Stack trace or logs
 - `files`: Files or directories related to the issue
 - `runtime_info`: Environment details
@@ -230,7 +228,7 @@ All tools that work with files support **both individual files and entire direct
 
 **`thinkdeep`** - Extended analysis with file context
 - `current_analysis`: Your current thinking (required)
-- `model`: auto|pro|flash|flash-lite|o3|o3-mini|o4-mini|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
 - `problem_context`: Additional context
 - `focus_areas`: Specific aspects to focus on
 - `files`: Files or directories for context
@@ -246,7 +244,7 @@ All tools that work with files support **both individual files and entire direct
 **`testgen`** - Comprehensive test generation with edge case coverage
 - `files`: Code files or directories to generate tests for (required)
 - `prompt`: Description of what to test, testing objectives, and scope (required)
-- `model`: auto|pro|flash|flash-lite|o3|o3-mini|o4-mini|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
 - `test_examples`: Optional existing test files as style/pattern reference
 - `thinking_mode`: minimal|low|medium|high|max (default: medium, Gemini only)
 
@@ -261,7 +259,7 @@ All tools that work with files support **both individual files and entire direct
 - `files`: Code files or directories to analyze for refactoring opportunities (required)
 - `prompt`: Description of refactoring goals, context, and specific areas of focus (required)
 - `refactor_type`: codesmells|decompose|modernize|organization (required)
-- `model`: auto|pro|flash|flash-lite|o3|o3-mini|o4-mini|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
 - `focus_areas`: Specific areas to focus on (e.g., 'performance', 'readability', 'maintainability', 'security')
 - `style_guide_examples`: Optional existing code files to use as style/pattern reference
 - `thinking_mode`: minimal|low|medium|high|max (default: medium, Gemini only)
