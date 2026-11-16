@@ -77,6 +77,8 @@
     "agent-patterns-plugin@laurigates-claude-plugins": false,
     "foundryvtt-plugin@laurigates-claude-plugins": true,
     "software-design-plugin@laurigates-claude-plugins": true,
+    "linux-plugin@laurigates-claude-plugins": true,
+    "kitty-plugin@laurigates-claude-plugins": true,
     "clangd@claude-plugins-official": false,
     "gopls@claude-plugins-official": false,
     "pyright@claude-plugins-official": true,
