@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## [11.9.2](https://github.com/laurigates/pal-mcp-server/compare/v11.9.1...v11.9.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* **models:** refresh OpenRouter, Gemini and OpenCode Go registries ([#236](https://github.com/laurigates/pal-mcp-server/issues/236)) ([df136f3](https://github.com/laurigates/pal-mcp-server/commit/df136f3420d8f365ddd53d5110beeb1d73cf1561))
+* **models:** remove OpenAI models shut down on 2026-10-23 ([#238](https://github.com/laurigates/pal-mcp-server/issues/238)) ([7f7d86a](https://github.com/laurigates/pal-mcp-server/commit/7f7d86a2206c2232db0e014a6c29b3932ade1921))
+
 ## [11.9.1](https://github.com/laurigates/pal-mcp-server/compare/v11.9.0...v11.9.1) (2026-11-11)
 
 
