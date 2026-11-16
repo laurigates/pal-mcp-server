@@ -270,7 +270,7 @@
     {
       "model_name": "deep-research-max-preview-04-2026",
       "description": "Deep Research Max Preview (Apr-21-2026)",
-      "context_window": 131072,
+      "context_window": 1048576,
       "max_output_tokens": 65536,
       "supports_images": true,
       "supports_function_calling": true,
@@ -280,7 +280,7 @@
     {
       "model_name": "deep-research-preview-04-2026",
       "description": "Deep Research Preview (Apr-21-2026)",
-      "context_window": 131072,
+      "context_window": 1048576,
       "max_output_tokens": 65536,
       "supports_images": true,
       "supports_function_calling": true,
@@ -370,6 +370,26 @@
     {
       "model_name": "gemini-pro-latest",
       "description": "Gemini Pro Latest - Hot-swapped alias for the latest Gemini Pro release; pin a versioned id instead",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-4-carbon",
+      "description": "Gemini 4 Carbon",
+      "context_window": 1048576,
+      "max_output_tokens": 32768,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "gemini-4-hydrogen",
+      "description": "Gemini 4 Hydrogen",
       "context_window": 1048576,
       "max_output_tokens": 65536,
       "supports_images": true,
