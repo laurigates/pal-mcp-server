@@ -320,7 +320,7 @@ def test_temperature_supporting_opencode_siblings_are_unaffected():
     from providers.registries.opencode_go import OpenCodeGoModelRegistry
 
     registry = OpenCodeGoModelRegistry()
-    for name in ("glm-5.2", "deepseek-v4-pro", "qwen3.7-max"):
+    for name in ("glm-5.2", "deepseek-v4-pro", "qwen3.8-max"):
         assert registry.resolve(name).supports_temperature is True, name
 
 

@@ -130,9 +130,9 @@ class TestOpenCodeGoProvider:
     def test_catalogue_size(self):
         provider = OpenCodeGoProvider("test-key")
         caps = provider.get_all_model_capabilities()
-        # 21 curated models listed by the OpenCode Go gateway (/models and docs);
+        # 13 curated models listed by the OpenCode Go gateway (/models and docs);
         # the rest of the catalog is present but disabled by default (#149)
-        assert len([c for c in caps.values() if c.enabled_by_default]) == 21
+        assert len([c for c in caps.values() if c.enabled_by_default]) == 13
         assert all(c.provider == ProviderType.OPENCODE_GO for c in caps.values())
 
     def test_withdrawn_and_delisted_models(self):
@@ -142,10 +142,11 @@ class TestOpenCodeGoProvider:
         # for an id it never served: withdrawn, so no entry at all.
         assert "space-bunny" not in caps
         assert provider.validate_model_name("space-bunny") is False
-        # deepseek-v4-flash still routes but the gateway's /models list and docs
-        # dropped it for deepseek-v4.1-flash: out of auto mode, still nameable.
-        assert caps["deepseek-v4-flash"].enabled_by_default is False
-        assert provider.validate_model_name("deepseek-v4-flash") is True
+        # deepseek-v4-flash was delisted from /models first and still routed for
+        # a while; by 2026-11-16 the gateway refused it outright ("isn't
+        # included in OpenCode Go"), so it is withdrawn too.
+        assert "deepseek-v4-flash" not in caps
+        assert provider.validate_model_name("deepseek-v4-flash") is False
 
     # ------------------------------------------------------------------
     # Restrictions
