@@ -28,7 +28,7 @@ Environment Variables:
     ``enabled_by_default: false`` entry into discovery, as an allowlist does.
 
 Example:
-    OPENAI_ALLOWED_MODELS=o3-mini,o4-mini
+    OPENAI_ALLOWED_MODELS=gpt-5-nano,gpt-5.6-terra
     GOOGLE_ALLOWED_MODELS=flash
     XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
     OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral

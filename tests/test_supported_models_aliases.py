@@ -50,11 +50,10 @@ class TestSupportedModelsAliases:
             assert isinstance(config.aliases, list), f"{model_name} aliases must be a list"
 
         # Test specific aliases
-        # "mini" is now an alias for gpt-5-mini, not o4-mini
+        # "mini" is an alias for gpt-5-mini
         assert "mini" in provider.MODEL_CAPABILITIES["gpt-5-mini"].aliases
-        assert "o4mini" in provider.MODEL_CAPABILITIES["o4-mini"].aliases
-        # o4-mini is no longer in its own aliases (removed self-reference)
-        assert "o3mini" in provider.MODEL_CAPABILITIES["o3-mini"].aliases
+        assert "terra" in provider.MODEL_CAPABILITIES["gpt-5.6-terra"].aliases
+        assert "nano" in provider.MODEL_CAPABILITIES["gpt-5-nano"].aliases
         assert "o3pro" in provider.MODEL_CAPABILITIES["o3-pro"].aliases
         assert "gpt4.1" in provider.MODEL_CAPABILITIES["gpt-4.1"].aliases
         assert "gpt5.2" in provider.MODEL_CAPABILITIES["gpt-5.2"].aliases
@@ -63,9 +62,9 @@ class TestSupportedModelsAliases:
 
         # Test alias resolution
         assert provider._resolve_model_name("mini") == "gpt-5-mini"  # mini -> gpt-5-mini now
-        assert provider._resolve_model_name("o3mini") == "o3-mini"
+        assert provider._resolve_model_name("nano") == "gpt-5-nano"
         assert provider._resolve_model_name("o3pro") == "o3-pro"  # o3pro resolves to o3-pro
-        assert provider._resolve_model_name("o4mini") == "o4-mini"
+        assert provider._resolve_model_name("terra") == "gpt-5.6-terra"
         assert provider._resolve_model_name("gpt4.1") == "gpt-4.1"  # gpt4.1 resolves to gpt-4.1
         assert provider._resolve_model_name("gpt5.2") == "gpt-5.2"
         assert provider._resolve_model_name("gpt5.1") == "gpt-5.2"
@@ -78,7 +77,7 @@ class TestSupportedModelsAliases:
 
         # Test case insensitive resolution
         assert provider._resolve_model_name("Mini") == "gpt-5-mini"  # mini -> gpt-5-mini now
-        assert provider._resolve_model_name("O3MINI") == "o3-mini"
+        assert provider._resolve_model_name("NANO") == "gpt-5-nano"
         assert provider._resolve_model_name("Gpt5.1") == "gpt-5.2"
 
     def test_xai_provider_aliases(self):
@@ -144,10 +143,10 @@ class TestSupportedModelsAliases:
         # Test OpenAI
         openai_provider = OpenAIModelProvider("test-key")
         openai_models = openai_provider.list_models(respect_restrictions=False)
-        assert "o4-mini" in openai_models
+        assert "gpt-5.6-terra" in openai_models
         assert "mini" in openai_models
-        assert "o3-mini" in openai_models
-        assert "o3mini" in openai_models
+        assert "gpt-5-nano" in openai_models
+        assert "nano" in openai_models
 
         # Test XAI
         xai_provider = XAIModelProvider("test-key")
@@ -188,10 +187,10 @@ class TestSupportedModelsAliases:
             lowercase=True,
             unique=True,
         )
-        assert "o4-mini" in openai_all
+        assert "gpt-5.6-terra" in openai_all
         assert "mini" in openai_all
-        assert "o3-mini" in openai_all
-        assert "o3mini" in openai_all
+        assert "gpt-5-nano" in openai_all
+        assert "nano" in openai_all
         # All should be lowercase
         assert all(model == model.lower() for model in openai_all)
 

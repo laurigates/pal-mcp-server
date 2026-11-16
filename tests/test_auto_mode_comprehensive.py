@@ -405,7 +405,7 @@ class TestAutoModeComprehensive:
             "XAI_API_KEY": None,
             "OPENROUTER_API_KEY": None,
             "DEFAULT_MODEL": "auto",
-            "OPENAI_ALLOWED_MODELS": "o4-mini",  # Restrict OpenAI to only o4-mini
+            "OPENAI_ALLOWED_MODELS": "gpt-5.6-terra",  # Restrict OpenAI to only gpt-5.6-terra
         }
 
         # Filter out None values to avoid patch.dict errors
@@ -434,11 +434,11 @@ class TestAutoModeComprehensive:
             available_models = ModelProviderRegistry.get_available_models(respect_restrictions=True)
 
             # Should include restricted OpenAI model
-            assert "o4-mini" in available_models
+            assert "gpt-5.6-terra" in available_models
 
             # Should NOT include non-restricted OpenAI models
             assert "o3" not in available_models
-            assert "o3-mini" not in available_models
+            assert "gpt-5-nano" not in available_models
 
             # Should still include all Gemini models (no restrictions)
             assert "gemini-2.5-flash" in available_models

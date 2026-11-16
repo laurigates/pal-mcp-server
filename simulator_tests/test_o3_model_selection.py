@@ -75,23 +75,23 @@ class O3ModelSelectionTest(BaseSimulatorTest):
 
             self.logger.info("  ✅ O3 model call completed")
 
-            # Test 2: Explicit O3-mini model selection
-            self.logger.info("  2: Testing explicit O3-mini model selection")
+            # Test 2: Explicit gpt-5-nano model selection
+            self.logger.info("  2: Testing explicit gpt-5-nano model selection")
 
             response2, _ = self.call_mcp_tool(
                 "chat",
                 {
                     "prompt": "Simple test: What is 3 + 3? Just give a brief answer.",
-                    "model": "o3-mini",
-                    "temperature": 1.0,  # O3-mini only supports default temperature of 1.0
+                    "model": "gpt-5-nano",
+                    "temperature": 1.0,  # gpt-5-nano only supports the default temperature of 1.0
                 },
             )
 
             if not response2:
-                self.logger.error("  ❌ O3-mini model test failed")
+                self.logger.error("  ❌ gpt-5-nano model test failed")
                 return False
 
-            self.logger.info("  ✅ O3-mini model call completed")
+            self.logger.info("  ✅ gpt-5-nano model call completed")
 
             # Test 3: Another tool with O3 to ensure it works across tools
             self.logger.info("  3: Testing O3 with different tool (codereview)")

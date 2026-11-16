@@ -179,21 +179,21 @@ class TestOpenAIProvider:
         """Test getting O3 model capabilities"""
         provider = OpenAIModelProvider(api_key="test-key")
 
-        capabilities = provider.get_capabilities("o3-mini")
+        capabilities = provider.get_capabilities("o3")
 
         assert capabilities.provider == ProviderType.OPENAI
-        assert capabilities.model_name == "o3-mini"
+        assert capabilities.model_name == "o3"
         assert capabilities.context_window == 200_000
         assert not capabilities.supports_extended_thinking
 
-    def test_get_capabilities_o4_mini(self):
-        """Test getting O4-mini model capabilities"""
+    def test_get_capabilities_o3_pro(self):
+        """Test getting O3-pro model capabilities"""
         provider = OpenAIModelProvider(api_key="test-key")
 
-        capabilities = provider.get_capabilities("o4-mini")
+        capabilities = provider.get_capabilities("o3-pro")
 
         assert capabilities.provider == ProviderType.OPENAI
-        assert capabilities.model_name == "o4-mini"
+        assert capabilities.model_name == "o3-pro"
         assert capabilities.context_window == 200_000
         assert not capabilities.supports_extended_thinking
         # Check temperature constraint is fixed at 1.0
@@ -204,11 +204,10 @@ class TestOpenAIProvider:
         provider = OpenAIModelProvider(api_key="test-key")
 
         assert provider.validate_model_name("o3")
-        assert provider.validate_model_name("o3mini")
-        assert provider.validate_model_name("o3-mini")  # Backwards compatibility
-        assert provider.validate_model_name("o4-mini")
-        assert provider.validate_model_name("o4mini")
-        assert provider.validate_model_name("o4-mini")
+        assert provider.validate_model_name("o3pro")
+        assert provider.validate_model_name("o3-pro")
+        assert provider.validate_model_name("terra")
+        assert provider.validate_model_name("gpt-5.6-terra")
         assert provider.validate_model_name("gpt-5.2")
         assert provider.validate_model_name("gpt-5.3-codex")
         assert provider.validate_model_name("gpt-5.3-codex-spark")
@@ -221,7 +220,7 @@ class TestOpenAIProvider:
         """OpenAI catalogue exposes extended thinking capability via ModelCapabilities."""
         provider = OpenAIModelProvider(api_key="test-key")
 
-        aliases = ["o3", "o3mini", "o3-mini", "o4-mini", "o4mini"]
+        aliases = ["o3", "o3pro", "o3-pro"]
         for alias in aliases:
             assert not provider.get_capabilities(alias).supports_extended_thinking
 

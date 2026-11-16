@@ -160,7 +160,7 @@ class TestModelEnumeration:
             ("o3", False),  # OpenAI - not available without API key
             ("grok", False),  # X.AI - not available without API key
             ("gemini-2.5-flash", False),  # Full Gemini name - not available without API key
-            ("o4-mini", False),  # OpenAI variant - not available without API key
+            ("gpt-5.6-terra", False),  # OpenAI variant - not available without API key
             ("grok-4.1-fast", False),  # X.AI variant - not available without API key
         ],
     )

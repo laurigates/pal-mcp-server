@@ -278,7 +278,7 @@ class TestCustomOpenAITemperatureParameterFix:
             provider = OpenAIModelProvider(api_key="test-key")
 
             # Test that built-in models still work
-            assert provider.validate_model_name("o3-mini") is True
+            assert provider.validate_model_name("gpt-5-nano") is True
 
             # Test that unsupported models return false
             assert provider.validate_model_name("unknown-model") is False

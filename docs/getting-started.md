@@ -490,7 +490,7 @@ DEFAULT_MODEL=auto
 GEMINI_API_KEY=your-key
 OPENAI_API_KEY=your-key
 GOOGLE_ALLOWED_MODELS=flash,pro
-OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,o4-mini
+OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra
 ```
 
 ### Cost-Optimized Setup
