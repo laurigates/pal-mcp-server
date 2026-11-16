@@ -368,7 +368,7 @@
         "llama3-openrouter"
       ],
       "context_window": 131072,
-      "max_output_tokens": 16384,
+      "max_output_tokens": 115200,
       "supports_extended_thinking": false,
       "supports_json_mode": true,
       "supports_function_calling": true,
@@ -471,7 +471,7 @@
       "max_image_size_mb": 20.0,
       "supports_temperature": false,
       "temperature_constraint": "fixed",
-      "description": "OpenAI's o3 model - well-rounded and powerful across domains with vision",
+      "description": "OpenAI's o3 model - well-rounded and powerful across domains with vision OpenRouter retires this slug on 2026-12-11.",
       "intelligence_score": 14
     },
     {
@@ -493,24 +493,6 @@
       "intelligence_score": 12
     },
     {
-      "model_name": "openai/o3-mini-high",
-      "aliases": [
-        "o3-mini-high",
-        "o3mini-high"
-      ],
-      "context_window": 200000,
-      "max_output_tokens": 100000,
-      "supports_extended_thinking": false,
-      "supports_json_mode": true,
-      "supports_function_calling": true,
-      "supports_images": true,
-      "max_image_size_mb": 20.0,
-      "supports_temperature": false,
-      "temperature_constraint": "fixed",
-      "description": "OpenAI's o3-mini with high reasoning effort - optimized for complex problems with vision",
-      "intelligence_score": 13
-    },
-    {
       "model_name": "openai/o3-pro",
       "aliases": [
         "o3pro"
@@ -524,7 +506,7 @@
       "max_image_size_mb": 20.0,
       "supports_temperature": false,
       "temperature_constraint": "fixed",
-      "description": "OpenAI's o3-pro model - professional-grade reasoning and analysis with vision",
+      "description": "OpenAI's o3-pro model - professional-grade reasoning and analysis with vision OpenRouter retires this slug on 2026-12-11.",
       "intelligence_score": 15
     },
     {
@@ -605,7 +587,7 @@
       "max_image_size_mb": 20.0,
       "supports_temperature": true,
       "temperature_constraint": "range",
-      "description": "GPT-5 (400K context, 128K output) - Advanced model with reasoning support",
+      "description": "GPT-5 (400K context, 128K output) - Advanced model with reasoning support OpenRouter retires this slug on 2026-12-11.",
       "intelligence_score": 16
     },
     {
@@ -644,7 +626,7 @@
       "max_image_size_mb": 0.0,
       "supports_temperature": true,
       "temperature_constraint": "fixed",
-      "description": "GPT-5-mini (400K context, 128K output) - Efficient variant with reasoning support",
+      "description": "GPT-5-mini (400K context, 128K output) - Efficient variant with reasoning support OpenRouter retires this slug on 2026-12-11.",
       "intelligence_score": 10
     },
     {
@@ -661,7 +643,7 @@
       "max_image_size_mb": 0.0,
       "supports_temperature": true,
       "temperature_constraint": "fixed",
-      "description": "GPT-5 nano (400K context, 128K output) - Fastest, cheapest version of GPT-5 for summarization and classification tasks",
+      "description": "GPT-5 nano (400K context, 128K output) - Fastest, cheapest version of GPT-5 for summarization and classification tasks OpenRouter retires this slug on 2026-12-11.",
       "intelligence_score": 8
     },
     {
@@ -922,16 +904,6 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "arcee-ai/trinity-large-thinking",
-      "description": "Arcee AI: Trinity Large Thinking (shuts down on OpenRouter 2026-10-26; no replacement named)",
-      "context_window": 262144,
-      "max_output_tokens": 80000,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "bytedance-seed/seed-2-1-turbo",
       "description": "ByteDance Seed: Seed 2.1 Turbo",
       "context_window": 262144,
@@ -1055,7 +1027,7 @@
       "model_name": "deepseek/deepseek-chat-v3.1",
       "description": "DeepSeek: DeepSeek V3.1",
       "context_window": 163840,
-      "max_output_tokens": 32768,
+      "max_output_tokens": 147456,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1065,7 +1037,7 @@
       "model_name": "deepseek/deepseek-v4-flash",
       "description": "DeepSeek: DeepSeek V4 Flash 0423",
       "context_window": 1048576,
-      "max_output_tokens": 943717,
+      "max_output_tokens": 393216,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1075,7 +1047,7 @@
       "model_name": "deepseek/deepseek-v4-flash-0731",
       "description": "DeepSeek: DeepSeek V4 Flash 0731",
       "context_window": 1048576,
-      "max_output_tokens": 131072,
+      "max_output_tokens": 384000,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1085,7 +1057,7 @@
       "model_name": "deepseek/deepseek-v4-flash-vision-exp",
       "description": "DeepSeek: DeepSeek V4 Flash Vision Exp",
       "context_window": 1048576,
-      "max_output_tokens": 262144,
+      "max_output_tokens": 943717,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1095,7 +1067,7 @@
       "model_name": "deepseek/deepseek-v4-pro",
       "description": "DeepSeek: DeepSeek V4 Pro 0423",
       "context_window": 1048576,
-      "max_output_tokens": 384000,
+      "max_output_tokens": 393216,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1105,7 +1077,7 @@
       "model_name": "deepseek/deepseek-v4-pro-0813",
       "description": "DeepSeek: DeepSeek V4 Pro 0813",
       "context_window": 1048576,
-      "max_output_tokens": 393216,
+      "max_output_tokens": 943718,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1115,7 +1087,7 @@
       "model_name": "deepseek/deepseek-v4.1-flash",
       "description": "DeepSeek: DeepSeek V4.1 Flash",
       "context_window": 1048576,
-      "max_output_tokens": 943718,
+      "max_output_tokens": 393216,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1215,7 +1187,7 @@
       "model_name": "google/gemma-3-4b-it",
       "description": "Google: Gemma 3 4B",
       "context_window": 131072,
-      "max_output_tokens": 117964,
+      "max_output_tokens": 16384,
       "supports_images": true,
       "supports_function_calling": false,
       "supports_extended_thinking": false,
@@ -1272,40 +1244,10 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "ibm-granite/granite-4.0-h-micro",
-      "description": "IBM: Granite 4.0 Micro",
-      "context_window": 131000,
-      "max_output_tokens": 117900,
-      "supports_images": false,
-      "supports_function_calling": false,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "ibm-granite/granite-4.2-8b",
       "description": "IBM: Granite 4.2 8B",
       "context_window": 131072,
       "max_output_tokens": 117964,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "inception/mercury-2",
-      "description": "Inception: Mercury 2",
-      "context_window": 128000,
-      "max_output_tokens": 50000,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "inception/mercury-2.5",
-      "description": "Inception: Mercury 2.5",
-      "context_window": 260000,
-      "max_output_tokens": 65536,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1335,7 +1277,7 @@
       "model_name": "inference-net/schematron-v2-small",
       "description": "Inference.net: Schematron V2 Small",
       "context_window": 128000,
-      "max_output_tokens": 4096,
+      "max_output_tokens": 8192,
       "supports_images": false,
       "supports_function_calling": false,
       "supports_extended_thinking": false,
@@ -1375,7 +1317,7 @@
       "model_name": "meta-llama/llama-3.1-70b-instruct",
       "description": "Meta: Llama 3.1 70B Instruct",
       "context_window": 131072,
-      "max_output_tokens": 16384,
+      "max_output_tokens": 8192,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
@@ -1385,7 +1327,7 @@
       "model_name": "meta-llama/llama-3.1-8b-instruct",
       "description": "Meta: Llama 3.1 8B Instruct",
       "context_window": 131072,
-      "max_output_tokens": 117964,
+      "max_output_tokens": 16384,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
@@ -1393,7 +1335,7 @@
     },
     {
       "model_name": "meta-llama/llama-3.2-1b-instruct",
-      "description": "Meta: Llama 3.2 1B Instruct",
+      "description": "Meta: Llama 3.2 1B Instruct OpenRouter retires this slug on 2026-11-20.",
       "context_window": 60000,
       "max_output_tokens": 54000,
       "supports_images": false,
@@ -1403,7 +1345,7 @@
     },
     {
       "model_name": "meta-llama/llama-3.2-3b-instruct",
-      "description": "Meta: Llama 3.2 3B Instruct",
+      "description": "Meta: Llama 3.2 3B Instruct OpenRouter retires this slug on 2026-11-20.",
       "context_window": 131072,
       "max_output_tokens": 72000,
       "supports_images": false,
@@ -1415,7 +1357,7 @@
       "model_name": "meta-llama/llama-4-maverick",
       "description": "Meta: Llama 4 Maverick",
       "context_window": 524288,
-      "max_output_tokens": 16384,
+      "max_output_tokens": 32768,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
@@ -1502,50 +1444,10 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "minimax/minimax-01",
-      "description": "MiniMax: MiniMax-01",
-      "context_window": 1000192,
-      "max_output_tokens": 900172,
-      "supports_images": true,
-      "supports_function_calling": false,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "minimax/minimax-m1",
-      "description": "MiniMax: MiniMax M1",
-      "context_window": 1000000,
-      "max_output_tokens": 40000,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "minimax/minimax-m2",
-      "description": "MiniMax: MiniMax M2",
-      "context_window": 204800,
-      "max_output_tokens": 131072,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "minimax/minimax-m2-her",
-      "description": "MiniMax: MiniMax M2-her",
-      "context_window": 65536,
-      "max_output_tokens": 2048,
-      "supports_images": false,
-      "supports_function_calling": false,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "minimax/minimax-m2.5",
       "description": "MiniMax: MiniMax M2.5",
-      "context_window": 204800,
-      "max_output_tokens": 32768,
+      "context_window": 198000,
+      "max_output_tokens": 176947,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1554,8 +1456,8 @@
     {
       "model_name": "minimax/minimax-m2.7",
       "description": "MiniMax: MiniMax M2.7",
-      "context_window": 204800,
-      "max_output_tokens": 131072,
+      "context_window": 196608,
+      "max_output_tokens": 176947,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1725,7 +1627,7 @@
       "model_name": "mistralai/mistral-small-3.2-24b-instruct",
       "description": "Mistral: Mistral Small 3.2 24B",
       "context_window": 256000,
-      "max_output_tokens": 16384,
+      "max_output_tokens": 26214,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
@@ -1832,26 +1734,6 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "nousresearch/hermes-3-llama-3.1-405b",
-      "description": "Nous: Hermes 3 405B Instruct (shuts down on OpenRouter 2026-11-02; no replacement named)",
-      "context_window": 131072,
-      "max_output_tokens": 16384,
-      "supports_images": false,
-      "supports_function_calling": false,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "nousresearch/hermes-3-llama-3.1-70b",
-      "description": "Nous: Hermes 3 70B Instruct (shuts down on OpenRouter 2026-11-02; no replacement named)",
-      "context_window": 131072,
-      "max_output_tokens": 16384,
-      "supports_images": false,
-      "supports_function_calling": false,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "nousresearch/hermes-4-405b",
       "description": "Nous: Hermes 4 405B",
       "context_window": 131072,
@@ -1875,7 +1757,7 @@
       "model_name": "nvidia/nemotron-3-super-120b-a12b",
       "description": "NVIDIA: Nemotron 3 Super",
       "context_window": 262144,
-      "max_output_tokens": 235929,
+      "max_output_tokens": 16384,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -1912,16 +1794,6 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "openai/gpt-3.5-turbo",
-      "description": "OpenAI: GPT-3.5 Turbo",
-      "context_window": 16385,
-      "max_output_tokens": 4096,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "openai/gpt-3.5-turbo-0613",
       "description": "OpenAI: GPT-3.5 Turbo (older v0613)",
       "context_window": 4095,
@@ -1938,16 +1810,6 @@
       "max_output_tokens": 4096,
       "supports_images": false,
       "supports_function_calling": true,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "openai/gpt-3.5-turbo-instruct",
-      "description": "OpenAI: GPT-3.5 Turbo Instruct",
-      "context_window": 4095,
-      "max_output_tokens": 3685,
-      "supports_images": false,
-      "supports_function_calling": false,
       "supports_extended_thinking": false,
       "enabled_by_default": false
     },
@@ -1995,7 +1857,7 @@
       "model_name": "openai/gpt-4.1-nano",
       "description": "OpenAI: GPT-4.1 Nano",
       "context_window": 1047576,
-      "max_output_tokens": 32768,
+      "max_output_tokens": 942818,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
@@ -2063,7 +1925,7 @@
     },
     {
       "model_name": "openai/gpt-5-pro",
-      "description": "OpenAI: GPT-5 Pro",
+      "description": "OpenAI: GPT-5 Pro OpenRouter retires this slug on 2026-12-11.",
       "context_window": 400000,
       "max_output_tokens": 128000,
       "supports_images": true,
@@ -2347,46 +2209,10 @@
       "model_name": "openai/gpt-oss-20b",
       "description": "OpenAI: gpt-oss-20b",
       "context_window": 131072,
-      "max_output_tokens": 32768,
+      "max_output_tokens": 117964,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "openai/o1",
-      "description": "OpenAI: o1",
-      "context_window": 200000,
-      "max_output_tokens": 100000,
-      "supports_images": true,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "supports_temperature": false,
-      "temperature_constraint": "fixed",
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "openai/o1-pro",
-      "description": "OpenAI: o1-pro",
-      "context_window": 200000,
-      "max_output_tokens": 100000,
-      "supports_images": true,
-      "supports_function_calling": false,
-      "supports_extended_thinking": true,
-      "supports_temperature": false,
-      "temperature_constraint": "fixed",
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "openai/o4-mini-high",
-      "description": "OpenAI: o4 Mini High",
-      "context_window": 200000,
-      "max_output_tokens": 100000,
-      "supports_images": true,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "supports_temperature": false,
-      "temperature_constraint": "fixed",
       "enabled_by_default": false
     },
     {
@@ -2504,26 +2330,6 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "poolside/laguna-s-2.1",
-      "description": "Poolside: Laguna S 2.1 (shuts down on OpenRouter 2026-10-31; no replacement named)",
-      "context_window": 1048576,
-      "max_output_tokens": 131072,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "poolside/laguna-xs-2.1",
-      "description": "Poolside: Laguna XS 2.1 (shuts down on OpenRouter 2026-10-31; no replacement named)",
-      "context_window": 262144,
-      "max_output_tokens": 32768,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "prism-ml/ternary-bonsai-2-27b",
       "description": "PrismML: Ternary Bonsai 2 27B",
       "context_window": 262144,
@@ -2538,16 +2344,6 @@
       "description": "Qwen2.5 72B Instruct",
       "context_window": 32768,
       "max_output_tokens": 16384,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": false,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "qwen/qwen-2.5-7b-instruct",
-      "description": "Qwen: Qwen2.5 7B Instruct",
-      "context_window": 32768,
-      "max_output_tokens": 29491,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
@@ -2597,7 +2393,7 @@
       "model_name": "qwen/qwen3-235b-a22b-2507",
       "description": "Qwen: Qwen3 235B A22B Instruct 2507",
       "context_window": 262144,
-      "max_output_tokens": 16384,
+      "max_output_tokens": 117964,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
@@ -2684,16 +2480,6 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "qwen/qwen3-next-80b-a3b-thinking",
-      "description": "Qwen: Qwen3 Next 80B A3B Thinking",
-      "context_window": 262144,
-      "max_output_tokens": 235929,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "qwen/qwen3-vl-235b-a22b-instruct",
       "description": "Qwen: Qwen3 VL 235B A22B Instruct",
       "context_window": 262144,
@@ -2727,7 +2513,7 @@
       "model_name": "qwen/qwen3.5-27b",
       "description": "Qwen: Qwen3.5-27B",
       "context_window": 262144,
-      "max_output_tokens": 65536,
+      "max_output_tokens": 81920,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -2747,7 +2533,7 @@
       "model_name": "qwen/qwen3.5-397b-a17b",
       "description": "Qwen: Qwen3.5 397B A17B",
       "context_window": 262144,
-      "max_output_tokens": 235929,
+      "max_output_tokens": 81920,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -2757,7 +2543,7 @@
       "model_name": "qwen/qwen3.5-9b",
       "description": "Qwen: Qwen3.5-9B",
       "context_window": 262144,
-      "max_output_tokens": 65536,
+      "max_output_tokens": 40960,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -2797,7 +2583,7 @@
       "model_name": "qwen/qwen3.6-27b",
       "description": "Qwen: Qwen3.6 27B",
       "context_window": 262144,
-      "max_output_tokens": 65536,
+      "max_output_tokens": 81920,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -2867,7 +2653,7 @@
       "model_name": "qwen/qwen3.8-2.4t-a95b",
       "description": "Qwen: Qwen3.8 2.4T A95B",
       "context_window": 1048576,
-      "max_output_tokens": 909000,
+      "max_output_tokens": 131072,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -2876,8 +2662,8 @@
     {
       "model_name": "qwen/qwen3.8-27b",
       "description": "Qwen: Qwen3.8 27B",
-      "context_window": 1000000,
-      "max_output_tokens": 65536,
+      "context_window": 1024000,
+      "max_output_tokens": 235929,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3034,32 +2820,12 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "stepfun/step-3.5-flash",
-      "description": "StepFun: Step 3.5 Flash",
-      "context_window": 262144,
-      "max_output_tokens": 65536,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "stepfun/step-3.7-flash",
       "description": "StepFun: Step 3.7 Flash",
       "context_window": 262144,
       "max_output_tokens": 230400,
       "supports_images": true,
       "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "tencent/hunyuan-a13b-instruct",
-      "description": "Tencent: Hunyuan A13B Instruct",
-      "context_window": 131072,
-      "max_output_tokens": 117964,
-      "supports_images": false,
-      "supports_function_calling": false,
       "supports_extended_thinking": true,
       "enabled_by_default": false
     },
@@ -3177,7 +2943,7 @@
       "model_name": "typesafe/jev-router",
       "description": "TypeSafe: Jev Router",
       "context_window": 1000000,
-      "max_output_tokens": 65536,
+      "max_output_tokens": 64000,
       "supports_images": true,
       "supports_function_calling": false,
       "supports_extended_thinking": false,
@@ -3198,16 +2964,6 @@
       "description": "Upstage: Solar Mini 4",
       "context_window": 524288,
       "max_output_tokens": 131072,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
-      "model_name": "upstage/solar-pro-3",
-      "description": "Upstage: Solar Pro 3",
-      "context_window": 131072,
-      "max_output_tokens": 117964,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3296,8 +3052,8 @@
     {
       "model_name": "xiaomi/mimo-v2.5",
       "description": "Xiaomi: MiMo-V2.5",
-      "context_window": 1050000,
-      "max_output_tokens": 945000,
+      "context_window": 1000000,
+      "max_output_tokens": 65536,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3306,8 +3062,8 @@
     {
       "model_name": "xiaomi/mimo-v2.5-pro",
       "description": "Xiaomi: MiMo-V2.5-Pro",
-      "context_window": 1050000,
-      "max_output_tokens": 945000,
+      "context_window": 1024000,
+      "max_output_tokens": 131072,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3345,7 +3101,7 @@
     },
     {
       "model_name": "z-ai/glm-4.5",
-      "description": "Z.ai: GLM 4.5 (shuts down on OpenRouter 2026-12-31; no replacement named)",
+      "description": "Z.ai: GLM 4.5 (shuts down on OpenRouter 2026-12-31; no replacement named) OpenRouter retires this slug on 2026-12-31.",
       "context_window": 131072,
       "max_output_tokens": 98304,
       "supports_images": false,
@@ -3365,7 +3121,7 @@
     },
     {
       "model_name": "z-ai/glm-4.5v",
-      "description": "Z.ai: GLM 4.5V",
+      "description": "Z.ai: GLM 4.5V OpenRouter retires this slug on 2026-12-31.",
       "context_window": 65536,
       "max_output_tokens": 16384,
       "supports_images": true,
@@ -3435,9 +3191,9 @@
     },
     {
       "model_name": "z-ai/glm-5.1",
-      "description": "Z.ai: GLM 5.1",
+      "description": "Z.ai: GLM 5.1 OpenRouter retires this slug on 2026-11-20.",
       "context_window": 204800,
-      "max_output_tokens": 131072,
+      "max_output_tokens": 182476,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3457,7 +3213,7 @@
       "model_name": "z-ai/glm-5.3",
       "description": "Z.ai: GLM 5.3",
       "context_window": 1048576,
-      "max_output_tokens": 262144,
+      "max_output_tokens": 943718,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3467,7 +3223,7 @@
       "model_name": "z-ai/glm-5.3-flash",
       "description": "Z.ai: GLM 5.3 Flash",
       "context_window": 1048576,
-      "max_output_tokens": 943718,
+      "max_output_tokens": 131072,
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3541,7 +3297,7 @@
       "model_name": "deepseek/deepseek-v3.2",
       "description": "DeepSeek: DeepSeek V3.2",
       "context_window": 163840,
-      "max_output_tokens": 65536,
+      "max_output_tokens": 147456,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3598,20 +3354,10 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "inception/mercury-3",
-      "description": "Inception: Mercury 3",
-      "context_window": 1000000,
-      "max_output_tokens": 131072,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "inclusionai/ling-3.1-flash",
       "description": "inclusionAI: Ling 3.1 Flash",
-      "context_window": 262144,
-      "max_output_tokens": 235929,
+      "context_window": 1000000,
+      "max_output_tokens": 262144,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3648,19 +3394,9 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "minimax/minimax-m2.1",
-      "description": "MiniMax: MiniMax M2.1",
-      "context_window": 204800,
-      "max_output_tokens": 131072,
-      "supports_images": false,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "minimax/minimax-m3.1-flash",
       "description": "MiniMax: MiniMax M3.1 Flash",
-      "context_window": 1000000,
+      "context_window": 1048576,
       "max_output_tokens": 524288,
       "supports_images": true,
       "supports_function_calling": true,
@@ -3771,16 +3507,6 @@
       "enabled_by_default": false
     },
     {
-      "model_name": "qwen/qwen3-vl-30b-a3b-thinking",
-      "description": "Qwen: Qwen3 VL 30B A3B Thinking",
-      "context_window": 262144,
-      "max_output_tokens": 235929,
-      "supports_images": true,
-      "supports_function_calling": true,
-      "supports_extended_thinking": true,
-      "enabled_by_default": false
-    },
-    {
       "model_name": "qwen/qwen3-vl-8b-instruct",
       "description": "Qwen: Qwen3 VL 8B Instruct",
       "context_window": 262144,
@@ -3794,7 +3520,7 @@
       "model_name": "reflection/beam-1.0-501b-a23b",
       "description": "Reflection: Beam 1.0 501B A23B",
       "context_window": 1048576,
-      "max_output_tokens": 131072,
+      "max_output_tokens": 943718,
       "supports_images": false,
       "supports_function_calling": true,
       "supports_extended_thinking": true,
@@ -3827,7 +3553,7 @@
     {
       "model_name": "stepfun/step-5-preview",
       "description": "StepFun: Step 5 Preview",
-      "context_window": 1048576,
+      "context_window": 1000000,
       "max_output_tokens": 64000,
       "supports_images": true,
       "supports_function_calling": true,
@@ -3852,6 +3578,252 @@
       "supports_images": true,
       "supports_function_calling": true,
       "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "anthropic/claude-fable-5.2",
+      "description": "Anthropic: Claude Fable 5.2",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "baidu/ernie-light-dt-1.0-intl",
+      "description": "Baidu: ERNIE-Light-DT-1.0",
+      "context_window": 1024000,
+      "max_output_tokens": 131072,
+      "supports_images": false,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "google/gemini-4-carbon",
+      "description": "Google: Gemini 4 Carbon",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "google/gemini-4-hydrogen",
+      "description": "Google: Gemini 4 Hydrogen",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "google/gemini-omni-1.1-flash",
+      "description": "Google: Gemini Omni 1.1 Flash",
+      "context_window": 131072,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": false,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "google/gemini-omni-1.2-flash",
+      "description": "Google: Gemini Omni 1.2 Flash",
+      "context_window": 131072,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": false,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "inclusionai/ling-3.0-tiny",
+      "description": "inclusionAI: Ling 3.0 Tiny",
+      "context_window": 262144,
+      "max_output_tokens": 250000,
+      "supports_images": false,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "kt/midm-k-3.0-pro",
+      "description": "KT: Mi:dm K 3.0 Pro",
+      "context_window": 261795,
+      "max_output_tokens": 235615,
+      "supports_images": false,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "liquid/lfm-3-1.7b",
+      "description": "LiquidAI: LFM3-1.7B",
+      "context_window": 262144,
+      "max_output_tokens": 8192,
+      "supports_images": false,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "meta/muse-ember",
+      "description": "Meta: Muse Ember",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "moonshotai/kimi-k3.1-pro",
+      "description": "MoonshotAI: Kimi K3.1 Pro",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "motif-technologies/motif-3",
+      "description": "Motif Technologies: Motif 3",
+      "context_window": 262144,
+      "max_output_tokens": 235929,
+      "supports_images": false,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "nex-agi/nex-n2.6",
+      "description": "Nex AGI: Nex-N2.6",
+      "context_window": 262144,
+      "max_output_tokens": 235929,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "openai/gpt-6.1-terra",
+      "description": "OpenAI: GPT-6.1 Terra",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "openai/gpt-6.1-terra-pro",
+      "description": "OpenAI: GPT-6.1 Terra Pro",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "openrouter/auto-code",
+      "description": "Auto Code",
+      "context_window": 2000000,
+      "max_output_tokens": 64000,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "particle-ai/particle-1",
+      "description": "Particle AI: Particle-1",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "prism-ml/ternary-bonsai-2-9b",
+      "description": "PrismML: Ternary Bonsai 2 9B",
+      "context_window": 262144,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "qwen/qwen4-max",
+      "description": "Qwen: Qwen4 Max",
+      "context_window": 1000000,
+      "max_output_tokens": 131072,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "ricursiveai/ripple-65b-preview",
+      "description": "Ricursive: Ripple 65B Preview",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "supports_images": false,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "tencent/hy4",
+      "description": "Tencent: Hy4",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "thinkingmachines/inkling-2-small",
+      "description": "Thinking Machines: Inkling 2 Small",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "unbiased/pareto-26.10-preview",
+      "description": "Pareto 26.10 Preview",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": false,
+      "enabled_by_default": false
+    },
+    {
+      "model_name": "z-ai/glm-5.3-flashx-legal",
+      "description": "Z.ai: GLM 5.3 FlashX Legal",
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "supports_images": true,
+      "supports_function_calling": true,
+      "supports_extended_thinking": true,
       "enabled_by_default": false
     }
   ]
