@@ -16,5 +16,7 @@ _Formerly known as PAL MCP. See the short [name change note](name-change.md) for
 | [Testing](testing.md) | Test strategy, command cheats, and coverage notes. |
 | [Prompt Caching](prompt-caching.md) | Using provider prompt caches: request layout, staged plan, metrics, and done criteria. |
 | [Troubleshooting](troubleshooting.md) | Common issues and resolutions. |
+| [PRD: Dynamic model registry](prd/dynamic-model-registry.md) | Proposed: build model facts from provider catalogs at startup. |
+| [ADR-0001](adr/0001-dynamic-model-registry.md) | Proposed: facts layer from authoritative catalogs plus a curated overlay. |
 
 Additional docs live in this directory; start with the table above to orient yourself.
