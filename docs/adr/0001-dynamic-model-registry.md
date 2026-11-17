@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed |
+| Status | Accepted (2026-11-17) |
 | Date | 2026-11-17 |
 | Issue | [#240](https://github.com/laurigates/pal-mcp-server/issues/240) |
 | Requirements | [PRD: Dynamic model registry](../prd/dynamic-model-registry.md) |
@@ -47,18 +47,22 @@ The 2026-11-16 refresh (#236, #238) showed how reliable each candidate source is
 
    models.dev stays an input to the weekly audit.
 
-3. **Load from the cache first and refresh in the background.** At import, a registry loads the cached facts, or the bundled JSON if there is no cache, exactly as fast as today. A background task fetches the catalog, validates it, writes the cache atomically (temp file plus rename), and calls `reload()`. A failed fetch leaves the previous data in place and logs a warning. No request path waits on the network.
+3. **Load from the cache first and refresh in the background on every startup.** At import, a registry loads the cached facts, or the bundled JSON if there is no cache, exactly as fast as today. Every start then launches a background task that fetches the catalog, validates it, writes the cache atomically (temp file plus rename), and calls `reload()`. There is no time-to-live and no periodic refresh while the server runs. A failed fetch leaves the previous data in place and logs a warning. No request path waits on the network.
 
 4. **Keep the bundled JSON as the floor.** `conf/*_models.json` remains in the package. It is the offline fallback, the test fixture, and the snapshot that `just models-generate` and the weekly audit keep reasonably fresh. A file pinned via a `*_MODELS_CONFIG_PATH` env var disables fetching for that provider.
 
 5. **New catalog models arrive disabled.** A fact with no overlay entry gets `enabled_by_default: false`, the rule `entry_from_facts` already applies. It is callable by its full id but never chosen by auto mode, and it does not appear in the auto-mode `model` field description, which lists only top-ranked models.
 
-6. **Off under tests.** `PAL_DYNAMIC_REGISTRY=0` disables fetching; `tests/conftest.py` sets it. The simulator's stub tier keeps using the bundled files.
+6. **On by default, off under tests.** Fetching is enabled unless `PAL_DYNAMIC_REGISTRY=0` is set; `tests/conftest.py` sets it. The simulator's stub tier keeps using the bundled files.
+
+7. **A withdrawn curated model is disabled, not deleted.** When an authoritative source drops a model that has an overlay entry, the effective entry gets `enabled_by_default: false`, and a call by name fails with an "unavailable" error that names the model. The overlay entry stays until a person removes it.
+
+8. **The weekly audit opens an issue instead of a PR.** With facts coming from catalogs, its remaining output is curation work. That needs no committed report, and an issue avoids the branch-push path that failed in #233.
 
 ## Consequences
 
 **Positive**
-- OpenRouter limits are current within one cache period, which resolves #234 without changing how the audit compares values.
+- OpenRouter limits are current as of the last server start, which resolves #234 without changing how the audit compares values.
 - A withdrawn OpenRouter model stops being offered without a PAL release.
 - The weekly audit shrinks to curation: models to score, aliases to move, overlay pins that disagree with the catalog.
 
@@ -78,6 +82,6 @@ The 2026-11-16 refresh (#236, #238) showed how reliable each candidate source is
 - **Fetch synchronously at startup.** It is simpler, but startup would then depend on the network and fail or hang offline. Rejected: an MCP server that fails to start is worse than one with day-old limits.
 - **Use models.dev as a universal fallback source.** It covers more providers, but it was wrong four ways in one week. Rejected for runtime; kept for the audit.
 
-## Open questions
+## Decision provenance
 
-Tracked in the PRD § Open questions: whether it's on by default, the cache time-to-live, what happens to withdrawn curated models, and the shape of the audit. This ADR stays **Proposed** until they are answered.
+Decisions 3 (refresh on every startup), 6 (on by default), 7 (disable withdrawn models) and 8 (audit opens an issue) were Lauri's answers on 2026-11-17 to the open questions in the first draft. The PRD § Decisions records them.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Draft |
+| Status | Approved |
 | Issue | [#240](https://github.com/laurigates/pal-mcp-server/issues/240) |
 | Decision record | [ADR-0001](../adr/0001-dynamic-model-registry.md) |
 | Date | 2026-11-17 |
@@ -19,7 +19,7 @@ The weekly audit (`.github/workflows/model-registry-audit.yml`) finds the drift 
 
 ## Goal
 
-The facts PAL sends to providers reflect the provider's catalog as of the last successful fetch, so drift lasts at most one cache period instead of until the next manual refresh. Curated judgment (which models auto mode prefers, which short names resolve where) stays reviewed and versioned.
+The facts PAL sends to providers reflect the provider's catalog as of the last successful fetch, so drift lasts until the next server start instead of until the next manual refresh. Curated judgment (which models auto mode prefers, which short names resolve where) stays reviewed and versioned.
 
 ## Non-goals
 
@@ -46,10 +46,10 @@ The facts PAL sends to providers reflect the provider's catalog as of the last s
 1. **Two layers.** The effective entry for a model is its catalog facts with the curated overlay applied on top. The overlay wins field by field.
 2. **Per-provider sources.** Each provider declares an authoritative source, or none (see ADR-0001 § Sources). A provider with no authoritative source keeps today's static file.
 3. **Non-blocking startup.** Registries load synchronously from the cache, or the bundled JSON when there is no cache. The network refresh runs in the background, and the registry swaps to the refreshed data when it arrives.
-4. **Disk cache.** Fetched catalogs are written under the state directory, which `utils/state_dir.py :: get_state_dir` already resolves from `PAL_STATE_DIR` and XDG. The cache has a time-to-live. A failed refresh keeps the previous cache and logs a warning.
+4. **Refresh on every startup, cache as fallback.** Every start triggers a background fetch. Fetched catalogs are written under the state directory, which `utils/state_dir.py :: get_state_dir` already resolves from `PAL_STATE_DIR` and XDG. The cache exists only to serve the next start until its own fetch lands, and to cover offline starts. A failed refresh keeps the previous cache and logs a warning. A long-running server refreshes only at startup; there is no periodic refresh in this design.
 5. **Validation before use.** A fetched record that fails schema validation is dropped, not partially applied. Numeric limits are bounded to sane ranges before they reach a request.
 6. **Removal only on an authoritative absence.** A model leaves the effective registry only when an authoritative source omits it. A curated entry whose model disappears is disabled, not deleted, and the next audit reports it.
-7. **Off switch.** `PAL_DYNAMIC_REGISTRY=0` disables fetching entirely. The test suite sets it by default.
+7. **On by default, with an off switch.** Fetching is enabled unless `PAL_DYNAMIC_REGISTRY=0` is set. The test suite sets it to 0.
 8. **Observability.** `listmodels` (or `version`) shows, for each provider, which source supplied the registry (live, cache with its age, or bundled) and when it was last refreshed.
 
 ### Non-functional
@@ -74,9 +74,13 @@ The facts PAL sends to providers reflect the provider's catalog as of the last s
 | 4 | OpenCode Go | Gateway `/v1/models` id list (needs `OPENCODE_API_KEY`) | #235 |
 | — | xAI | Not scheduled. Its list endpoint's fields are unverified | Verification |
 
-## Open questions (for Lauri)
+## Decisions
 
-1. **Default on or off?** On gives the benefit to everyone. Off makes the first release a no-op until someone opts in.
-2. **Cache time-to-live.** 24 hours matches how often catalogs change. A shorter period costs little: one request per provider.
-3. **Withdrawn curated models: disable or keep?** Requirement 6 proposes disabling them. The alternative is to keep them callable and let the provider's error surface.
-4. **Should the weekly audit stay a PR, or become an issue?** Once the facts layer is dynamic, the audit only reports curation work: new models to score, aliases to move.
+Lauri answered the draft's open questions on 2026-11-17:
+
+| Question | Decision |
+|---|---|
+| Default on or off | **On by default.** `PAL_DYNAMIC_REGISTRY=0` turns it off (requirement 7) |
+| Cache time-to-live | **Refresh in the background on every startup.** The cache is only a fallback until that fetch lands, and for offline starts (requirement 4) |
+| Withdrawn curated models | **Disable them.** They leave auto mode, calls by name fail with a clear "unavailable" error, and the audit reports them (requirement 6) |
+| Weekly audit output | **An issue, not a PR.** Once facts are dynamic, only curation work remains, and that needs no PR |
