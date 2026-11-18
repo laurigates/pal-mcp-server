@@ -149,7 +149,6 @@ See [`.env.example`](.env.example) for the full annotated reference and [Configu
 
 **Collaboration & Planning** *(Enabled by default)*
 - [`clink`](docs/tools/clink.md) - Bridge requests to external AI CLIs (Gemini planner, codereviewer, etc.)
-- [`jules`](docs/tools/jules.md) - Delegate a coding task to Google Jules (async coding agent) and poll for the resulting pull request
 - [`chat`](docs/tools/chat.md) - Brainstorm ideas, get second opinions, validate approaches. With capable models (GPT-5.2 Pro, Gemini 3.0 Pro), generates complete code / implementation
 - [`thinkdeep`](docs/tools/thinkdeep.md) - Extended reasoning, edge case analysis, alternative perspectives
 - [`planner`](docs/tools/planner.md) - Break down complex projects into structured, actionable plans
@@ -191,8 +190,8 @@ Tool descriptions are the eager channel: a client that defers schema loading (Cl
 
 | Preset | Tools | Eager (names + descriptions) | Full (adds every `inputSchema`) |
 |---|---|---|---|
-| All tools (`DISABLED_TOOLS=`) | 19 | 3,587 | 44,815 |
-| Shipped default (`.env.example`) | 13 | 2,340 | 24,453 |
+| All tools (`DISABLED_TOOLS=`) | 18 | 3,373 | 42,376 |
+| Shipped default (`.env.example`) | 12 | 2,126 | 22,263 |
 
 ### Enabling Additional Tools
 
