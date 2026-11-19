@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## [12.0.0](https://github.com/laurigates/pal-mcp-server/compare/v11.9.2...v12.0.0) (2026-11-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **jules:** the `jules` MCP tool no longer exists.
+
+### Features
+
+* **jules:** remove the jules tool ([#242](https://github.com/laurigates/pal-mcp-server/issues/242)) ([9dfce42](https://github.com/laurigates/pal-mcp-server/commit/9dfce425e32816d5fe1ea3fe5a5c45f2a95a4956))
+
 ## [11.9.2](https://github.com/laurigates/pal-mcp-server/compare/v11.9.1...v11.9.2) (2026-11-16)
 
 
