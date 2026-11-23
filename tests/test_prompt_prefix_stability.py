@@ -156,6 +156,33 @@ def test_completeness_counts_prompts_replies_and_files():
     assert any("SENT-A appears 2x" in p for p in problems)
 
 
+def _consult(file_body: str, stance: str) -> str:
+    end = cache_prefix.FIXTURE_ENDS["alpha.py"]
+    return f"system\nSYS\nuser\nPROPOSAL\n# SENTINEL-ALPHA\n{file_body}\n# {end}\n\nSTANCE: {stance}"
+
+
+def test_g5_passes_consults_that_differ_only_at_the_stance():
+    consults = [_consult("body", "for"), _consult("body", "against")]
+    assert cache_prefix.gate_consults_share_context(consults, "PROPOSAL", "alpha.py") == []
+
+
+def test_g5_fails_consults_that_differ_inside_the_context_file():
+    """#248: sharing up to the start of the file is not enough; the whole file must be shared."""
+    consults = [_consult("body one", "for"), _consult("body two", "against")]
+    assert cache_prefix.gate_consults_share_context(consults, "PROPOSAL", "alpha.py")
+
+
+def test_g5_fails_when_the_context_file_is_missing():
+    consults = ["system\nSYS\nuser\nPROPOSAL for", "system\nSYS\nuser\nPROPOSAL against"]
+    assert cache_prefix.gate_consults_share_context(consults, "PROPOSAL", "alpha.py")
+
+
+def test_fixture_end_markers_do_not_contain_the_start_sentinels():
+    """G0 counts start sentinels; an end marker containing one would double the count."""
+    for name, end in cache_prefix.FIXTURE_ENDS.items():
+        assert all(sentinel not in end for sentinel in cache_prefix.FIXTURES.values()), name
+
+
 def test_ser_hashes_image_parts():
     request = {
         "messages": [
