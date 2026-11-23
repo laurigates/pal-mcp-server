@@ -32,6 +32,7 @@ from mcp.types import TextContent
 from config import MCP_PROMPT_SIZE_LIMIT
 from utils.conversation_memory import ConversationMemoryStorageError, add_turn, create_thread
 from utils.progress import get_progress_reporter, summarize_usage
+from utils.session_context import set_session_id
 
 from ..shared.base_models import ConsolidatedFindings
 from ..shared.exceptions import ToolExecutionError
@@ -1276,6 +1277,8 @@ class BaseWorkflowMixin(ABC):
             ]
         }
         thread_id = create_thread(self.get_name(), clean_args)
+        # The expert call that follows already carries this thread's cache routing key (#194).
+        set_session_id(thread_id)
         try:
             add_turn(thread_id, "user", request.step, tool_name=self.get_name())
         except ConversationMemoryStorageError as exc:

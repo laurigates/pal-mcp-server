@@ -1,11 +1,13 @@
 """OpenAI model provider implementation."""
 
 import logging
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
+
+from utils.session_context import get_session_id
 
 from .openai_compatible import OpenAICompatibleProvider
 from .registries.openai import OpenAIModelRegistry
@@ -40,6 +42,12 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
         kwargs.setdefault("base_url", "https://api.openai.com/v1")
         super().__init__(api_key, **kwargs)
         self._invalidate_capability_cache()
+
+    def _build_request(self, **kwargs: Any) -> dict[str, Any]:
+        """Route a thread's requests to one cache: prompt_cache_key is the thread id (#194)."""
+        request = super()._build_request(**kwargs)
+        request["params"]["prompt_cache_key"] = get_session_id()
+        return request
 
     # ------------------------------------------------------------------
     # Capability surface

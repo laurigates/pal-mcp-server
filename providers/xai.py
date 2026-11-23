@@ -1,13 +1,15 @@
 """X.AI (GROK) model provider implementation."""
 
 import logging
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
 
 
-from .openai_compatible import OpenAICompatibleProvider
+from utils.session_context import get_session_id
+
+from .openai_compatible import OpenAICompatibleProvider, add_request_header
 from .registries.xai import XAIModelRegistry
 from .registry_provider_mixin import RegistryBackedProviderMixin
 from .shared import ModelCapabilities, ProviderType
@@ -46,6 +48,18 @@ class XAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
         self._ensure_registry()
         super().__init__(api_key, **kwargs)
         self._invalidate_capability_cache()
+
+    def _build_request(self, **kwargs: Any) -> dict[str, Any]:
+        """Route a thread's requests to one cache server, keyed by the thread id (#194).
+
+        xAI reads the key from the x-grok-conv-id header on Chat Completions and
+        from prompt_cache_key on the Responses API.
+        """
+        request = super()._build_request(**kwargs)
+        if request.get("endpoint") == "responses":
+            request["params"]["prompt_cache_key"] = get_session_id()
+            return request
+        return add_request_header(request, "x-grok-conv-id", get_session_id())
 
     def get_preferred_model(self, category: "ToolModelCategory", allowed_models: list[str]) -> str | None:
         """Get XAI's preferred model for a given category from allowed models.

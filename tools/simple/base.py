@@ -689,9 +689,12 @@ class SimpleTool(BaseTool):
         continuation offer, as it did when creation failed after the reply.
         """
         from utils.conversation_memory import add_turn, create_thread
+        from utils.session_context import set_session_id
 
         try:
             thread_id = create_thread(tool_name=self.get_name(), initial_request=self.get_request_as_dict(request))
+            # The model call below already carries this thread's cache routing key (#194).
+            set_session_id(thread_id)
             add_turn(
                 thread_id,
                 "user",

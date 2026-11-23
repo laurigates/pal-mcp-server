@@ -1,10 +1,12 @@
 """OpenRouter provider implementation."""
 
 import logging
+from typing import Any
 
 from utils.env import get_env
+from utils.session_context import get_session_id
 
-from .openai_compatible import OpenAICompatibleProvider
+from .openai_compatible import OpenAICompatibleProvider, add_request_header
 from .registries.openrouter import OpenRouterModelRegistry
 from .shared import (
     ModelCapabilities,
@@ -47,6 +49,14 @@ class OpenRouterProvider(OpenAICompatibleProvider):
 
     # Model registry for managing configurations and aliases
     _registry: OpenRouterModelRegistry | None = None
+
+    def _build_request(self, **kwargs: Any) -> dict[str, Any]:
+        """Keep a thread on one upstream provider, and so on its cache (#194).
+
+        With x-session-id, OpenRouter's sticky routing starts after the first
+        successful request instead of after the first cache hit.
+        """
+        return add_request_header(super()._build_request(**kwargs), "x-session-id", get_session_id())
 
     def __init__(self, api_key: str, **kwargs):
         """Initialize OpenRouter provider.
