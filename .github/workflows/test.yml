@@ -112,7 +112,8 @@ jobs:
       # gate in container.yml's tag-phase release job, which runs after the
       # tag exists: it left v11.3.0-v11.8.1 and v11.9.0 without a published
       # image. Auditing the lock here reports the same class of finding on a
-      # PR (#214). Keep the command in step with `just audit`.
+      # PR (#214). Keep the command in step with `just audit`;
+      # tests/test_lock_audit_wiring.py fails when the two drift.
       - name: Audit locked dependencies for known vulnerabilities
         run: |
           uv export --frozen --no-dev --no-hashes --no-emit-project -o "$RUNNER_TEMP/requirements-audit.txt"
