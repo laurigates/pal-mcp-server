@@ -25,7 +25,7 @@ Gates are structural, so they cannot be passed by sending less:
   after a same-seed control run (seed 1 twice) agrees with itself. A control
   that disagrees is a harness error, not a gate result.
 * G5 the S6 ``for`` and ``against`` consults share everything up to and
-  including the proposal and its context files.
+  including the proposal and the last line of its context file.
 * G7 at most 2 of S5's pairs have ``L_j`` before the last turn block of ``r_j``.
 
 Also reported, not gated: the simulated cache-hit ratio
@@ -84,6 +84,9 @@ FIXTURES = {
     "beta.py": "SENTINEL-BETA",
     "gamma.py": "SENTINEL-GAMMA",
 }
+# ...and a last line, so G5 can locate where the file's content ends (#248). The
+# end markers must not contain a start sentinel, or G0 would count it twice.
+FIXTURE_ENDS = {name: f"FIXTURE-END-{name}" for name in FIXTURES}
 
 
 # -- serialisation and measures -------------------------------------------------
@@ -300,7 +303,7 @@ def write_fixtures(directory: Path) -> None:
     directory.mkdir(parents=True, exist_ok=True)
     for name, sentinel in FIXTURES.items():
         body = "\n".join(f"def function_{i}(value):\n    return value * {i}  # {name}\n" for i in range(40))
-        (directory / name).write_text(f"# {sentinel}\n{body}", encoding="utf-8")
+        (directory / name).write_text(f"# {sentinel}\n{body}# {FIXTURE_ENDS[name]}\n", encoding="utf-8")
 
 
 # -- gates ---------------------------------------------------------------------------
@@ -347,6 +350,21 @@ def gate_append_only(texts: list[str]) -> list[str]:
         for j, (a, b) in enumerate(zip(texts, texts[1:], strict=False), start=1)
         if not b.startswith(a)
     ]
+
+
+def gate_consults_share_context(consults: list[str], proposal: str, fixture: str) -> list[str]:
+    """G5: the two consults share everything through the proposal and the end of its context file."""
+    if len(consults) != 2:
+        return [f"expected 2 consult requests, recorded {len(consults)}"]
+    first = consults[0]
+    end_marker = FIXTURE_ENDS[fixture]
+    if proposal not in first or end_marker not in first:
+        return ["the first consult lacks the proposal or the end of its context file"]
+    must_share = max(first.find(proposal) + len(proposal), first.find(end_marker) + len(end_marker))
+    shared = lcp(first, consults[1])
+    if shared < must_share:
+        return [f"consults first differ at {shared}, before the end of proposal/context at {must_share}"]
+    return []
 
 
 def _result(problems: list[str]) -> dict[str, Any]:
@@ -397,7 +415,8 @@ async def run_scenarios(harness: Harness, only_s7: bool) -> dict[str, Any]:
         proposal = "S6 proposal: move the ledger to an append-only event log."
         consults = [ser(r) for r in await harness.consensus_pair(proposal, [a])]
         shared = lcp(consults[0], consults[1]) if len(consults) == 2 else 0
-        context_end = consults[0].find(FIXTURES["alpha.py"]) if consults else -1
+        end_marker = FIXTURE_ENDS["alpha.py"]
+        context_end = consults[0].find(end_marker) + len(end_marker) if consults else -1
         proposal_end = consults[0].find(proposal) + len(proposal) if consults else -1
         must_share = max(context_end, proposal_end)
         out["scenarios"]["S6"] = {"requests": len(consults), "lcp": shared, "must_share_through": must_share}
@@ -409,12 +428,7 @@ async def run_scenarios(harness: Harness, only_s7: bool) -> dict[str, Any]:
         )
         out["gates"]["G2"] = _result([f"S3 {p}" for p in gate_reaches_past_last_turn(out["scenarios"]["S3"]["pairs"])])
         out["gates"]["G3"] = _result([f"{n} {p}" for n, t in texts_by_case.items() for p in gate_append_only(t)])
-        g5 = []
-        if len(consults) != 2:
-            g5.append(f"expected 2 consult requests, recorded {len(consults)}")
-        elif must_share < 0 or shared < must_share:
-            g5.append(f"consults first differ at {shared}, before the end of proposal/context at {must_share}")
-        out["gates"]["G5"] = _result(g5)
+        out["gates"]["G5"] = _result(gate_consults_share_context(consults, proposal, "alpha.py"))
         broken = [p for p in s5_pairs if p["turn_block_end"] is not None and p["lcp"] < p["turn_block_end"]]
         g7 = []
         if not out["scenarios"]["S5"]["history_overflowed"]:
