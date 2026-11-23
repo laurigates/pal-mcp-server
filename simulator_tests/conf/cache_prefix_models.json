@@ -1,0 +1,39 @@
+{
+  "_README": {
+    "description": "Custom-provider registry for the offline prompt-prefix harness (scripts/cache_prefix.py, `just cache-prefix`).",
+    "why_not_conf": "Both models are served by simulator_tests/stub_provider.py inside the harness and exist nowhere else, so they stay out of conf/, which scripts/audit_model_registry.py audits against live catalogs.",
+    "stub-small": "A small context window so scenario S5 overflows the conversation-history budget within 12 turns (gate G7 in docs/prompt-caching.md)."
+  },
+  "models": [
+    {
+      "model_name": "stub-model",
+      "aliases": [
+        "ci-local"
+      ],
+      "context_window": 131072,
+      "max_output_tokens": 8192,
+      "supports_extended_thinking": false,
+      "supports_json_mode": false,
+      "supports_function_calling": false,
+      "supports_images": false,
+      "max_image_size_mb": 0.0,
+      "description": "Canned replies from simulator_tests/stub_provider.py - no model runs",
+      "intelligence_score": 1
+    },
+    {
+      "model_name": "stub-small",
+      "aliases": [
+        "ci-small"
+      ],
+      "context_window": 8192,
+      "max_output_tokens": 2048,
+      "supports_extended_thinking": false,
+      "supports_json_mode": false,
+      "supports_function_calling": false,
+      "supports_images": false,
+      "max_image_size_mb": 0.0,
+      "description": "Canned replies from simulator_tests/stub_provider.py with a small context window - no model runs",
+      "intelligence_score": 1
+    }
+  ]
+}

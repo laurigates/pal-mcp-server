@@ -100,6 +100,46 @@ class TestGeminiTokenUsage(unittest.TestCase):
         # Should return empty dict when attributes are missing
         self.assertEqual(usage, {})
 
+    # -- prompt-cache fields (issue #193) ---------------------------------
+
+    def test_extract_usage_reads_cached_content_token_count(self):
+        response = Mock()
+        response.usage_metadata = Mock(
+            spec=["prompt_token_count", "candidates_token_count", "cached_content_token_count"]
+        )
+        response.usage_metadata.prompt_token_count = 5000
+        response.usage_metadata.candidates_token_count = 100
+        response.usage_metadata.cached_content_token_count = 4096
+
+        usage = self.provider._extract_usage(response)
+
+        self.assertEqual(usage["cached_input_tokens"], 4096)
+        self.assertEqual(usage["input_tokens"], 5000)
+
+    def test_extract_usage_miss_without_cached_field_records_zero(self):
+        """The SDK omits cached_content_token_count on a miss; record that as 0, not absent."""
+        response = Mock()
+        response.usage_metadata = Mock(spec=["prompt_token_count", "candidates_token_count"])
+        response.usage_metadata.prompt_token_count = 5000
+        response.usage_metadata.candidates_token_count = 100
+
+        usage = self.provider._extract_usage(response)
+
+        self.assertEqual(usage["cached_input_tokens"], 0)
+
+    def test_extract_usage_cached_field_none_records_zero(self):
+        response = Mock()
+        response.usage_metadata = Mock(
+            spec=["prompt_token_count", "candidates_token_count", "cached_content_token_count"]
+        )
+        response.usage_metadata.prompt_token_count = 10
+        response.usage_metadata.candidates_token_count = 1
+        response.usage_metadata.cached_content_token_count = None
+
+        usage = self.provider._extract_usage(response)
+
+        self.assertEqual(usage["cached_input_tokens"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

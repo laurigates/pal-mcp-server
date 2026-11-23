@@ -51,6 +51,15 @@ class TestFormatting:
     def test_summarize_usage(self):
         assert summarize_usage({"input_tokens": 12400, "output_tokens": 3100}) == "12.4k in → 3.1k out"
 
+    def test_summarize_usage_shows_cached_input(self):
+        usage = {"input_tokens": 12400, "cached_input_tokens": 9800, "output_tokens": 3100}
+        assert summarize_usage(usage) == "12.4k in (9.8k cached) → 3.1k out"
+
+    @pytest.mark.parametrize("cached", [0, None, "9800", MagicMock()])
+    def test_summarize_usage_omits_cached_without_a_positive_count(self, cached):
+        usage = {"input_tokens": 12400, "cached_input_tokens": cached, "output_tokens": 3100}
+        assert summarize_usage(usage) == "12.4k in → 3.1k out"
+
     def test_summarize_usage_falls_back_to_total(self):
         assert summarize_usage({"total_tokens": 900}) == "900 tokens"
 
