@@ -462,3 +462,136 @@ def test_capability_fields_match_dataclass():
         f"ModelCapabilities: only in script {audit.CAPABILITY_FIELDS - actual}, "
         f"only in dataclass {actual - audit.CAPABILITY_FIELDS}"
     )
+
+
+class TestOpenCodeGoGateway:
+    """#235: with ``OPENCODE_API_KEY`` set, the gateway's own ``/v1/models`` is the authority.
+
+    On 2026-11-16 models.dev's ``opencode-go`` slice listed ``mimo-v2.5`` and
+    ``mimo-v2.5-pro`` as live while the gateway answered 410 for both, so the
+    keyless audit kept proposing them as additions.
+    """
+
+    TARGET = next(t for t in audit.TARGETS if t.filename == "opencode_go_models.json")
+
+    GATEWAY_PAYLOAD = {
+        "object": "list",
+        "data": [
+            {
+                "id": "mimo-v2.6-flash",
+                "name": "MiMo V2.6 Flash",
+                "type": "chat",
+                "release_date": "2026-11-01",
+                "modalities": {"input": ["text", "image/png"], "output": ["text"]},
+                "capabilities": {"tools": {"supported": True}, "reasoning": {"supported": True}, "temperature": True},
+                "limit": {"context": 1_000_000, "output": 128_000},
+            },
+            {
+                "id": "glm-5.3",
+                "name": "GLM 5.3",
+                "type": "chat",
+                "release_date": "2026-09-01",
+                "modalities": {"input": ["text"], "output": ["text"]},
+                "capabilities": {"tools": {"supported": True}, "reasoning": {"supported": False}},
+                "limit": {"context": 200_000, "output": 64_000},
+            },
+        ],
+    }
+
+    @pytest.fixture
+    def go_catalogs(self):
+        model = {"limit": {"context": 1000}, "modalities": {"input": ["text"], "output": ["text"]}}
+        return {
+            "modelsdev": {
+                "opencode-go": {
+                    "models": {
+                        "glm-5.3": {**model, "name": "GLM 5.3", "release_date": "2026-09-01"},
+                        "mimo-v2.5": {**model, "name": "MiMo V2.5", "release_date": "2026-10-01"},
+                    }
+                }
+            },
+            "opencode_go": self.GATEWAY_PAYLOAD,
+        }
+
+    def test_target_names_the_gateway(self):
+        assert self.TARGET.gateway == "opencode_go"
+
+    def test_gateway_index_normalises_the_payload(self):
+        index = audit.gateway_index(self.GATEWAY_PAYLOAD)
+        facts = index["mimo-v2.6-flash"]
+        assert facts["context_window"] == 1_000_000
+        assert facts["max_output_tokens"] == 128_000
+        assert facts["input_modalities"] == ["text", "image"]
+        assert facts["tool_call"] is True
+        assert facts["reasoning"] is True
+        assert facts["temperature"] is True
+        assert index["glm-5.3"]["temperature"] is None
+
+    def test_gateway_absence_is_a_confirmed_deprecation(self, conf_dir, go_catalogs):
+        conf_dir("opencode_go_models.json", [{"model_name": "glm-5.3"}, {"model_name": "mimo-v2.5"}])
+        findings, meta = audit.audit_target(self.TARGET, go_catalogs, top_n=10)
+        deprecated = _kinds(findings, "deprecated")
+        assert [(f.model_name, f.confidence) for f in deprecated] == [("mimo-v2.5", "confirmed")]
+        assert "opencode_go" in deprecated[0].detail
+        assert meta["source"] == "opencode_go"
+        assert meta["catalog"] == 2
+
+    def test_candidates_come_from_the_gateway_only(self, conf_dir, go_catalogs):
+        conf_dir("opencode_go_models.json", [{"model_name": "glm-5.3"}])
+        findings, _ = audit.audit_target(self.TARGET, go_catalogs, top_n=10)
+        missing = _kinds(findings, "missing")
+        assert [f.model_name for f in missing] == ["mimo-v2.6-flash"]
+        assert missing[0].extra["context_window"] == 1_000_000
+
+    def test_without_the_gateway_models_dev_stays_review(self, conf_dir, go_catalogs):
+        del go_catalogs["opencode_go"]
+        conf_dir("opencode_go_models.json", [{"model_name": "glm-5.3"}, {"model_name": "gone"}])
+        findings, meta = audit.audit_target(self.TARGET, go_catalogs, top_n=10)
+        assert [(f.model_name, f.confidence) for f in _kinds(findings, "deprecated")] == [("gone", "review")]
+        assert meta["source"] == "modelsdev"
+        assert {f.model_name for f in _kinds(findings, "missing")} == {"mimo-v2.5"}
+
+
+class TestLoadGatewayCatalogs:
+    """The gateway is fetched only with a key, and never fails the keyless run."""
+
+    def test_no_key_fetches_nothing(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("OPENCODE_API_KEY", raising=False)
+
+        def _boom(*_a, **_k):
+            raise AssertionError("fetched without a key")
+
+        monkeypatch.setattr(audit, "fetch_json", _boom)
+        assert audit.load_gateway_catalogs(tmp_path, offline=False) == {}
+
+    def test_key_fetches_with_bearer_and_caches(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("OPENCODE_API_KEY", "test-key")
+        calls = []
+
+        def _fetch(url, headers=None, timeout=45):
+            calls.append((url, headers))
+            return {"data": [{"id": "glm-5.3"}]}
+
+        monkeypatch.setattr(audit, "fetch_json", _fetch)
+        out = audit.load_gateway_catalogs(tmp_path, offline=False)
+        assert out == {"opencode_go": {"data": [{"id": "glm-5.3"}]}}
+        assert calls == [("https://opencode.ai/zen/go/v1/models", {"Authorization": "Bearer test-key"})]
+        cache_text = (tmp_path / "opencode_go.json").read_text()
+        assert json.loads(cache_text) == {"data": [{"id": "glm-5.3"}]}
+        assert "test-key" not in cache_text
+
+    def test_fetch_failure_falls_back_to_models_dev(self, monkeypatch, capsys):
+        monkeypatch.setenv("OPENCODE_API_KEY", "test-key")
+
+        def _fail(*_a, **_k):
+            raise audit.urllib.error.URLError("down")
+
+        monkeypatch.setattr(audit, "fetch_json", _fail)
+        assert audit.load_gateway_catalogs(None, offline=False) == {}
+        assert "opencode_go" in capsys.readouterr().err
+
+    def test_offline_reads_the_cache(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("OPENCODE_API_KEY", raising=False)
+        (tmp_path / "opencode_go.json").write_text(json.dumps({"data": [{"id": "glm-5.3"}]}))
+        assert audit.load_gateway_catalogs(tmp_path, offline=True) == {"opencode_go": {"data": [{"id": "glm-5.3"}]}}
+        assert audit.load_gateway_catalogs(tmp_path / "empty", offline=True) == {}
