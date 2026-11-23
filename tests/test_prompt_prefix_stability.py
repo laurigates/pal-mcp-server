@@ -104,7 +104,6 @@ def test_g4_expert_prompts_ignore_hash_seed(report):
     assert report["gates"]["G4"]["passed"], report["gates"]["G4"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="stance spliced into the system prompt; Stage A (#194)")
 def test_g5_consensus_consults_differ_only_at_the_stance(report):
     assert report["gates"]["G5"]["passed"], report["gates"]["G5"]["problems"]
 
