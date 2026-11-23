@@ -271,7 +271,7 @@ When OpenRouter is configured, every server start fetches `https://openrouter.ai
 
 - The catalog supplies `context_window`, `max_output_tokens`, `supports_images`, `supports_function_calling` and `supports_extended_thinking`. A missing or out-of-range catalog value keeps the bundled one.
 - The bundled entry supplies everything else: aliases, `intelligence_score`, `allow_code_generation`, `enabled_by_default`, descriptions and temperature settings.
-- A bundled model the catalog no longer lists is disabled: it leaves auto mode and its aliases, and the log names it.
+- A bundled model the catalog no longer lists is disabled: it leaves auto mode and its aliases, a call by its full name fails with an error naming it as unavailable, and the log names it.
 - A catalog model with no bundled entry is added disabled, callable by its full id only.
 - Setting `OPENROUTER_MODELS_CONFIG_PATH` pins that file as-is and turns the refresh off.
 - `listmodels` shows the source of the OpenRouter entries (live, cache with its age, bundled, or pinned).

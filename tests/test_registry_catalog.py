@@ -109,7 +109,7 @@ class TestMerge:
         assert entry["supports_extended_thinking"] is True
         for curated_field in ("aliases", "intelligence_score", "allow_code_generation", "description"):
             assert entry[curated_field] == curated[0][curated_field]
-        assert summary == {"withdrawn": [], "added": []}
+        assert summary == {"withdrawn": [], "absent": [], "added": []}
         assert curated[0]["context_window"] == 100_000, "the bundled list must not be mutated"
 
     def test_withdrawn_curated_model_is_disabled_not_deleted(self):
@@ -123,6 +123,13 @@ class TestMerge:
         assert gone["enabled_by_default"] is False
         assert gone["context_window"] == 100_000, "a withdrawn entry keeps its curated facts"
         assert summary["withdrawn"] == ["vendor/gone"]
+        assert summary["absent"] == ["vendor/gone"]
+
+    def test_already_disabled_curated_model_counts_as_absent_not_withdrawn(self):
+        curated = [_curated("vendor/off", enabled_by_default=False)]
+        _, summary = catalog.merge_openrouter_catalog(curated, [_record("vendor/other")])
+        assert summary["withdrawn"] == [], "the log names only models this refresh newly disabled"
+        assert summary["absent"] == ["vendor/off"]
 
     def test_new_catalog_model_arrives_disabled_without_judgment_fields(self):
         merged, summary = catalog.merge_openrouter_catalog(
@@ -325,6 +332,37 @@ class TestRegistry:
         assert thread is not None and thread.daemon
         thread.join(timeout=5)
         assert calls == [1]
+
+    def test_withdrawn_model_called_by_name_fails_as_unavailable(self, dynamic_on, monkeypatch):
+        """ADR-0001 decision 7: the error names the model instead of surfacing OpenRouter's 404."""
+        from providers.openrouter import OpenRouterProvider
+
+        withdrawn = _aliased_enabled_entry()
+        kept = next(m for m in BUNDLED if m["model_name"] != withdrawn["model_name"] and not m.get("provider"))
+        catalog.write_cache("openrouter_models.json", _bundled_catalog(drop=withdrawn["model_name"]), 1000.0)
+        # Class-level so the shared registry other tests see is restored afterwards.
+        monkeypatch.setattr(OpenRouterProvider, "_registry", OpenRouterModelRegistry())
+        provider = OpenRouterProvider("test-key")
+
+        with pytest.raises(ValueError, match="unavailable") as excinfo:
+            provider.get_capabilities(withdrawn["model_name"])
+        assert withdrawn["model_name"] in str(excinfo.value)
+        assert provider.validate_model_name(withdrawn["model_name"]) is False
+        assert provider.validate_model_name(kept["model_name"]) is True
+
+        # A later refresh that lists the model again makes it callable again.
+        monkeypatch.setattr(catalog, "fetch_json", lambda url, timeout=None: _bundled_catalog())
+        assert refresh_openrouter_catalog() is True
+        assert provider.validate_model_name(withdrawn["model_name"]) is True
+
+    def test_without_a_catalog_no_model_is_withdrawn(self, dynamic_on, monkeypatch):
+        from providers.openrouter import OpenRouterProvider
+
+        registry = OpenRouterModelRegistry()
+        assert registry.withdrawn == frozenset()
+        monkeypatch.setattr(OpenRouterProvider, "_registry", registry)
+        provider = OpenRouterProvider("test-key")
+        assert provider.validate_model_name(_aliased_enabled_entry()["model_name"]) is True
 
     def test_pinned_env_var_turns_the_refresh_off(self, dynamic_on, monkeypatch, tmp_path):
         monkeypatch.setenv("OPENROUTER_MODELS_CONFIG_PATH", str(tmp_path / "x.json"))

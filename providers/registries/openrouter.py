@@ -65,6 +65,10 @@ class OpenRouterModelRegistry(CapabilityModelRegistry):
         #: ``(origin, fetched_at)`` of the catalog behind the current maps:
         #: origin is "live", "cache", "bundled" or "pinned".
         self.registry_source: tuple[str, float | None] = ("pinned", None) if pinned else ("bundled", None)
+        #: Lowercased names of curated entries the catalog no longer lists.
+        #: ADR-0001 decision 7: a call by such a name fails as unavailable
+        #: instead of reaching OpenRouter and surfacing its 404.
+        self.withdrawn: frozenset[str] = frozenset()
         super().__init__(
             env_var_name=_ENV_VAR_NAME,
             default_filename=_DEFAULT_FILENAME,
@@ -77,6 +81,7 @@ class OpenRouterModelRegistry(CapabilityModelRegistry):
 
     def _load_config_data(self) -> dict:
         data = super()._load_config_data()
+        self.withdrawn = frozenset()
         if not self._dynamic:
             return data
         state = _current_catalog()
@@ -98,7 +103,12 @@ class OpenRouterModelRegistry(CapabilityModelRegistry):
                 ", ".join(summary["withdrawn"]),
             )
         self.registry_source = (origin, fetched_at)
+        self.withdrawn = frozenset(name.lower() for name in summary["absent"])
         return {**data, "models": models}
+
+    def is_withdrawn(self, model_name: str) -> bool:
+        """True when ``model_name`` is a curated entry the catalog no longer lists."""
+        return model_name.lower() in self.withdrawn
 
     def describe_source(self) -> str:
         """One line for ``listmodels``: where the current entries came from."""

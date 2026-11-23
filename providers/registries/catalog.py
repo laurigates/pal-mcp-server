@@ -230,12 +230,15 @@ def merge_openrouter_catalog(
     ``curated`` is the bundled ``models`` list; it is not mutated. Entries
     routed to another provider (a ``provider`` field other than openrouter)
     pass through untouched, because the OpenRouter catalog says nothing about
-    them. The summary has ``withdrawn`` (curated entries now disabled) and
-    ``added`` (catalog models appended disabled).
+    them. The summary has ``withdrawn`` (curated entries the catalog dropped
+    that were enabled until now), ``absent`` (every curated OpenRouter entry
+    the catalog does not list, enabled or not) and ``added`` (catalog models
+    appended disabled).
     """
     index = openrouter_index(records)
     effective: list[Any] = []
     withdrawn: list[str] = []
+    absent: list[str] = []
     claimed: set[str] = set()
 
     for raw in curated:
@@ -255,6 +258,7 @@ def merge_openrouter_catalog(
 
         facts = index.get(name.lower())
         if facts is None:
+            absent.append(name)
             if entry.get("enabled_by_default", True):
                 withdrawn.append(name)
             entry["enabled_by_default"] = False
@@ -278,7 +282,7 @@ def merge_openrouter_catalog(
         effective.append(entry_from_facts(facts))
         added.append(model_id)
 
-    return effective, {"withdrawn": withdrawn, "added": added}
+    return effective, {"withdrawn": withdrawn, "absent": absent, "added": added}
 
 
 # ----------------------------------------------------------------------
