@@ -523,17 +523,23 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
             )
         for cfg_field in ("context_window", "max_output_tokens"):
             have, want = m.get(cfg_field), facts.get(cfg_field)
-            if isinstance(want, int) and isinstance(have, int) and want > 0 and have != want:
-                findings.append(
-                    Finding(
-                        "stale",
-                        target.filename,
-                        name,
-                        f"{cfg_field}: configured {have:,} vs catalog {want:,}",
-                        confidence,
-                        {"field": cfg_field, "configured": have, "catalog": want},
-                    )
+            if not (isinstance(want, int) and isinstance(have, int) and want > 0 and have != want):
+                continue
+            # OpenRouter's max_completion_tokens describes whichever upstream
+            # provider ranks first this week, so it moves in both directions
+            # (#234). Only a configured value above it can fail a request.
+            if cfg_field == "max_output_tokens" and target.source == "openrouter" and have < want:
+                continue
+            findings.append(
+                Finding(
+                    "stale",
+                    target.filename,
+                    name,
+                    f"{cfg_field}: configured {have:,} vs catalog {want:,}",
+                    confidence,
+                    {"field": cfg_field, "configured": have, "catalog": want},
                 )
+            )
 
     # Candidate additions: live chat models this config does not have at all.
     # scripts/generate_model_entries.py turns them into disabled entries.
