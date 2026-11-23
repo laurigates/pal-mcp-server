@@ -557,11 +557,7 @@ def read_file_content(
         # vs. partial diff content when files appear in both sections
         # No modification time in the header: a touch without a content change would
         # otherwise invalidate every cached prompt byte after this file (#195).
-        formatted = (
-            f"\n--- BEGIN FILE: {file_path} ---\n"
-            f"{file_content}\n"
-            f"--- END FILE: {file_path} ---\n"
-        )
+        formatted = f"\n--- BEGIN FILE: {file_path} ---\n{file_content}\n--- END FILE: {file_path} ---\n"
         tokens = estimate_tokens(formatted)
         logger.debug(f"[FILES] Formatted content for {file_path}: {len(formatted)} chars, {tokens} tokens")
         return formatted, tokens

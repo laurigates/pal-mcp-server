@@ -359,9 +359,8 @@ class TestConversationMemory:
         assert "Python is a programming language" in history
 
         # Test file tracking
-        # Check that the new file embedding section is included
-        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" in history
-        assert "The following files have been shared and analyzed during our conversation." in history
+        # Files render inside the turn that attached them, not in a separate section (#195)
+        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" not in history
 
         # Check that file context from previous turns is included (now shows files used per turn)
         assert f"Files used in this turn: {main_file}, {readme_file}" in history
@@ -910,7 +909,6 @@ class TestConversationFlow:
 
             # Verify the history was built successfully
             assert "=== CONVERSATION HISTORY" in history
-            assert "=== FILES REFERENCED IN THIS CONVERSATION ===" in history
 
             # The small file should be included, but large file might be truncated
             # At minimum, verify no crashes and history is generated

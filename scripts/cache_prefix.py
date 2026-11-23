@@ -26,7 +26,13 @@ Gates are structural, so they cannot be passed by sending less:
   that disagrees is a harness error, not a gate result.
 * G5 the S6 ``for`` and ``against`` consults share everything up to and
   including the proposal and the last line of its context file.
-* G7 at most 2 of S5's pairs have ``L_j`` before the last turn block of ``r_j``.
+* G7 in S5, every pair whose ``L_j`` falls before the last turn block of ``r_j``
+  is a compaction (the omitted-turns note changed), and no two consecutive pairs
+  break. A sliding window breaks every pair; compaction without hysteresis
+  breaks every pair after the first overflow. (The first version of G7 allowed
+  at most 2 broken pairs; S5 adds ~20% of the turn budget per request, so 60%
+  hysteresis compacts every second request and no keep ratio that leaves useful
+  history passes it. See docs/prompt-caching.md, M1.)
 
 Also reported, not gated: the simulated cache-hit ratio
 ``SCHR = sum(cacheable(L_j)) / sum(tokens(r_{j+1}))`` with ``tokens(c) = c // 4``
@@ -47,6 +53,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -58,11 +65,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY = REPO_ROOT / "simulator_tests" / "conf" / "cache_prefix_models.json"
 
 MIN_CACHEABLE_TOKENS = 1024
-G7_MAX_BROKEN_PAIRS = 2
 HASH_SEEDS = ("1", "2", "3")
 END_HISTORY = "=== END CONVERSATION HISTORY ==="
 TURN_HEADER = "\n--- Turn "
-HISTORY_TRUNCATED = "[Note: Showing "
+# The note that replaces turns a compaction dropped (OMITTED_TURNS_NOTE in conversation_memory).
+HISTORY_TRUNCATED = "omitted to fit the history budget]"
+OMITTED_TURNS = re.compile(r"Turns 1-(\d+) omitted to fit the history budget\]")
 
 #: Provider keys scrubbed so the Custom provider (the stub) is the only one configured.
 PROVIDER_KEYS = (
@@ -367,6 +375,29 @@ def gate_consults_share_context(consults: list[str], proposal: str, fixture: str
     return []
 
 
+def omitted_turns(text: str) -> int:
+    """How many leading turns the request's history omits after compaction (0 when none)."""
+    match = OMITTED_TURNS.search(text)
+    return int(match.group(1)) if match else 0
+
+
+def gate_compaction(texts: list[str]) -> list[str]:
+    """G7: the prefix breaks only where a compaction happens, and never on two consecutive pairs."""
+    broken = [p["j"] for p in _pairs(texts) if p["turn_block_end"] is not None and p["lcp"] < p["turn_block_end"]]
+    # Pair j is (texts[j - 1], texts[j]).
+    problems = [
+        f"pair {j}: prefix breaks without a compaction"
+        for j in broken
+        if omitted_turns(texts[j]) == omitted_turns(texts[j - 1])
+    ]
+    problems += [
+        f"pairs {a} and {b}: consecutive breaks, so compaction has no hysteresis"
+        for a, b in zip(broken, broken[1:], strict=False)
+        if b == a + 1
+    ]
+    return problems
+
+
 def _result(problems: list[str]) -> dict[str, Any]:
     return {"passed": not problems, "problems": problems[:10], "problem_count": len(problems)}
 
@@ -429,14 +460,10 @@ async def run_scenarios(harness: Harness, only_s7: bool) -> dict[str, Any]:
         out["gates"]["G2"] = _result([f"S3 {p}" for p in gate_reaches_past_last_turn(out["scenarios"]["S3"]["pairs"])])
         out["gates"]["G3"] = _result([f"{n} {p}" for n, t in texts_by_case.items() for p in gate_append_only(t)])
         out["gates"]["G5"] = _result(gate_consults_share_context(consults, proposal, "alpha.py"))
-        broken = [p for p in s5_pairs if p["turn_block_end"] is not None and p["lcp"] < p["turn_block_end"]]
         g7 = []
         if not out["scenarios"]["S5"]["history_overflowed"]:
             g7.append("S5 never overflowed the history budget, so it cannot test compaction")
-        if len(broken) > G7_MAX_BROKEN_PAIRS:
-            g7.append(
-                f"{len(broken)} of {len(s5_pairs)} pairs break before the last turn block (max {G7_MAX_BROKEN_PAIRS})"
-            )
+        g7 += gate_compaction(s5_texts)
         out["gates"]["G7"] = _result(g7)
 
     s7 = await harness.expert_requests()

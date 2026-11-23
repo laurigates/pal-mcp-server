@@ -90,7 +90,6 @@ def test_g1_chat_prefix_reaches_past_last_turn(report):
     assert report["gates"]["G1"]["passed"], report["gates"]["G1"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="newest-first files with mtime headers; Stage B (#195)")
 def test_g2_new_files_keep_the_prefix(report):
     assert report["gates"]["G2"]["passed"], report["gates"]["G2"]["problems"]
 
@@ -108,7 +107,6 @@ def test_g5_consensus_consults_differ_only_at_the_stance(report):
     assert report["gates"]["G5"]["passed"], report["gates"]["G5"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="history window slides every call after overflow; Stage B (#195)")
 def test_g7_history_compaction(report):
     assert report["gates"]["G7"]["passed"], report["gates"]["G7"]["problems"]
 
@@ -190,3 +188,35 @@ def test_ser_hashes_image_parts():
     }
     text = cache_prefix.ser(request)
     assert text.startswith("user\nlook<img:") and len(text) == len("user\nlook<img:") + 16 + 1
+
+
+# -- G7 on synthetic S5-like sequences (meta-tests: the gate has teeth and is passable) --
+
+
+def _compacting(turns: list[str], omitted: int, new_input: str) -> str:
+    note = f"\n[Note: Turns 1-{omitted} omitted to fit the history budget]" if omitted else ""
+    blocks = "".join(f"\n--- Turn {omitted + i} (Agent) ---\n{t}" for i, t in enumerate(turns, 1))
+    return f"system\nSYS\nuser\n=== HISTORY ==={note}{blocks}\n\n=== END CONVERSATION HISTORY ===\n{new_input}"
+
+
+def test_g7_passes_breaks_that_are_compactions_with_hysteresis():
+    """Compaction every second request, as 60% hysteresis gives on S5: passes."""
+    texts = [
+        _compacting(["t1"], 0, "a"),
+        _compacting(["t1", "t2", "t3"], 0, "b"),
+        _compacting(["t4", "t5"], 3, "c"),  # compaction: break
+        _compacting(["t4", "t5", "t6", "t7"], 3, "d"),  # stable
+        _compacting(["t8", "t9"], 7, "e"),  # compaction: break
+    ]
+    assert cache_prefix.gate_compaction(texts) == []
+
+
+def test_g7_fails_a_sliding_window():
+    """The Stage 0 behaviour: after overflow every request drops the oldest turn."""
+    texts = [_compacting([f"t{k}", f"t{k + 1}", f"t{k + 2}"], k - 1, str(k)) for k in range(1, 6)]
+    assert any("consecutive" in p for p in cache_prefix.gate_compaction(texts))
+
+
+def test_g7_fails_a_break_without_a_compaction():
+    texts = [_compacting(["t1", "t2"], 0, "a"), _compacting(["CHANGED", "t2", "t3"], 0, "b")]
+    assert any("without a compaction" in p for p in cache_prefix.gate_compaction(texts))

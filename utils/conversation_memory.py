@@ -762,130 +762,137 @@ def get_history_embedded_files(context: ThreadContext, model_context) -> list[st
     return files_to_include
 
 
+#: Share of the turn budget left filled after a compaction drops old turns (issue #195).
+COMPACTION_KEEP_RATIO = 0.6
+#: Ends the note that replaces the turns a compaction dropped.
+OMITTED_TURNS_NOTE = "omitted to fit the history budget"
+#: Heads the files attached with the request being answered, after the last turn block.
+NEW_INPUT_FILES_HEADER = "Files attached with the new input:"
+
+
+def _compaction_start(turn_tokens: list[int], budget: int) -> int:
+    """Index of the first turn to render, found by replaying compaction over the turns in order.
+
+    Whenever the turns kept so far outgrow ``budget``, the oldest are dropped until
+    they fill at most ``COMPACTION_KEEP_RATIO`` of it. Replaying the whole sequence
+    makes the result a function of the turns alone: request k+1 reaches the same
+    start as request k until the next compaction, so the rendered history is
+    rewritten once per compaction instead of on every call after the first
+    overflow, as a newest-first fill did (issue #195).
+    """
+    start = 0
+    total = 0
+    for index, tokens in enumerate(turn_tokens):
+        total += tokens
+        if total > budget:
+            while start <= index and total > budget * COMPACTION_KEEP_RATIO:
+                total -= turn_tokens[start]
+                start += 1
+    return start
+
+
+def _turn_header(turn: ConversationTurn, turn_num: int) -> str:
+    """The ``--- Turn N (...) ---`` line, with tool and model attribution for cross-tool threads."""
+    role_label = "Agent" if turn.role == "user" else (turn.model_name or "Assistant")
+    header = f"\n--- Turn {turn_num} ({role_label}"
+    if turn.tool_name:
+        header += f" using {turn.tool_name}"
+    if turn.model_provider:
+        provider_descriptor = turn.model_provider
+        if turn.model_name and turn.model_name != role_label:
+            provider_descriptor += f"/{turn.model_name}"
+        header += f" via {provider_descriptor}"
+    elif turn.model_name and turn.model_name != role_label:
+        header += f" via {turn.model_name}"
+    return header + ") ---"
+
+
+def _read_history_files(paths: list[str]) -> dict[str, str]:
+    """Formatted content of each readable file, keyed by path; unreadable files are left out."""
+    from utils.file_utils import read_file_content
+
+    contents: dict[str, str] = {}
+    for file_path in paths:
+        try:
+            formatted, _ = read_file_content(file_path)
+        except Exception as e:
+            logger.info(f"File not embedded in conversation history: {file_path} - {type(e).__name__}: {e}")
+            continue
+        if formatted:
+            contents[file_path] = formatted
+    return contents
+
+
+def _file_blocks(paths: list[str], contents: dict[str, str], shown: dict[str, str], where: str) -> list[str]:
+    """Render the files a turn lists, recording in ``shown`` where each first appeared.
+
+    A file appears in full at its first reference, with its current content, and
+    as a one-line pointer after that. A file the budget left out, or that cannot
+    be read, is a one-line marker at its first reference.
+    """
+    blocks = []
+    for file_path in paths:
+        if file_path in shown:
+            blocks.append(f"[File {file_path}: see {shown[file_path]}]")
+        elif file_path in contents:
+            blocks.append(contents[file_path])
+            shown[file_path] = where
+        else:
+            blocks.append(f"[File {file_path} omitted: over the history file budget, missing, or unreadable]")
+            shown[file_path] = f"the note in {where}"
+    return blocks
+
+
 def build_conversation_history(
-    context: ThreadContext, model_context=None, read_files_func=None, *, latest_turn_is_input: bool = False
+    context: ThreadContext, model_context=None, *, latest_turn_is_input: bool = False
 ) -> tuple[str, int]:
     """
-    Build formatted conversation history for tool prompts with embedded file contents.
+    Build the conversation history for a continuation, with the files its turns attached.
 
-    Creates a comprehensive conversation history that includes both conversation turns and
-    file contents, with intelligent prioritization to maximize relevant context within
-    token limits. This function enables stateless tools to access complete conversation
-    context from previous interactions, including cross-tool continuations.
+    The history is laid out so that consecutive requests of a thread share as long
+    a prefix as possible, which is what provider prompt caches reuse
+    (docs/prompt-caching.md, Stages A and B):
 
-    FILE PRIORITIZATION BEHAVIOR:
-    Files from newer conversation turns are prioritized over files from older turns.
-    When the same file appears in multiple turns, the reference from the NEWEST turn
-    takes precedence. This ensures the most recent file context is preserved when
-    token limits require file exclusions.
+    - The header names the thread and tool and carries no turn counter.
+    - Turns appear in order. Each file appears inside the turn that first listed it,
+      read from disk on every call, and as a one-line pointer in later turns. Adding
+      a file therefore appends to the history instead of changing a files section
+      ahead of every turn.
+    - Files are chosen for the file budget newest reference first, so when files
+      must be left out the oldest go; a left-out file is a one-line marker.
+    - When the turns outgrow the history budget, old turns are dropped in one step
+      down to ``COMPACTION_KEEP_RATIO`` of it, and a note says which. The files of
+      dropped turns stay, in a block after that note.
 
-    CONVERSATION CHAIN HANDLING:
-    If the thread has a parent_thread_id, this function traverses the entire chain
-    to include complete conversation history across multiple linked threads. File
-    prioritization works across the entire chain, not just the current thread.
-
-    CONVERSATION TURN ORDERING STRATEGY:
-    The function employs a sophisticated two-phase approach for optimal token utilization:
-
-    PHASE 1 - COLLECTION (Newest-First for Token Budget):
-    - Processes conversation turns in REVERSE chronological order (newest to oldest)
-    - Prioritizes recent turns within token constraints
-    - If token budget is exceeded, OLDER turns are excluded first
-    - Ensures the most contextually relevant recent exchanges are preserved
-
-    PHASE 2 - PRESENTATION (Chronological for LLM Understanding):
-    - Reverses the collected turns back to chronological order (oldest to newest)
-    - Presents conversation flow naturally for LLM comprehension
-    - Maintains "--- Turn 1, Turn 2, Turn 3..." sequential numbering
-    - Enables LLM to follow conversation progression logically
-
-    This approach balances recency prioritization with natural conversation flow.
-
-    TOKEN MANAGEMENT:
-    - Uses model-specific token allocation (file_tokens + history_tokens)
-    - Files are embedded ONCE at the start to prevent duplication
-    - Turn collection prioritizes newest-first, presentation shows chronologically
-    - Stops adding turns when token budget would be exceeded
-    - Gracefully handles token limits with informative notes
+    A thread with a parent covers the whole chain.
 
     Args:
-        context: ThreadContext containing the conversation to format
-        model_context: ModelContext for token allocation (optional, uses DEFAULT_MODEL fallback)
-        read_files_func: Optional function to read files (primarily for testing)
+        context: The thread to render.
+        model_context: ModelContext for the token allocation (DEFAULT_MODEL when omitted).
         latest_turn_is_input: The thread's last turn is the request being answered,
             recorded before the history is built so its files reach the model on
-            this turn. Its files are embedded, but its text is left to the caller's
-            NEW USER INPUT slot, so the request is not sent twice (issue #194).
+            this turn. Its files are rendered after the last turn block, but its text
+            is left to the caller's NEW USER INPUT slot, so the request is not sent
+            twice (issue #194).
 
     Returns:
-        tuple[str, int]: (formatted_conversation_history, total_tokens_used)
-        Returns ("", 0) if no conversation turns exist in the context
-
-    Output Format:
-        === CONVERSATION HISTORY (CONTINUATION) ===
-        Thread: <thread_id>
-        Tool: <original_tool_name>
-        You are continuing this conversation thread from where it left off.
-
-        === FILES REFERENCED IN THIS CONVERSATION ===
-        The following files have been shared and analyzed during our conversation.
-        [NOTE: X files omitted due to size constraints]
-        Refer to these when analyzing the context and requests below:
-
-        <embedded_file_contents_with_line_numbers>
-
-        === END REFERENCED FILES ===
-
-        Previous conversation turns:
-
-        --- Turn 1 (Claude) ---
-        Files used in this turn: file1.py, file2.py
-
-        <turn_content>
-
-        --- Turn 2 (gemini-2.5-flash using analyze via google) ---
-        Files used in this turn: file3.py
-
-        <turn_content>
-
-        === END CONVERSATION HISTORY ===
-
-        IMPORTANT: You are continuing an existing conversation thread...
-        This is turn X of the conversation - use the conversation history above...
-
-    Cross-Tool Collaboration:
-        This formatted history allows any tool to "see" both conversation context AND
-        file contents from previous tools, enabling seamless handoffs between analyze,
-        codereview, debug, chat, and other tools while maintaining complete context.
-
-    Performance Characteristics:
-        - O(n) file collection with newest-first prioritization
-        - Intelligent token budgeting prevents context window overflow
-        - In-memory persistence with automatic TTL management
-        - Graceful degradation when files are inaccessible or too large
+        ``(history, estimated_tokens)``, or ``("", 0)`` for a thread with no turns.
     """
     all_turns, all_files = _history_turns_and_files(context)
 
     if not all_turns:
         return "", 0
 
-    # The files of every recorded turn are embedded; the turn being answered is
-    # rendered by the caller, after the history.
+    current_turn = None
     if latest_turn_is_input and all_turns[-1].role == "user":
-        all_turns = all_turns[:-1]
+        all_turns, current_turn = all_turns[:-1], all_turns[-1]
 
-    logger.debug(f"[FILES] Found {len(all_files)} unique files in conversation history")
-
-    # Get model-specific token allocation early (needed for both files and turns)
     if model_context is None:
         from config import DEFAULT_MODEL, IS_AUTO_MODE
         from utils.model_context import ModelContext
 
-        # In auto mode, use an intelligent fallback model for token calculations
-        # since "auto" is not a real model with a provider
         model_name = DEFAULT_MODEL
         if IS_AUTO_MODE and model_name.lower() == "auto":
-            # Use intelligent fallback based on available API keys
             from providers.registry import ModelProviderRegistry
 
             model_name = ModelProviderRegistry.get_preferred_fallback_model()
@@ -893,14 +900,12 @@ def build_conversation_history(
         model_context = ModelContext(model_name)
 
     token_allocation = model_context.calculate_token_allocation()
-    max_file_tokens = token_allocation.file_tokens
-    max_history_tokens = token_allocation.history_tokens
+    files_to_include, files_to_skip, _ = _plan_file_inclusion_by_size(all_files, token_allocation.file_tokens)
+    if files_to_skip:
+        logger.info(f"[FILES] Excluding {len(files_to_skip)} files from conversation history: {files_to_skip}")
+    contents = _read_history_files(files_to_include)
 
-    logger.debug(f"[HISTORY] Using model-specific limits for {model_context.model_name}:")
-    logger.debug(f"[HISTORY]   Max file tokens: {max_file_tokens:,}")
-    logger.debug(f"[HISTORY]   Max history tokens: {max_history_tokens:,}")
-
-    history_parts = [
+    header = [
         CONVERSATION_HISTORY_MARKER,
         f"Thread: {context.thread_id}",
         f"Tool: {context.tool_name}",  # Original tool that started the conversation
@@ -908,228 +913,60 @@ def build_conversation_history(
         # consecutive requests, and providers cache only an unchanged prefix (#194).
         "You are continuing this conversation thread from where it left off.",
         "",
+        "Previous conversation turns:",
     ]
 
-    # Embed files referenced in this conversation with size-aware selection
-    if all_files:
-        logger.debug(f"[FILES] Starting embedding for {len(all_files)} files")
+    # Turn text competes with the files for the history budget; the files are a
+    # fixed cost, so compaction works on what they leave.
+    turn_texts = [
+        "\n".join([_turn_header(turn, i + 1), *_get_tool_formatted_content(turn)]) for i, turn in enumerate(all_turns)
+    ]
+    fixed_tokens = sum(model_context.estimate_tokens(part) for part in [*header, *contents.values()])
+    turn_budget = token_allocation.history_tokens - fixed_tokens
+    start = _compaction_start([model_context.estimate_tokens(text) for text in turn_texts], turn_budget)
 
-        # Plan file inclusion based on size constraints
-        # CRITICAL: all_files is already ordered by newest-first prioritization from get_conversation_file_list()
-        # So when _plan_file_inclusion_by_size() hits token limits, it naturally excludes OLDER files first
-        # while preserving the most recent file references - exactly what we want!
-        files_to_include, files_to_skip, estimated_tokens = _plan_file_inclusion_by_size(all_files, max_file_tokens)
+    shown: dict[str, str] = {}
+    body: list[str] = []
+    if start:
+        logger.info(f"[HISTORY] Turns 1-{start} of {len(all_turns)} omitted by compaction")
+        body.append(f"\n[Note: Turns 1-{start} {OMITTED_TURNS_NOTE}]")
+        omitted_files = list(dict.fromkeys(f for turn in all_turns[:start] for f in turn.files or []))
+        if omitted_files:
+            body.append("Files from the omitted turns:")
+            body.extend(_file_blocks(omitted_files, contents, shown, "the files from the omitted turns"))
+    for index in range(start, len(all_turns)):
+        body.append(turn_texts[index])
+        body.extend(_file_blocks(all_turns[index].files or [], contents, shown, f"Turn {index + 1}"))
 
-        if files_to_skip:
-            logger.info(f"[FILES] Excluding {len(files_to_skip)} files from conversation history: {files_to_skip}")
-            logger.debug("[FILES] Files excluded for various reasons (size constraints, missing files, access issues)")
+    trailer = [
+        "",
+        "=== END CONVERSATION HISTORY ===",
+        "",
+        "IMPORTANT: You are continuing an existing conversation thread. Build upon the previous exchanges shown above,",
+        "reference earlier points, and maintain consistency with what has been discussed.",
+        "",
+        "DO NOT repeat or summarize previous analysis, findings, or instructions that are already covered in the",
+        "conversation history. Instead, provide only new insights, additional analysis, or direct answers to",
+        "the follow-up question / concerns / insights. Assume the user has read the prior conversation.",
+        "",
+        f"This is turn {len(all_turns) + 1} of the conversation - use the conversation history above to provide a coherent continuation.",
+    ]
 
-        if files_to_include:
-            history_parts.extend(
-                [
-                    "=== FILES REFERENCED IN THIS CONVERSATION ===",
-                    "The following files have been shared and analyzed during our conversation.",
-                    (
-                        ""
-                        if not files_to_skip
-                        else f"[NOTE: {len(files_to_skip)} files omitted (size constraints, missing files, or access issues)]"
-                    ),
-                    "Refer to these when analyzing the context and requests below:",
-                    "",
-                ]
-            )
+    # The new input's files go after the trailer, beside the new input, not after
+    # the last turn block: on the next request that position holds this turn's
+    # block, and the history up to it must not change.
+    if current_turn is not None and current_turn.files:
+        trailer.append(f"\n{NEW_INPUT_FILES_HEADER}")
+        trailer.extend(_file_blocks(current_turn.files, contents, shown, "the new input"))
 
-            if read_files_func is None:
-                from utils.file_utils import read_file_content
-
-                # Process files for embedding
-                file_contents = []
-                total_tokens = 0
-                files_included = 0
-
-                for file_path in files_to_include:
-                    try:
-                        logger.debug(f"[FILES] Processing file {file_path}")
-                        formatted_content, content_tokens = read_file_content(file_path)
-                        if formatted_content:
-                            file_contents.append(formatted_content)
-                            total_tokens += content_tokens
-                            files_included += 1
-                            logger.debug(
-                                f"File embedded in conversation history: {file_path} ({content_tokens:,} tokens)"
-                            )
-                        else:
-                            logger.debug(f"File skipped (empty content): {file_path}")
-                    except Exception as e:
-                        # More descriptive error handling for missing files
-                        try:
-                            if not os.path.exists(file_path):
-                                logger.info(
-                                    f"File no longer accessible for conversation history: {file_path} - file was moved/deleted since conversation (marking as excluded)"
-                                )
-                            else:
-                                logger.warning(
-                                    f"Failed to embed file in conversation history: {file_path} - {type(e).__name__}: {e}"
-                                )
-                        except Exception:
-                            # Fallback if path translation also fails
-                            logger.warning(
-                                f"Failed to embed file in conversation history: {file_path} - {type(e).__name__}: {e}"
-                            )
-                        continue
-
-                if file_contents:
-                    files_content = "".join(file_contents)
-                    if files_to_skip:
-                        files_content += (
-                            f"\n[NOTE: {len(files_to_skip)} additional file(s) were omitted due to size constraints, missing files, or access issues. "
-                            f"These were older files from earlier conversation turns.]\n"
-                        )
-                    history_parts.append(files_content)
-                    logger.debug(
-                        f"Conversation history file embedding complete: {files_included} files embedded, {len(files_to_skip)} omitted, {total_tokens:,} total tokens"
-                    )
-                else:
-                    history_parts.append("(No accessible files found)")
-                    logger.debug(f"[FILES] No accessible files found from {len(files_to_include)} planned files")
-            else:
-                # Fallback to original read_files function
-                files_content = read_files_func(all_files)
-                if files_content:
-                    # Add token validation for the combined file content
-                    from utils.token_utils import check_token_limit
-
-                    within_limit, estimated_tokens = check_token_limit(files_content)
-                    if within_limit:
-                        history_parts.append(files_content)
-                    else:
-                        # Handle token limit exceeded for conversation files
-                        error_message = f"ERROR: The total size of files referenced in this conversation has exceeded the context limit and cannot be displayed.\nEstimated tokens: {estimated_tokens}, but limit is {max_file_tokens}."
-                        history_parts.append(error_message)
-                else:
-                    history_parts.append("(No accessible files found)")
-
-        history_parts.extend(
-            [
-                "",
-                "=== END REFERENCED FILES ===",
-                "",
-            ]
-        )
-
-    history_parts.append("Previous conversation turns:")
-
-    # === PHASE 1: COLLECTION (Newest-First for Token Budget) ===
-    # Build conversation turns bottom-up (most recent first) to prioritize recent context within token limits
-    # This ensures we include as many recent turns as possible within the token budget by excluding
-    # OLDER turns first when space runs out, preserving the most contextually relevant exchanges
-    turn_entries = []  # Will store (index, formatted_turn_content) for chronological ordering later
-    total_turn_tokens = 0
-    file_embedding_tokens = sum(model_context.estimate_tokens(part) for part in history_parts)
-
-    # CRITICAL: Process turns in REVERSE chronological order (newest to oldest)
-    # This prioritization strategy ensures recent context is preserved when token budget is tight
-    for idx in range(len(all_turns) - 1, -1, -1):
-        turn = all_turns[idx]
-        turn_num = idx + 1
-
-        if turn.role == "user":
-            role_label = "Agent"
-        else:
-            role_label = turn.model_name or "Assistant"
-
-        # Build the complete turn content
-        turn_parts = []
-
-        # Add turn header with tool attribution for cross-tool tracking
-        turn_header = f"\n--- Turn {turn_num} ({role_label}"
-        if turn.tool_name:
-            turn_header += f" using {turn.tool_name}"
-
-        # Add model info if available
-        if turn.model_provider:
-            provider_descriptor = turn.model_provider
-            if turn.model_name and turn.model_name != role_label:
-                provider_descriptor += f"/{turn.model_name}"
-            turn_header += f" via {provider_descriptor}"
-        elif turn.model_name and turn.model_name != role_label:
-            turn_header += f" via {turn.model_name}"
-
-        turn_header += ") ---"
-        turn_parts.append(turn_header)
-
-        # Get tool-specific formatting if available
-        # This includes file references and the actual content
-        tool_formatted_content = _get_tool_formatted_content(turn)
-        turn_parts.extend(tool_formatted_content)
-
-        # Calculate tokens for this turn
-        turn_content = "\n".join(turn_parts)
-        turn_tokens = model_context.estimate_tokens(turn_content)
-
-        # Check if adding this turn would exceed history budget
-        if file_embedding_tokens + total_turn_tokens + turn_tokens > max_history_tokens:
-            # Stop adding turns - we've reached the limit
-            logger.debug(f"[HISTORY] Stopping at turn {turn_num} - would exceed history budget")
-            logger.debug(f"[HISTORY]   File tokens: {file_embedding_tokens:,}")
-            logger.debug(f"[HISTORY]   Turn tokens so far: {total_turn_tokens:,}")
-            logger.debug(f"[HISTORY]   This turn: {turn_tokens:,}")
-            logger.debug(f"[HISTORY]   Would total: {file_embedding_tokens + total_turn_tokens + turn_tokens:,}")
-            logger.debug(f"[HISTORY]   Budget: {max_history_tokens:,}")
-            break
-
-        # Add this turn to our collection (we'll reverse it later for chronological presentation)
-        # Store the original index to maintain proper turn numbering in final output
-        turn_entries.append((idx, turn_content))
-        total_turn_tokens += turn_tokens
-
-    # === PHASE 2: PRESENTATION (Chronological for LLM Understanding) ===
-    # Reverse the collected turns to restore chronological order (oldest first)
-    # This gives the LLM a natural conversation flow: Turn 1 → Turn 2 → Turn 3...
-    # while still having prioritized recent turns during the token-constrained collection phase
-    turn_entries.reverse()
-
-    # Add the turns in chronological order for natural LLM comprehension
-    # The LLM will see: "--- Turn 1 (Agent) ---" followed by "--- Turn 2 (Model) ---" etc.
-    for _, turn_content in turn_entries:
-        history_parts.append(turn_content)
-
-    # Log what we included
-    included_turns = len(turn_entries)
-    total_turns = len(all_turns)
-    if included_turns < total_turns:
-        logger.info(f"[HISTORY] Included {included_turns}/{total_turns} turns due to token limit")
-        history_parts.append(f"\n[Note: Showing {included_turns} most recent turns out of {total_turns} total]")
-
-    history_parts.extend(
-        [
-            "",
-            "=== END CONVERSATION HISTORY ===",
-            "",
-            "IMPORTANT: You are continuing an existing conversation thread. Build upon the previous exchanges shown above,",
-            "reference earlier points, and maintain consistency with what has been discussed.",
-            "",
-            "DO NOT repeat or summarize previous analysis, findings, or instructions that are already covered in the",
-            "conversation history. Instead, provide only new insights, additional analysis, or direct answers to",
-            "the follow-up question / concerns / insights. Assume the user has read the prior conversation.",
-            "",
-            f"This is turn {len(all_turns) + 1} of the conversation - use the conversation history above to provide a coherent continuation.",
-        ]
-    )
-
-    # Calculate total tokens for the complete conversation history
-    complete_history = "\n".join(history_parts)
+    complete_history = "\n".join([*header, *body, *trailer])
     from utils.token_utils import estimate_tokens
 
     total_conversation_tokens = estimate_tokens(complete_history)
-
-    # Summary log of what was built
-    user_turns = len([t for t in all_turns if t.role == "user"])
-    assistant_turns = len([t for t in all_turns if t.role == "assistant"])
     logger.debug(
-        f"[FLOW] Built conversation history: {user_turns} user + {assistant_turns} assistant turns, {len(all_files)} files, {total_conversation_tokens:,} tokens"
+        f"[FLOW] Built conversation history: {len(all_turns) - start} of {len(all_turns)} turns, "
+        f"{len(contents)} files, {total_conversation_tokens:,} tokens"
     )
-
     return complete_history, total_conversation_tokens
 
 
