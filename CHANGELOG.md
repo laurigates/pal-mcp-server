@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## [12.1.0](https://github.com/laurigates/pal-mcp-server/compare/v12.0.0...v12.1.0) (2026-11-23)
+
+
+### Features
+
+* **audit:** use the OpenCode Go gateway as authority when keyed ([#252](https://github.com/laurigates/pal-mcp-server/issues/252)) ([155f017](https://github.com/laurigates/pal-mcp-server/commit/155f0179187f2affa67240a374100124610c5bb8)), closes [#235](https://github.com/laurigates/pal-mcp-server/issues/235)
+* **cache:** measure provider prompt-cache hits (stage 0) ([#254](https://github.com/laurigates/pal-mcp-server/issues/254)) ([0794eae](https://github.com/laurigates/pal-mcp-server/commit/0794eaef0dc89727c3dfb7834aecf297fa34213f))
+* **registry:** refresh OpenRouter model facts from its catalog at startup ([#255](https://github.com/laurigates/pal-mcp-server/issues/255)) ([5040238](https://github.com/laurigates/pal-mcp-server/commit/5040238b166033273de39764cc36e560ad5fbb1e))
+
+
+### Bug Fixes
+
+* **audit:** report OpenRouter max_output_tokens drift only when above catalog ([#251](https://github.com/laurigates/pal-mcp-server/issues/251)) ([1efb8cd](https://github.com/laurigates/pal-mcp-server/commit/1efb8cd608275237f246c63c079ca4524a3f5cfb)), closes [#234](https://github.com/laurigates/pal-mcp-server/issues/234)
+
 ## [12.0.0](https://github.com/laurigates/pal-mcp-server/compare/v11.9.2...v12.0.0) (2026-11-18)
 
 
