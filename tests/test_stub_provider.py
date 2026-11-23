@@ -72,6 +72,42 @@ class TestValidRequests:
         assert [entry["id"] for entry in body["data"]] == [DEFAULT_MODEL]
 
 
+THREAD = "Thread: 3f1c2a9e-0000-4000-8000-000000000001"
+OTHER_THREAD = "Thread: 3f1c2a9e-0000-4000-8000-000000000002"
+
+
+def _cached(endpoint: str, *messages: tuple[str, str]) -> int:
+    payload = chat_request(messages=[{"role": role, "content": content} for role, content in messages])
+    status, body = post(f"{endpoint}/v1/chat/completions", payload)
+    assert status == 200
+    return body["usage"]["prompt_tokens_details"]["cached_tokens"]
+
+
+class TestSimulatedCache:
+    """The stub reports cached_tokens = LCP with the thread's previous request // 4 (issue #193)."""
+
+    def test_first_request_of_a_thread_is_a_miss(self, endpoint):
+        assert _cached(endpoint, ("system", "S" * 400), ("user", f"{THREAD}\nturn one")) == 0
+
+    def test_repeat_request_reports_the_shared_prefix(self, endpoint):
+        system = "S" * 400
+        first = f"{THREAD}\nturn one"
+        _cached(endpoint, ("system", system), ("user", first))
+
+        cached = _cached(endpoint, ("system", system), ("user", f"{first} and turn two"))
+
+        shared = len("system\n" + system + "user\n" + first)
+        assert cached == shared // 4
+
+    def test_another_thread_does_not_hit_this_threads_prefix(self, endpoint):
+        _cached(endpoint, ("system", "S" * 400), ("user", f"{THREAD}\nturn one"))
+        assert _cached(endpoint, ("system", "S" * 400), ("user", f"{OTHER_THREAD}\nturn one")) == 0
+
+    def test_request_without_a_thread_marker_is_always_a_miss(self, endpoint):
+        _cached(endpoint, ("system", "S" * 400), ("user", "no thread here"))
+        assert _cached(endpoint, ("system", "S" * 400), ("user", "no thread here")) == 0
+
+
 class TestRefusals:
     def test_rejects_a_path_without_the_v1_prefix(self, endpoint):
         """The bug this stub was rewritten to catch: a base URL missing /v1."""

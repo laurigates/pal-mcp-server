@@ -17,6 +17,7 @@ from .shared import (
     ModelResponse,
     ProviderType,
 )
+from .shared.usage import CACHE_WRITE_INPUT_TOKENS, CACHED_INPUT_TOKENS, int_field
 
 
 class OpenAICompatibleProvider(ModelProvider):
@@ -425,7 +426,7 @@ class OpenAICompatibleProvider(ModelProvider):
             content = self._safe_extract_output_text(raw)
             usage: dict[str, int] = {}
             if hasattr(raw, "usage"):
-                usage = self._extract_usage(raw)
+                usage = self._extract_responses_usage(raw)
             elif hasattr(raw, "input_tokens") and hasattr(raw, "output_tokens"):
                 input_tokens = getattr(raw, "input_tokens", 0) or 0
                 output_tokens = getattr(raw, "output_tokens", 0) or 0
@@ -482,13 +483,57 @@ class OpenAICompatibleProvider(ModelProvider):
             logging.warning(f"Parameter validation limited for {model_name}: {e}")
 
     def _extract_usage(self, response) -> dict[str, int]:
-        """Extract token usage from OpenAI response."""
+        """Extract token usage from a Chat Completions response.
+
+        Cache fields come from ``prompt_tokens_details.cached_tokens`` /
+        ``.cache_write_tokens``, with DeepSeek's native ``prompt_cache_hit_tokens``
+        as the fallback for the cached count. Each is recorded only when the
+        provider reported it (issue #193).
+        """
         usage = {}
         if hasattr(response, "usage") and response.usage:
-            usage["input_tokens"] = getattr(response.usage, "prompt_tokens", 0) or 0
-            usage["output_tokens"] = getattr(response.usage, "completion_tokens", 0) or 0
-            usage["total_tokens"] = getattr(response.usage, "total_tokens", 0) or 0
+            raw_usage = response.usage
+            usage["input_tokens"] = getattr(raw_usage, "prompt_tokens", 0) or 0
+            usage["output_tokens"] = getattr(raw_usage, "completion_tokens", 0) or 0
+            usage["total_tokens"] = getattr(raw_usage, "total_tokens", 0) or 0
+
+            details = getattr(raw_usage, "prompt_tokens_details", None)
+            cached = int_field(details, "cached_tokens")
+            if cached is None:
+                cached = int_field(raw_usage, "prompt_cache_hit_tokens")
+            self._set_cache_fields(usage, cached, int_field(details, "cache_write_tokens"))
         return usage
+
+    def _extract_responses_usage(self, response) -> dict[str, int]:
+        """Extract token usage from a Responses API response.
+
+        The Responses API names its counts ``input_tokens`` / ``output_tokens``
+        and nests cache fields under ``input_tokens_details``. Reading it with the
+        Chat Completions extractor recorded every Responses call as 0 input
+        tokens (issue #193).
+        """
+        usage: dict[str, int] = {}
+        raw_usage = getattr(response, "usage", None)
+        if not raw_usage:
+            return usage
+        input_tokens = int_field(raw_usage, "input_tokens") or 0
+        output_tokens = int_field(raw_usage, "output_tokens") or 0
+        total_tokens = int_field(raw_usage, "total_tokens")
+        usage["input_tokens"] = input_tokens
+        usage["output_tokens"] = output_tokens
+        usage["total_tokens"] = total_tokens if total_tokens is not None else input_tokens + output_tokens
+
+        details = getattr(raw_usage, "input_tokens_details", None)
+        self._set_cache_fields(usage, int_field(details, "cached_tokens"), int_field(details, "cache_write_tokens"))
+        return usage
+
+    @staticmethod
+    def _set_cache_fields(usage: dict[str, int], cached: int | None, written: int | None) -> None:
+        """Record the normalised cache keys that the provider actually reported."""
+        if cached is not None:
+            usage[CACHED_INPUT_TOKENS] = cached
+        if written is not None:
+            usage[CACHE_WRITE_INPUT_TOKENS] = written
 
     def count_tokens(self, text: str, model_name: str) -> int:
         """Count tokens using OpenAI-compatible tokenizer tables when available."""

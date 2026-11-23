@@ -37,6 +37,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -50,6 +52,24 @@ DEFAULT_MODEL = "stub-model"
 #: depending on reply content should fail here rather than pass by luck.
 REPLY = "Stub response. This endpoint serves the simulator; it runs no model."
 
+#: The thread header PAL writes into a continuation (utils/conversation_memory.py).
+#: The simulated cache is keyed on it, so only requests of one thread share a prefix.
+THREAD_MARKER = re.compile(r"^Thread: ([0-9a-f-]{36})$", re.MULTILINE)
+
+
+def serialize(messages: list[dict]) -> str:
+    """Concatenate role, a newline and the text of each message (``ser`` in docs/prompt-caching.md)."""
+    return "".join(f"{m.get('role', '')}\n{m.get('content', '')}" for m in messages)
+
+
+def thread_key(messages: list[dict]) -> str | None:
+    """Return the thread id named by the request's ``Thread:`` header, if any."""
+    for message in messages:
+        match = THREAD_MARKER.search(str(message.get("content", "")))
+        if match:
+            return match.group(1)
+    return None
+
 
 class StubHandler(BaseHTTPRequestHandler):
     """Serves ``/v1/models`` and ``/v1/chat/completions``, and nothing else."""
@@ -59,6 +79,8 @@ class StubHandler(BaseHTTPRequestHandler):
     # Set by serve() so every handler instance shares one config and log.
     model: str = DEFAULT_MODEL
     requests: list[dict] = []
+    #: Serialized previous request per thread, for the simulated prompt cache.
+    previous_by_thread: dict[str, str] = {}
     lock = threading.Lock()
 
     def log_message(self, *_args):
@@ -123,8 +145,17 @@ class StubHandler(BaseHTTPRequestHandler):
             self._reject(400, problem)
             return
 
+        serialized = serialize(request["messages"])
+        thread = thread_key(request["messages"])
         with self.lock:
             self.requests.append(request)
+            previous = self.previous_by_thread.get(thread) if thread else None
+            if thread:
+                self.previous_by_thread[thread] = serialized
+        # A simulated prompt cache (issue #193): the prefix this request shares
+        # with the previous request of the same thread, at ~4 characters a token.
+        # A request with no thread header, or the first of its thread, is a miss.
+        cached_tokens = len(os.path.commonprefix([previous, serialized])) // 4 if previous else 0
 
         # Token counts are fabricated but internally consistent: the provider
         # reads usage into its own accounting, and a zero there has been
@@ -149,6 +180,7 @@ class StubHandler(BaseHTTPRequestHandler):
                     "prompt_tokens": prompt_tokens,
                     "completion_tokens": completion_tokens,
                     "total_tokens": prompt_tokens + completion_tokens,
+                    "prompt_tokens_details": {"cached_tokens": cached_tokens},
                 },
             },
         )
@@ -186,6 +218,7 @@ def serve(port: int = 11500, model: str = DEFAULT_MODEL) -> ThreadingHTTPServer:
     """Start the endpoint on ``port`` and return the server, already listening."""
     StubHandler.model = model
     StubHandler.requests = []
+    StubHandler.previous_by_thread = {}
     return ThreadingHTTPServer(("127.0.0.1", port), StubHandler)
 
 
