@@ -54,7 +54,11 @@ def build_enhanced_prompt(
         Tuple of ``(enhanced_prompt, remaining_tokens_for_files)``.
         ``remaining_tokens_for_files`` is clamped to ``>= 0``.
     """
-    conversation_history, conversation_tokens = build_conversation_history(thread_context, model_context)
+    # server.py records the current turn before calling this, so its files are in
+    # the history; its text goes in the NEW USER INPUT slot below.
+    conversation_history, conversation_tokens = build_conversation_history(
+        thread_context, model_context, latest_turn_is_input=True
+    )
 
     if conversation_history:
         enhanced_prompt = (

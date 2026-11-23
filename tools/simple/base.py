@@ -372,7 +372,7 @@ class SimpleTool(BaseTool):
 
                         # Build conversation history with updated thread context
                         conversation_history, conversation_tokens = build_conversation_history(
-                            thread_context, model_context
+                            thread_context, model_context, latest_turn_is_input=bool(user_prompt)
                         )
 
                         # Get the base prompt from the tool

@@ -131,4 +131,6 @@ class TestBuildEnhancedPrompt:
                 follow_up_instructions="f",
             )
 
-        bch.assert_called_once_with(thread, model)
+        # The current turn is recorded first; its text belongs to NEW USER INPUT (#194).
+        bch.assert_called_once_with(thread, model, latest_turn_is_input=True)
+

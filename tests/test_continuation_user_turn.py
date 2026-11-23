@@ -87,8 +87,11 @@ class TestServerContinuationRecordsOneUserTurn:
 
         prompt = _sent_prompt(provider)
         assert prompt.count(CONVERSATION_HISTORY_MARKER) == 1
-        assert FOLLOW_UP in prompt
         assert FIRST_REPLY in prompt
+        # Once, in the NEW USER INPUT slot: the recorded turn's text is not also
+        # rendered as the history's last turn (issue #194).
+        assert prompt.count(FOLLOW_UP) == 1
+        assert prompt.index(FOLLOW_UP) > prompt.index(NEW_USER_INPUT_MARKER)
 
 
 class TestServerContinuationKeepsPromptPreparation:

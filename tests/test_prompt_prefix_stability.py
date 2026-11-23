@@ -82,12 +82,10 @@ def test_g4_control_runs_agree(report):
 # -- gates (switched on by the stage that makes each pass) -------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="#187 records the prompt twice; Stage A (#194)")
 def test_g0_completeness(report):
     assert report["gates"]["G0"]["passed"], report["gates"]["G0"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="Turn N/50 header is the first varying byte; Stage A (#194)")
 def test_g1_chat_prefix_reaches_past_last_turn(report):
     assert report["gates"]["G1"]["passed"], report["gates"]["G1"]["problems"]
 

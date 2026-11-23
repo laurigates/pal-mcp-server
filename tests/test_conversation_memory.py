@@ -347,7 +347,8 @@ class TestConversationMemory:
         assert "CONVERSATION HISTORY" in history
         assert f"Thread: {test_uuid}" in history
         assert "Tool: chat" in history
-        assert f"Turn 2/{MAX_CONVERSATION_TURNS}" in history
+        # No turn counter in the header: it would break the prompt-cache prefix (#194).
+        assert f"/{MAX_CONVERSATION_TURNS}" not in history
 
         # Test speaker identification
         assert "--- Turn 1 (Agent) ---" in history
@@ -551,8 +552,8 @@ class TestConversationFlow:
             )
 
             history, tokens = build_conversation_history(context, model_context=None)
-            expected_turn_text = f"Turn {test_max}/{MAX_CONVERSATION_TURNS}"
-            assert expected_turn_text in history
+            # The turn number appears only in the trailer, after the history (#194).
+            assert f"This is turn {test_max + 1} of the conversation" in history
 
     def test_follow_up_instructions_dynamic_behavior(self):
         """Test that follow-up instructions change correctly based on turn count and max setting"""
