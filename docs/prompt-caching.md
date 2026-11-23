@@ -11,7 +11,7 @@ All file references are at `288d446` (release 11.7.0) unless stated otherwise.
 
 | Stage | Issue | State |
 |---|---|---|
-| 0 — Measurement | #193 | code landed; control calls pending |
+| 0 — Measurement | #193 | code landed; Gemini control calls recorded, the others pending |
 | A — Stable continuation prefix | #194 | open |
 | B — Append-only files and history | #195 | open |
 | C — Strict prefix (decide after A/B results) | #196 | deferred |
@@ -361,10 +361,20 @@ recorded in the results table.
 | Date | Commit | Arm | Model | Hit ratio 3–6 (median, range) | SCHR | Realisation | Σ input / cached / written | Effective cost vs uncached |
 |---|---|---|---|---|---|---|---|---|
 
-Control calls (need live provider keys; not yet run):
+Control calls. Each sends a ~8.2k-token prompt that starts with a fresh nonce
+(guaranteed miss), then the identical request a few seconds later. Gemini was
+called through the `google-genai` SDK, and the response was passed to PAL's
+`GeminiModelProvider._extract_usage`. The other providers still need live keys.
 
-| Date | Provider / model | Miss reports cached field as | Write share (GPT-5.6+) |
-|---|---|---|---|
+| Date | Provider / model | Miss reports cached field as | Repeat: cached / prompt tokens | Write share (GPT-5.6+) |
+|---|---|---|---|---|
+| 2026-11-23 | Gemini API / gemini-2.5-flash | absent (`None`); PAL records 0 | 8,170 / 8,182 | — |
+| 2026-11-23 | Gemini API / gemini-3.8-flash | absent (`None`); PAL records 0 | 6,136 / 8,183 | — |
+
+On both models `prompt_token_count` was the same on the miss and the hit, so it
+includes cached tokens, and the hit ratio's denominator needs no correction on
+the Gemini API path. Thinking tokens (`thoughts_token_count`) are missing from
+PAL's output and total counts: #258.
 
 Offline baseline, `just cache-prefix` on the Stage 0 code: every gate (G0–G5, G7)
 fails, as described above. Consecutive chat continuations share 5,799 characters
