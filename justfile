@@ -97,3 +97,17 @@ mcpb-build:
 # Launch the built bundle from an empty HOME and require a non-empty tools/list
 mcpb-smoke *ARGS:
     uv run python scripts/smoke_mcpb.py {{ARGS}}
+
+# --- prompt caching (docs/prompt-caching.md) ---------------------------------
+#
+# Stage 0 measurement (issue #193). cache-report reads the transcripts under
+# <state dir>/threads and reports, per provider and model, how much input the
+# provider served from its prompt cache.
+
+# Summarise prompt-cache hits per provider and model; pass `--json` for machine-readable output
+cache-report *ARGS:
+    uv run python scripts/cache_report.py {{ARGS}}
+
+# Offline prompt-prefix harness: scenarios S1-S7 against the in-process stub and gates G0-G7; pass `--json` for machine-readable output
+cache-prefix *ARGS:
+    uv run python scripts/cache_prefix.py {{ARGS}}

@@ -115,6 +115,14 @@ in the middle of a thread. `parent_thread_id` is set only when the caller passed
 a parent to `create_thread()`, which no built-in tool does today. The header
 omits the thread's initial request parameters to stay small.
 
+An assistant turn that called a model records that call's token usage in
+`model_metadata`: under `usage` for simple tools, and under
+`call_usage` (`model_name`, `provider`, `usage`) for a workflow expert call or a
+consensus consult. Besides `input_tokens`, `output_tokens` and `total_tokens`,
+`usage` carries `cached_input_tokens` and `cache_write_input_tokens` when the
+provider reported them. `just cache-report` summarises them; see
+[prompt-caching.md](prompt-caching.md).
+
 ### Browsing threads with `@pal:`
 
 The server exposes the transcripts as MCP resources, so a client such as Claude

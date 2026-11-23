@@ -670,6 +670,7 @@ class BaseWorkflowMixin(ABC):
             # dict cannot carry a previous call's model into a no-model response.
             arguments.pop("_expert_model_called", None)
             arguments.pop("_expert_provider_called", None)
+            arguments.pop("_expert_usage", None)
 
             # Validate request using tool-specific model
             request = self.get_workflow_request_model()(**arguments)
@@ -802,7 +803,9 @@ class BaseWorkflowMixin(ABC):
 
             # Store in conversation memory
             if continuation_id:
-                self.store_conversation_turn(continuation_id, response_data, request)
+                self.store_conversation_turn(
+                    continuation_id, response_data, request, call_usage=self._expert_call_usage(arguments)
+                )
 
             return [TextContent(type="text", text=json.dumps(response_data, indent=2, ensure_ascii=False))]
 
@@ -1260,7 +1263,14 @@ class BaseWorkflowMixin(ABC):
         clean_args = {
             k: v
             for k, v in arguments.items()
-            if k not in ["_model_context", "_resolved_model_name", "_expert_model_called", "_expert_provider_called"]
+            if k
+            not in [
+                "_model_context",
+                "_resolved_model_name",
+                "_expert_model_called",
+                "_expert_provider_called",
+                "_expert_usage",
+            ]
         }
         thread_id = create_thread(self.get_name(), clean_args)
         try:
@@ -1269,9 +1279,36 @@ class BaseWorkflowMixin(ABC):
             logger.error(f"Failed to persist the opening step of workflow thread {thread_id}: {exc}", exc_info=True)
         return thread_id
 
-    def store_conversation_turn(self, continuation_id: str, response_data: dict, request):
+    @staticmethod
+    def call_usage_record(model_name: str | None, provider: str | None, usage: Any) -> dict[str, Any] | None:
+        """Build the per-turn ``call_usage`` record for one model call (issue #193).
+
+        Returns None when the call reported no usage dict, so a turn never claims
+        a measurement it does not have.
+        """
+        if not isinstance(usage, dict):
+            return None
+        return {"model_name": model_name, "provider": provider, "usage": dict(usage)}
+
+    def _expert_call_usage(self, arguments: dict[str, Any]) -> dict[str, Any] | None:
+        """Return the usage record ``_call_expert_analysis`` left on this request's arguments."""
+        if "_expert_usage" not in arguments:
+            return None
+        return self.call_usage_record(
+            arguments.get("_expert_model_called"),
+            arguments.get("_expert_provider_called"),
+            arguments.get("_expert_usage"),
+        )
+
+    def store_conversation_turn(
+        self, continuation_id: str, response_data: dict, request, call_usage: dict[str, Any] | None = None
+    ):
         """
         Store the conversation turn. Tools can override for custom memory storage.
+
+        ``call_usage`` is the usage of the one model call this step made, from
+        :meth:`call_usage_record`. It is stored under ``model_metadata["call_usage"]``
+        per turn, never cumulatively, so a report can sum it across turns.
 
         Storage backend faults are logged but do not fail the workflow —
         the response has already been generated, so swallowing the
@@ -1292,6 +1329,8 @@ class BaseWorkflowMixin(ABC):
             "initial_request": getattr(self, "initial_request", None),
             "tool_state": self.get_persisted_tool_state(),
         }
+        if call_usage is not None:
+            workflow_state["call_usage"] = call_usage
 
         # _add_workflow_metadata has already named the model this step called, or
         # None when no model ran, so the turn says which model answered (issue #174).
@@ -1688,6 +1727,9 @@ class BaseWorkflowMixin(ABC):
                         expert_capabilities.get_effective_max_output_tokens() if expert_capabilities else None
                     ),
                 )
+            # Per request, beside the model and provider recorded above, so the
+            # stored turn carries this call's own usage (issue #193).
+            arguments["_expert_usage"] = model_response.usage
             await progress.update(
                 f"{self.get_name()} · {model_name} · expert analysis done · {summarize_usage(model_response.usage)}"
             )
