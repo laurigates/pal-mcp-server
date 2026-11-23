@@ -7,9 +7,9 @@
       "configured": 341,
       "error": null,
       "reason": "",
-      "catalog": 469,
-      "candidates_total": 1,
-      "candidates_shown": 1
+      "catalog": 477,
+      "candidates_total": 9,
+      "candidates_shown": 9
     },
     {
       "config_file": "gemini_models.json",
@@ -18,9 +18,9 @@
       "configured": 24,
       "error": null,
       "reason": "",
-      "catalog": 38,
-      "candidates_total": 0,
-      "candidates_shown": 0
+      "catalog": 39,
+      "candidates_total": 1,
+      "candidates_shown": 1
     },
     {
       "config_file": "openai_models.json",
@@ -29,9 +29,9 @@
       "configured": 32,
       "error": null,
       "reason": "",
-      "catalog": 51,
-      "candidates_total": 0,
-      "candidates_shown": 0
+      "catalog": 43,
+      "candidates_total": 2,
+      "candidates_shown": 2
     },
     {
       "config_file": "xai_models.json",
@@ -40,7 +40,7 @@
       "configured": 8,
       "error": null,
       "reason": "",
-      "catalog": 12,
+      "catalog": 11,
       "candidates_total": 0,
       "candidates_shown": 0
     },
@@ -51,9 +51,9 @@
       "configured": 32,
       "error": null,
       "reason": "",
-      "catalog": 42,
-      "candidates_total": 2,
-      "candidates_shown": 2
+      "catalog": 43,
+      "candidates_total": 3,
+      "candidates_shown": 3
     },
     {
       "config_file": "dial_models.json",
@@ -84,6 +84,16 @@
     }
   ],
   "findings": [
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "deepseek/deepseek-r1-0528",
+      "detail": "max_output_tokens: configured 32,768 vs catalog 32,000",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 32768,
+      "catalog": 32000
+    },
     {
       "kind": "deprecated",
       "config_file": "openrouter_models.json",
@@ -140,22 +150,168 @@
       "expires": "2026-12-11"
     },
     {
-      "kind": "deprecated",
+      "kind": "stale",
       "config_file": "openrouter_models.json",
-      "model_name": "meta-llama/llama-3.2-1b-instruct",
-      "detail": "catalog sets expiration_date=2026-11-20",
+      "model_name": "deepseek/deepseek-chat-v3-0324",
+      "detail": "max_output_tokens: configured 115,200 vs catalog 147,456",
       "confidence": "confirmed",
-      "aliases": [],
-      "expires": "2026-11-20"
+      "field": "max_output_tokens",
+      "configured": 115200,
+      "catalog": 147456
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "deepseek/deepseek-v4-flash-0731",
+      "detail": "max_output_tokens: configured 384,000 vs catalog 943,718",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 384000,
+      "catalog": 943718
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "deepseek/deepseek-v4-flash-vision-exp",
+      "detail": "max_output_tokens: configured 943,717 vs catalog 262,144",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 943717,
+      "catalog": 262144
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "google/gemma-3-27b-it",
+      "detail": "max_output_tokens: configured 117,964 vs catalog 16,384",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 117964,
+      "catalog": 16384
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "google/gemma-3-4b-it",
+      "detail": "max_output_tokens: configured 16,384 vs catalog 117,964",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 16384,
+      "catalog": 117964
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "gryphe/mythomax-l2-13b",
+      "detail": "max_output_tokens: configured 3,686 vs catalog 7,372",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 3686,
+      "catalog": 7372
     },
     {
       "kind": "deprecated",
       "config_file": "openrouter_models.json",
+      "model_name": "meituan/longcat-2.0",
+      "detail": "absent from the openrouter catalog",
+      "confidence": "confirmed",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openrouter_models.json",
+      "model_name": "meta-llama/llama-3.2-1b-instruct",
+      "detail": "absent from the openrouter catalog",
+      "confidence": "confirmed",
+      "aliases": []
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
       "model_name": "meta-llama/llama-3.2-3b-instruct",
-      "detail": "catalog sets expiration_date=2026-11-20",
+      "detail": "max_output_tokens: configured 72,000 vs catalog 117,964",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 72000,
+      "catalog": 117964
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "meta/muse-glimmer-30b",
+      "detail": "max_output_tokens: configured 16,384 vs catalog 117,964",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 16384,
+      "catalog": 117964
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "minimax/minimax-m2.5",
+      "detail": "max_output_tokens: configured 176,947 vs catalog 32,768",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 176947,
+      "catalog": 32768
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "minimax/minimax-m2.7",
+      "detail": "max_output_tokens: configured 176,947 vs catalog 131,072",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 176947,
+      "catalog": 131072
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openrouter_models.json",
+      "model_name": "mistralai/mistral-medium-3-5",
+      "detail": "catalog sets expiration_date=2027-01-31",
       "confidence": "confirmed",
       "aliases": [],
-      "expires": "2026-11-20"
+      "expires": "2027-01-31"
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "mistralai/mistral-small-3.2-24b-instruct",
+      "detail": "max_output_tokens: configured 26,214 vs catalog 16,384",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 26214,
+      "catalog": 16384
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "nvidia/nemotron-3-ultra-550b-a55b",
+      "detail": "max_output_tokens: configured 182,520 vs catalog 16,384",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 182520,
+      "catalog": 16384
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openrouter_models.json",
+      "model_name": "nvidia/nemotron-3.5-content-safety",
+      "detail": "catalog sets expiration_date=2026-11-30",
+      "confidence": "confirmed",
+      "aliases": [],
+      "expires": "2026-11-30"
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "nvidia/nemotron-3.5-lightning",
+      "detail": "context_window: configured 262,144 vs catalog 1,048,576",
+      "confidence": "confirmed",
+      "field": "context_window",
+      "configured": 262144,
+      "catalog": 1048576
     },
     {
       "kind": "deprecated",
@@ -169,12 +325,128 @@
     {
       "kind": "stale",
       "config_file": "openrouter_models.json",
-      "model_name": "openai/gpt-oss-20b",
-      "detail": "max_output_tokens: configured 117,964 vs catalog 65,536",
+      "model_name": "openai/gpt-oss-120b",
+      "detail": "max_output_tokens: configured 65,536 vs catalog 117,964",
       "confidence": "confirmed",
       "field": "max_output_tokens",
-      "configured": 117964,
+      "configured": 65536,
+      "catalog": 117964
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "qwen/qwen3-next-80b-a3b-instruct",
+      "detail": "max_output_tokens: configured 16,384 vs catalog 235,929",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 16384,
+      "catalog": 235929
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "qwen/qwen3.5-9b",
+      "detail": "max_output_tokens: configured 40,960 vs catalog 235,929",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 40960,
+      "catalog": 235929
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "qwen/qwen3.8-2.4t-a95b",
+      "detail": "max_output_tokens: configured 131,072 vs catalog 65,536",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 131072,
       "catalog": 65536
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "qwen/qwen3.8-27b",
+      "detail": "max_output_tokens: configured 235,929 vs catalog 131,072",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 235929,
+      "catalog": 131072
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "tencent/hy3",
+      "detail": "max_output_tokens: configured 128,000 vs catalog 235,929",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 128000,
+      "catalog": 235929
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openrouter_models.json",
+      "model_name": "tencent/hy3-preview",
+      "detail": "absent from the openrouter catalog",
+      "confidence": "confirmed",
+      "aliases": []
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "typesafe/jev-router",
+      "detail": "max_output_tokens: configured 64,000 vs catalog 128,000",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 64000,
+      "catalog": 128000
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openrouter_models.json",
+      "model_name": "x-ai/grok-build-0.1",
+      "detail": "absent from the openrouter catalog",
+      "confidence": "confirmed",
+      "aliases": []
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "xiaomi/mimo-v2.5-pro",
+      "detail": "context_window: configured 1,024,000 vs catalog 262,144",
+      "confidence": "confirmed",
+      "field": "context_window",
+      "configured": 1024000,
+      "catalog": 262144
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "xiaomi/mimo-v2.5-pro",
+      "detail": "max_output_tokens: configured 131,072 vs catalog 235,929",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 131072,
+      "catalog": 235929
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "xiaomi/mimo-v2.6-flash",
+      "detail": "context_window: configured 1,050,000 vs catalog 1,048,576",
+      "confidence": "confirmed",
+      "field": "context_window",
+      "configured": 1050000,
+      "catalog": 1048576
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "xiaomi/mimo-v2.6-pro",
+      "detail": "context_window: configured 1,050,000 vs catalog 1,048,576",
+      "confidence": "confirmed",
+      "field": "context_window",
+      "configured": 1050000,
+      "catalog": 1048576
     },
     {
       "kind": "deprecated",
@@ -195,13 +467,134 @@
       "expires": "2026-12-31"
     },
     {
-      "kind": "deprecated",
+      "kind": "stale",
       "config_file": "openrouter_models.json",
       "model_name": "z-ai/glm-5.1",
-      "detail": "catalog sets expiration_date=2026-11-20",
+      "detail": "max_output_tokens: configured 182,476 vs catalog 131,072",
       "confidence": "confirmed",
-      "aliases": [],
-      "expires": "2026-11-20"
+      "field": "max_output_tokens",
+      "configured": 182476,
+      "catalog": 131072
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "inclusionai/ling-3.1-flash",
+      "detail": "context_window: configured 1,000,000 vs catalog 1,048,576",
+      "confidence": "confirmed",
+      "field": "context_window",
+      "configured": 1000000,
+      "catalog": 1048576
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "nvidia/nemotron-3.5-super-vl",
+      "detail": "max_output_tokens: configured 235,929 vs catalog 943,718",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 235929,
+      "catalog": 943718
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "reflection/beam-1.0-501b-a23b",
+      "detail": "max_output_tokens: configured 943,718 vs catalog 131,072",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 943718,
+      "catalog": 131072
+    },
+    {
+      "kind": "stale",
+      "config_file": "openrouter_models.json",
+      "model_name": "openrouter/auto-code",
+      "detail": "max_output_tokens: configured 64,000 vs catalog 128,000",
+      "confidence": "confirmed",
+      "field": "max_output_tokens",
+      "configured": 64000,
+      "catalog": 128000
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "thinkingmachines/inkling-2-mini",
+      "detail": "live in catalog (released/created 1795227585), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": 1795227585
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "radixark/daisyrose-27b",
+      "detail": "live in catalog (released/created 1795222188), not configured",
+      "confidence": "review",
+      "context_window": 262144,
+      "max_output_tokens": 235929,
+      "released": 1795222188
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "mistralai/pixtral-large-2502",
+      "detail": "live in catalog (released/created 1795135865), not configured",
+      "confidence": "review",
+      "context_window": 128000,
+      "max_output_tokens": 102400,
+      "released": 1795135865
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "google/gemini-4-neon",
+      "detail": "live in catalog (released/created 1795006977), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "released": 1795006977
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "openai/gpt-6.2-astra-pro",
+      "detail": "live in catalog (released/created 1794938432), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": 1794938432
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "openai/gpt-6.2-astra",
+      "detail": "live in catalog (released/created 1794938423), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": 1794938423
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "openai/gpt-6.2-sol-pro",
+      "detail": "live in catalog (released/created 1794938409), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": 1794938409
+    },
+    {
+      "kind": "missing",
+      "config_file": "openrouter_models.json",
+      "model_name": "openai/gpt-6.2-sol",
+      "detail": "live in catalog (released/created 1794938371), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": 1794938371
     },
     {
       "kind": "missing",
@@ -224,6 +617,205 @@
       "catalog": 32768
     },
     {
+      "kind": "missing",
+      "config_file": "gemini_models.json",
+      "model_name": "gemini-4-neon",
+      "detail": "live in catalog (released/created 2026-11-18), not configured",
+      "confidence": "review",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "released": "2026-11-18"
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.3-codex",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": [
+        "gpt5.3-codex",
+        "gpt-5.3-codex",
+        "codex-5.3",
+        "5.3-codex",
+        "codex",
+        "gpt5-codex",
+        "gpt-5-code",
+        "gpt5-code",
+        "gpt5.1-codex",
+        "gpt-5.1-codex",
+        "gpt5.1code",
+        "gpt-5.1-code",
+        "codex-5.1"
+      ]
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.3-codex-spark",
+      "detail": "absent from the modelsdev catalog",
+      "confidence": "review",
+      "aliases": [
+        "gpt5.3-codex-spark",
+        "gpt-5.3-codex-spark",
+        "codex-spark",
+        "codex-mini",
+        "gpt5.1-codex-mini",
+        "gpt-5.1-codex-mini",
+        "5.1-codex-mini"
+      ]
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": [
+        "gpt5",
+        "gpt-5"
+      ]
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5-mini",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": [
+        "gpt5-mini",
+        "gpt5mini",
+        "mini"
+      ]
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5-nano",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": [
+        "gpt5nano",
+        "gpt5-nano",
+        "nano"
+      ]
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "o3",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "o3-pro",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": [
+        "o3pro"
+      ]
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-4.1",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": [
+        "gpt4.1"
+      ]
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-4.1-mini",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-4o",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-4o-2024-08-06",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-4o-2024-11-20",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-4o-mini",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5-pro",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-5.4-nano",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-6.2-astra",
+      "detail": "live in catalog (released/created 2026-11-17), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-11-17"
+    },
+    {
+      "kind": "missing",
+      "config_file": "openai_models.json",
+      "model_name": "gpt-6.2-sol",
+      "detail": "live in catalog (released/created 2026-11-17), not configured",
+      "confidence": "review",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "released": "2026-11-17"
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "xai_models.json",
+      "model_name": "grok-build-0.1",
+      "detail": "absent from the modelsdev catalog",
+      "confidence": "review",
+      "aliases": [
+        "grok-build",
+        "grok-build-0.1",
+        "grok-code"
+      ]
+    },
+    {
       "kind": "stale",
       "config_file": "opencode_go_models.json",
       "model_name": "kimi-k3",
@@ -234,14 +826,38 @@
       "catalog": 1048576
     },
     {
+      "kind": "deprecated",
+      "config_file": "opencode_go_models.json",
+      "model_name": "glm-5.2",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "opencode_go_models.json",
+      "model_name": "longcat-2.0",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
+      "kind": "deprecated",
+      "config_file": "opencode_go_models.json",
+      "model_name": "longcat-2.5-free",
+      "detail": "catalog sets status=deprecated",
+      "confidence": "review",
+      "aliases": []
+    },
+    {
       "kind": "missing",
       "config_file": "opencode_go_models.json",
-      "model_name": "mimo-v2.5",
-      "detail": "live in catalog (released/created 2026-04-22), not configured",
+      "model_name": "longcat-2.5",
+      "detail": "live in catalog (released/created 2026-11-02), not configured",
       "confidence": "review",
       "context_window": 1000000,
-      "max_output_tokens": 128000,
-      "released": "2026-04-22"
+      "max_output_tokens": 262144,
+      "released": "2026-11-02"
     },
     {
       "kind": "missing",
@@ -250,6 +866,16 @@
       "detail": "live in catalog (released/created 2026-04-22), not configured",
       "confidence": "review",
       "context_window": 1048576,
+      "max_output_tokens": 128000,
+      "released": "2026-04-22"
+    },
+    {
+      "kind": "missing",
+      "config_file": "opencode_go_models.json",
+      "model_name": "mimo-v2.5",
+      "detail": "live in catalog (released/created 2026-04-22), not configured",
+      "confidence": "review",
+      "context_window": 1000000,
       "max_output_tokens": 128000,
       "released": "2026-04-22"
     }
