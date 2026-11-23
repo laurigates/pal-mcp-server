@@ -191,6 +191,40 @@ class TestStaleMetadata:
         findings, _ = audit.audit_target(target, catalogs, top_n=0)
         assert _kinds(findings, "stale") == []
 
+    # OpenRouter's top_provider.max_completion_tokens follows whichever upstream
+    # provider ranks first that week (#234), so only a configured value above it
+    # -- the direction that can fail a request -- is drift.
+    def test_openrouter_max_output_below_catalog_is_not_stale(self, conf_dir, catalogs):
+        conf_dir(
+            "openrouter_models.json",
+            [{"model_name": "vendor/live-model", "context_window": 200_000, "max_output_tokens": 32_000}],
+        )
+        target = audit.Target("openrouter_models.json", "openrouter", label="OpenRouter")
+        findings, _ = audit.audit_target(target, catalogs, top_n=0)
+        assert _kinds(findings, "stale") == []
+
+    def test_openrouter_max_output_above_catalog_is_stale(self, conf_dir, catalogs):
+        conf_dir(
+            "openrouter_models.json",
+            [{"model_name": "vendor/live-model", "context_window": 200_000, "max_output_tokens": 128_000}],
+        )
+        target = audit.Target("openrouter_models.json", "openrouter", label="OpenRouter")
+        findings, _ = audit.audit_target(target, catalogs, top_n=0)
+        stale = _kinds(findings, "stale")
+        assert len(stale) == 1
+        assert stale[0].extra == {"field": "max_output_tokens", "configured": 128_000, "catalog": 64_000}
+
+    def test_modelsdev_max_output_below_catalog_is_still_stale(self, conf_dir, catalogs):
+        conf_dir(
+            "gemini_models.json",
+            [{"model_name": "gemini-test", "context_window": 1_000_000, "max_output_tokens": 32_768}],
+        )
+        target = audit.Target("gemini_models.json", "modelsdev", "google", "Gemini")
+        findings, _ = audit.audit_target(target, catalogs, top_n=0)
+        stale = _kinds(findings, "stale")
+        assert len(stale) == 1
+        assert stale[0].extra == {"field": "max_output_tokens", "configured": 32_768, "catalog": 65_536}
+
 
 class TestCandidateAdditions:
     def test_unconfigured_live_model_is_a_candidate(self, conf_dir, catalogs):
