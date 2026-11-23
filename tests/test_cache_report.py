@@ -23,6 +23,7 @@ SCRIPT = REPO_ROOT / "scripts" / "cache_report.py"
 def _load_module():
     """Import the script by path -- scripts/ is not a package."""
     spec = importlib.util.spec_from_file_location("cache_report", SCRIPT)
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules["cache_report"] = module
     spec.loader.exec_module(module)

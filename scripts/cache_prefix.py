@@ -170,6 +170,7 @@ def _load_stub():
     import importlib.util  # noqa: PLC0415
 
     spec = importlib.util.spec_from_file_location("stub_provider", REPO_ROOT / "simulator_tests" / "stub_provider.py")
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
