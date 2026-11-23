@@ -20,6 +20,12 @@ Because models.dev is community-maintained, absence from it is reported as
 ``review`` rather than ``confirmed``: it omits live models often enough that
 treating a miss as proof of removal would delete working entries.
 
+A gateway with its own model list replaces models.dev for its config when its
+key is set (``GATEWAYS``). OpenCode Go's ``/v1/models`` is the authority for
+opencode_go_models.json: on 2026-11-16 models.dev listed ``mimo-v2.5`` and
+``mimo-v2.5-pro`` as live while the gateway answered 410 for both (#235).
+Without the key -- the scheduled CI run -- the audit falls back to models.dev.
+
 Exit codes: 0 no drift, 1 drift found (with --fail-on-drift), 2 audit could not run.
 """
 
@@ -28,6 +34,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import sys
 import urllib.error
@@ -41,6 +48,12 @@ CONF_DIR = REPO_ROOT / "conf"
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/models"
 MODELSDEV_URL = "https://models.dev/api.json"
+
+# Keyed gateway catalogs: catalog name -> (models URL, API key env var). Fetched
+# only when the key is set; the key goes in the request, never in the cache.
+GATEWAYS: dict[str, tuple[str, str]] = {
+    "opencode_go": ("https://opencode.ai/zen/go/v1/models", "OPENCODE_API_KEY"),
+}
 
 USER_AGENT = "pal-mcp-server-model-audit/1 (+https://github.com/laurigates/pal-mcp-server)"
 
@@ -85,6 +98,7 @@ class Target:
     label: str = ""
     reason: str = ""  # why unverifiable, when applicable
     module: str = ""  # providers/<module>, checked for stale hardcoded ids
+    gateway: str = ""  # GATEWAYS key that supersedes ``source`` when its catalog was fetched
 
 
 TARGETS: tuple[Target, ...] = (
@@ -102,6 +116,7 @@ TARGETS: tuple[Target, ...] = (
         "opencode-go",
         "OpenCode Zen (go)",
         module="opencode_go.py",
+        gateway="opencode_go",
     ),
     Target(
         "dial_models.json",
@@ -193,8 +208,10 @@ class Finding:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
-def fetch_json(url: str, timeout: int = 45) -> Any:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+def fetch_json(url: str, headers: dict[str, str] | None = None, timeout: int = 45) -> Any:
+    req = urllib.request.Request(
+        url, headers={"User-Agent": USER_AGENT, "Accept": "application/json", **(headers or {})}
+    )
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - fixed https literals
         return json.loads(resp.read().decode("utf-8"))
 
@@ -220,7 +237,36 @@ def load_catalogs(cache_dir: Path | None, offline: bool) -> dict[str, Any]:
         if cached:
             cached.parent.mkdir(parents=True, exist_ok=True)
             cached.write_text(json.dumps(catalogs[name]))
+    catalogs.update(load_gateway_catalogs(cache_dir, offline))
     return catalogs
+
+
+def load_gateway_catalogs(cache_dir: Path | None, offline: bool) -> dict[str, Any]:
+    """Fetch each keyed gateway catalog whose key is set; skip the rest.
+
+    A gateway that cannot be reached is a warning, not an error: its config is
+    then audited against models.dev, as in the keyless run. ``--offline`` reads
+    a cached list when one exists.
+    """
+    out: dict[str, Any] = {}
+    for name, (url, key_env) in GATEWAYS.items():
+        cached = (cache_dir / f"{name}.json") if cache_dir else None
+        if offline:
+            if cached and cached.exists():
+                out[name] = json.loads(cached.read_text())
+            continue
+        key = os.environ.get(key_env)
+        if not key:
+            continue
+        try:
+            out[name] = fetch_json(url, headers={"Authorization": f"Bearer {key}"})
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            print(f"WARN fetch failed for {name} ({exc}); auditing against models.dev instead", file=sys.stderr)
+            continue
+        if cached:
+            cached.parent.mkdir(parents=True, exist_ok=True)
+            cached.write_text(json.dumps(out[name]))
+    return out
 
 
 def openrouter_index(catalog: Any) -> dict[str, dict[str, Any]]:
@@ -285,6 +331,46 @@ def modelsdev_index(catalog: Any, provider_id: str) -> dict[str, dict[str, Any]]
     return out
 
 
+def gateway_index(catalog: Any) -> dict[str, dict[str, Any]]:
+    """Normalise an OpenAI-style ``/v1/models`` list into id -> facts.
+
+    The facts use the models.dev keys, so scripts/generate_model_entries.py maps
+    them with its models.dev branch. MIME input types (``image/png``) are folded
+    to their major type, which is what that mapping checks for.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for m in catalog.get("data", []):
+        mid = m.get("id")
+        if not mid:
+            continue
+        limit = m.get("limit") or {}
+        modalities = m.get("modalities") or {}
+        caps = m.get("capabilities") or {}
+        inputs: list[str] = []
+        for modality in modalities.get("input") or []:
+            major = modality.split("/", 1)[0]
+            if major not in inputs:
+                inputs.append(major)
+        temperature = caps.get("temperature")
+        out[mid] = {
+            "id": mid,
+            "name": m.get("name"),
+            "context_window": limit.get("context"),
+            "max_output_tokens": limit.get("output"),
+            "expiration_date": None,
+            "status": None,
+            "created": m.get("release_date") or m.get("created"),
+            "input_modalities": inputs,
+            "output_modalities": modalities.get("output") or [],
+            "reasoning": (caps.get("reasoning") or {}).get("supported"),
+            "tool_call": (caps.get("tools") or {}).get("supported"),
+            "temperature": temperature if isinstance(temperature, bool) else None,
+            "attachment": None,
+            "description": m.get("description") or "",
+        }
+    return out
+
+
 def is_chat_model(facts: dict[str, Any]) -> bool:
     mid = (facts.get("id") or "").lower()
     if any(marker in mid for marker in NON_CHAT_MARKERS):
@@ -344,6 +430,8 @@ def candidate_facts(live: dict[str, dict[str, Any]], claimed: set[str]) -> list[
 
 def live_index(target: Target, catalogs: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], str]:
     """The catalog slice that verifies ``target``, and how far to trust an absence from it."""
+    if target.gateway and target.gateway in catalogs:
+        return gateway_index(catalogs[target.gateway]), "confirmed"  # the gateway's own live list
     if target.source == "openrouter":
         return openrouter_index(catalogs["openrouter"]), "confirmed"  # the provider's own live endpoint
     return modelsdev_index(catalogs["modelsdev"], target.provider_id), "review"  # community-maintained
@@ -476,6 +564,8 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
         return findings, meta
 
     live, confidence = live_index(target, catalogs)
+    source = target.gateway if target.gateway in catalogs else target.source
+    meta["source"] = source
 
     meta["catalog"] = len({f["id"] for f in live.values() if f.get("id")})
     if not live:
@@ -493,7 +583,7 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
                     "deprecated",
                     target.filename,
                     name,
-                    f"absent from the {target.source} catalog",
+                    f"absent from the {source} catalog",
                     confidence,
                     {"aliases": m.get("aliases", [])},
                 )
@@ -523,17 +613,23 @@ def audit_target(target: Target, catalogs: dict[str, Any], top_n: int) -> tuple[
             )
         for cfg_field in ("context_window", "max_output_tokens"):
             have, want = m.get(cfg_field), facts.get(cfg_field)
-            if isinstance(want, int) and isinstance(have, int) and want > 0 and have != want:
-                findings.append(
-                    Finding(
-                        "stale",
-                        target.filename,
-                        name,
-                        f"{cfg_field}: configured {have:,} vs catalog {want:,}",
-                        confidence,
-                        {"field": cfg_field, "configured": have, "catalog": want},
-                    )
+            if not (isinstance(want, int) and isinstance(have, int) and want > 0 and have != want):
+                continue
+            # OpenRouter's max_completion_tokens describes whichever upstream
+            # provider ranks first this week, so it moves in both directions
+            # (#234). Only a configured value above it can fail a request.
+            if cfg_field == "max_output_tokens" and target.source == "openrouter" and have < want:
+                continue
+            findings.append(
+                Finding(
+                    "stale",
+                    target.filename,
+                    name,
+                    f"{cfg_field}: configured {have:,} vs catalog {want:,}",
+                    confidence,
+                    {"field": cfg_field, "configured": have, "catalog": want},
                 )
+            )
 
     # Candidate additions: live chat models this config does not have at all.
     # scripts/generate_model_entries.py turns them into disabled entries.

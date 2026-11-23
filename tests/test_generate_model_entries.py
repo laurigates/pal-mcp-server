@@ -117,6 +117,41 @@ class TestGenerateFor:
         assert err is None
         assert [e["model_name"] for e in entries] == ["gemini-served"]
 
+    def test_skips_ids_the_opencode_go_gateway_does_not_list(self, tmp_path, monkeypatch):
+        """#235: models.dev listed mimo-v2.5 after the gateway answered 410 for it."""
+        (tmp_path / "opencode_go_models.json").write_text('{\n  "models": []\n}\n')
+        monkeypatch.setattr(gen, "CONF_DIR", tmp_path)
+        model = {"limit": {"context": 1000}, "modalities": {"input": ["text"], "output": ["text"]}}
+        catalogs = {
+            "modelsdev": {"opencode-go": {"models": {"mimo-v2.5": {**model, "name": "Gone"}}}},
+            "opencode_go": {
+                "data": [
+                    {
+                        "id": "mimo-v2.6-flash",
+                        "name": "MiMo V2.6 Flash",
+                        "modalities": {"input": ["text", "image/png"], "output": ["text"]},
+                        "capabilities": {"tools": {"supported": True}, "reasoning": {"supported": True}},
+                        "limit": {"context": 1_000_000, "output": 128_000},
+                    }
+                ]
+            },
+        }
+        target = next(t for t in gen.TARGETS if t.filename == "opencode_go_models.json")
+        entries, err = gen.generate_for(target, catalogs)
+        assert err is None
+        assert entries == [
+            {
+                "model_name": "mimo-v2.6-flash",
+                "description": "MiMo V2.6 Flash",
+                "context_window": 1_000_000,
+                "max_output_tokens": 128_000,
+                "supports_images": True,
+                "supports_function_calling": True,
+                "supports_extended_thinking": True,
+                "enabled_by_default": False,
+            }
+        ]
+
 
 class TestSpliceEntries:
     ENTRIES = [{"model_name": "a", "enabled_by_default": False}]
