@@ -48,6 +48,13 @@ with `"enabled_by_default": false` counts as configured, so once
 triaged yet. `ACTIONABLE` still excludes it: new releases land weekly, and a
 fresh release is not drift.
 
+For `openrouter_models.json`, `STALE` reports `max_output_tokens` only when the
+configured value is **above** OpenRouter's `top_provider.max_completion_tokens`.
+That number belongs to whichever upstream provider OpenRouter ranks first that
+week and moves in both directions, so matching it exactly flipped back to
+STALE on the next run ([#234](https://github.com/laurigates/pal-mcp-server/issues/234)).
+A value above it is sent as `max_tokens` and can fail the request.
+
 `ORPHAN_REF` is the one finding that is not about the config at all. Providers
 pin canonical ids *outside* the registry — `PRIMARY_MODEL`, `FALLBACK_MODEL`,
 and the per-category preference lists in `get_preferred_model` — as plain
