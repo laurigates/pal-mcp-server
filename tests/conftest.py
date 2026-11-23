@@ -66,6 +66,11 @@ env_config.reload_env({"PAL_MCP_FORCE_ENV_OVERRIDE": "false"})
 # neither a shell value nor a .env value wins over it.
 os.environ["PAL_LOG_DIR"] = tempfile.mkdtemp(prefix="pal-test-logs-")
 
+# Registry content must be deterministic under pytest: the bundled
+# conf/*_models.json only, never a fetched or cached catalog (#240, ADR-0001
+# decision 6). Tests of the dynamic registry opt back in with monkeypatch.
+os.environ["PAL_DYNAMIC_REGISTRY"] = "0"
+
 # Configure asyncio for Windows compatibility
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

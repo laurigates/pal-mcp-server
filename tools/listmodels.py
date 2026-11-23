@@ -237,6 +237,7 @@ class ListModelsTool(BaseTool):
                 provider = ModelProviderRegistry.get_provider(ProviderType.OPENROUTER)
                 if provider:
                     registry = OpenRouterModelRegistry()
+                    output_lines.append(f"**Registry source**: {registry.describe_source()}")
 
                     def _format_context(tokens: int) -> str:
                         if not tokens:
