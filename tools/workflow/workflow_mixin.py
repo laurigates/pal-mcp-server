@@ -39,6 +39,11 @@ from ..shared.exceptions import ToolExecutionError
 logger = logging.getLogger(__name__)
 
 
+def unique_in_order(items: list[str]) -> list[str]:
+    """Drop repeats and keep first-seen order, so rendered prompts do not depend on PYTHONHASHSEED (#194)."""
+    return list(dict.fromkeys(items))
+
+
 class BaseWorkflowMixin(ABC):
     """
     Abstract base class providing guided workflow functionality for tools.
@@ -362,12 +367,10 @@ class BaseWorkflowMixin(ABC):
 
         This ensures expert analysis has complete context without including irrelevant files.
         """
-        all_relevant_files = set()
+        # First-seen order, not a set: the order reaches the expert prompt (issue #194).
+        all_relevant_files = list(self.consolidated_findings.relevant_files)
 
-        # 1. Get files from current consolidated relevant_files
-        all_relevant_files.update(self.consolidated_findings.relevant_files)
-
-        # 2. Get additional relevant_files from conversation history (if continued workflow)
+        # Plus the relevant_files of earlier steps, from the conversation (continued workflow)
         try:
             current_arguments = self.get_current_arguments()
             if current_arguments:
@@ -380,7 +383,7 @@ class BaseWorkflowMixin(ABC):
                     if thread_context:
                         # Get all files from conversation (these were relevant_files in previous steps)
                         conversation_files = get_conversation_file_list(thread_context)
-                        all_relevant_files.update(conversation_files)
+                        all_relevant_files.extend(conversation_files)
                         logger.debug(
                             f"[WORKFLOW_FILES] {self.get_name()}: Added {len(conversation_files)} files from conversation history"
                         )
@@ -388,7 +391,7 @@ class BaseWorkflowMixin(ABC):
             logger.warning(f"[WORKFLOW_FILES] {self.get_name()}: Could not get conversation files: {e}")
 
         # Convert to list and remove any empty/None values
-        files_for_expert = [f for f in all_relevant_files if f and f.strip()]
+        files_for_expert = [f for f in unique_in_order(all_relevant_files) if f and f.strip()]
 
         if not files_for_expert:
             logger.debug(f"[WORKFLOW_FILES] {self.get_name()}: No relevant files found for expert analysis")
@@ -1573,9 +1576,12 @@ class BaseWorkflowMixin(ABC):
 
     def _update_consolidated_findings(self, step_data: dict):
         """Update consolidated findings with new step data"""
-        self.consolidated_findings.files_checked.update(step_data.get("files_checked", []))
-        self.consolidated_findings.relevant_files.update(step_data.get("relevant_files", []))
-        self.consolidated_findings.relevant_context.update(step_data.get("relevant_context", []))
+        findings = self.consolidated_findings
+        findings.files_checked = unique_in_order([*findings.files_checked, *step_data.get("files_checked", [])])
+        findings.relevant_files = unique_in_order([*findings.relevant_files, *step_data.get("relevant_files", [])])
+        findings.relevant_context = unique_in_order(
+            [*findings.relevant_context, *step_data.get("relevant_context", [])]
+        )
         self.consolidated_findings.findings.append(f"Step {step_data['step_number']}: {step_data['findings']}")
         if step_data.get("hypothesis"):
             self.consolidated_findings.hypotheses.append(
@@ -1718,7 +1724,7 @@ class BaseWorkflowMixin(ABC):
                     system_prompt=system_prompt,
                     temperature=validated_temperature,
                     thinking_mode=self.get_request_thinking_mode(request),
-                    images=list(set(self.consolidated_findings.images)) if self.consolidated_findings.images else None,
+                    images=unique_in_order(self.consolidated_findings.images) or None,
                     # Bound the expert reply by what our registry says this model
                     # supports; otherwise the provider's own default governs
                     # (issue #114). Same defensive read as the capability-augmented

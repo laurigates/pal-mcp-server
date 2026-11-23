@@ -100,7 +100,6 @@ def test_g3_requests_are_append_only(report):
     assert report["gates"]["G3"]["passed"], report["gates"]["G3"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="expert prompts iterate sets; Stage A (#194)")
 def test_g4_expert_prompts_ignore_hash_seed(report):
     assert report["gates"]["G4"]["passed"], report["gates"]["G4"]["problems"]
 

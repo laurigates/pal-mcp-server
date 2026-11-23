@@ -133,4 +133,3 @@ class TestBuildEnhancedPrompt:
 
         # The current turn is recorded first; its text belongs to NEW USER INPUT (#194).
         bch.assert_called_once_with(thread, model, latest_turn_is_input=True)
-
