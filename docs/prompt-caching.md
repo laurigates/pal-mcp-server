@@ -12,7 +12,7 @@ All file references are at `288d446` (release 11.7.0) unless stated otherwise.
 | Stage | Issue | State |
 |---|---|---|
 | 0 — Measurement | #193 | code landed; Gemini control calls recorded, the others pending |
-| A — Stable continuation prefix | #194 | open |
+| A — Stable continuation prefix | #194 | code and offline gates done; cassette re-record and M3 pending |
 | B — Append-only files and history | #195 | open |
 | C — Strict prefix (decide after A/B results) | #196 | deferred |
 | D — Provider-specific explicit caching (decide after traffic data) | #197 | deferred |
@@ -381,6 +381,22 @@ fails, as described above. Consecutive chat continuations share 5,799 characters
 (`L_j` for S1–S3); the two S6 consults first differ at character 1,116; S5
 overflows the history budget and breaks before the last turn block on 10 of 11
 pairs. The harness does not build S4 (informational).
+
+Offline, `just cache-prefix` on the Stage A code (2026-11-23): G0, G1, G4 and G5
+pass; G2, G3 and G7 still fail, as expected before Stages B and C.
+
+| Scenario | SCHR, Stage 0 | SCHR, Stage A | `L_j` after Stage A |
+|---|---|---|---|
+| S1 chat, no files | 0.674 | 0.709 | 5,694 · 6,081 · 6,258 |
+| S2 same file each turn | 0.479 | 0.677 | 5,694 · 9,058 · 9,411 |
+| S3 new file at turns 1, 3, 5 | 0.395 | 0.512 | 5,694 · 6,118 · 11,863 · 6,118 |
+| S5 small context, 12 turns | 0.361 | 0.409 | 8 of 11 pairs at ~5,900 |
+
+From turn 2 on, each S1/S2 pair now shares everything through the previous
+request's last turn block. The first pair stops at 5,694 characters, where
+turn 1 puts the request and turn 2 starts its history block (Stage C). In S3 the pairs that attach a new
+file stop at 6,118, where the newest-first file section changes (Stage B). The
+S6 consults share 9,640 characters, past the end of the context file at 9,505.
 
 ## Unverified provider facts
 
