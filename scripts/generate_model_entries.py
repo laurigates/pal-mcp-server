@@ -51,7 +51,11 @@ def _positive_int(value: Any) -> int | None:
 
 
 def entry_from_facts(facts: dict[str, Any], source: str) -> dict[str, Any]:
-    """Build a disabled registry entry from one catalog record."""
+    """Build a disabled registry entry from one catalog record.
+
+    The OpenRouter branch has a runtime copy in providers/registries/catalog.py,
+    pinned to this one by tests/test_registry_catalog.py.
+    """
     inputs = [m.lower() for m in facts.get("input_modalities") or []]
     if source == "openrouter":
         params = set(facts.get("supported_parameters") or [])

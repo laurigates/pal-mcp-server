@@ -126,7 +126,8 @@ TARGETS: tuple[Target, ...] = (
 
 # Non-chat model families PAL never routes to. Matched as substrings against the
 # catalog id, and used only to filter *candidate additions* -- never to justify
-# removing something already configured.
+# removing something already configured. providers/registries/catalog.py keeps
+# a copy for the runtime registry; tests/test_registry_catalog.py pins the two.
 NON_CHAT_MARKERS = (
     "embedding",
     "embed-",
@@ -229,6 +230,9 @@ def openrouter_index(catalog: Any) -> dict[str, dict[str, Any]]:
     Both ``id`` and ``canonical_slug`` are indexed, and ``:batch`` / ``:free``
     variants are folded onto their base id: a re-slugged model is a rename, not
     a removal, and keying on ``id`` alone would report it as gone.
+
+    The runtime registry has a copy (providers/registries/catalog.py), pinned to
+    this one by tests/test_registry_catalog.py.
     """
     out: dict[str, dict[str, Any]] = {}
     for m in catalog.get("data", []):
