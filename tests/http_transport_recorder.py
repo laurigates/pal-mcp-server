@@ -347,11 +347,19 @@ class ReplayTransport(httpx.MockTransport):
     #: not leave that behaviour unpinned.
     TOKEN_LIMIT_FIELDS = ("max_tokens", "max_completion_tokens", "max_output_tokens")
 
+    #: Cache routing keys, also dropped before hashing. prompt_cache_key carries
+    #: the conversation thread id (issue #194), a fresh UUID on every run, so a
+    #: hash that included it could never match. Like a ceiling it routes the
+    #: request without changing the reply; tests/test_cache_routing_keys.py pins
+    #: that it is sent.
+    ROUTING_KEY_FIELDS = ("prompt_cache_key",)
+
     def _without_token_limits(self, content_dict: dict) -> dict:
-        """Return the request body with output-ceiling fields removed."""
+        """Return the request body without the output-ceiling and routing-key fields."""
         if not isinstance(content_dict, dict):
             return content_dict
-        return {key: value for key, value in content_dict.items() if key not in self.TOKEN_LIMIT_FIELDS}
+        unmatched = (*self.TOKEN_LIMIT_FIELDS, *self.ROUTING_KEY_FIELDS)
+        return {key: value for key, value in content_dict.items() if key not in unmatched}
 
     def _extract_semantic_fields(self, content_dict: dict) -> dict:
         """Extract only semantic fields for matching, ignoring volatile prompts.
