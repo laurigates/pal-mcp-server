@@ -1643,6 +1643,21 @@ server = Server(
 )
 
 
+def start_catalog_refreshes() -> list[str]:
+    """Start a background catalog refresh for each configured provider that has one.
+
+    Returns the names of the providers whose refresh started. Only OpenRouter
+    has a catalog source so far (ADR-0001 phase 1).
+    """
+    from providers.openrouter import OpenRouterProvider
+    from providers.registries.openrouter import start_openrouter_catalog_refresh
+
+    started = []
+    if OpenRouterProvider.is_configured() and start_openrouter_catalog_refresh() is not None:
+        started.append("openrouter")
+    return started
+
+
 async def main():
     """
     Main entry point for the MCP server.
@@ -1665,6 +1680,11 @@ async def main():
     from utils.transcripts import prune_transcripts
 
     prune_transcripts()
+
+    # Refresh OpenRouter model facts from its catalog in the background (#240).
+    # The registry already loaded from the cache or the bundled file, so
+    # nothing waits on this; PAL_DYNAMIC_REGISTRY=0 turns it off.
+    start_catalog_refreshes()
 
     # Note: MCP client info will be logged during the protocol handshake
     # (when handle_list_tools is called)

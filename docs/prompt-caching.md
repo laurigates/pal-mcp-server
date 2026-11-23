@@ -11,7 +11,7 @@ All file references are at `288d446` (release 11.7.0) unless stated otherwise.
 
 | Stage | Issue | State |
 |---|---|---|
-| 0 — Measurement | #193 | open |
+| 0 — Measurement | #193 | code landed; control calls pending |
 | A — Stable continuation prefix | #194 | open |
 | B — Append-only files and history | #195 | open |
 | C — Strict prefix (decide after A/B results) | #196 | deferred |
@@ -361,10 +361,16 @@ recorded in the results table.
 | Date | Commit | Arm | Model | Hit ratio 3–6 (median, range) | SCHR | Realisation | Σ input / cached / written | Effective cost vs uncached |
 |---|---|---|---|---|---|---|---|---|
 
-Control calls:
+Control calls (need live provider keys; not yet run):
 
 | Date | Provider / model | Miss reports cached field as | Write share (GPT-5.6+) |
 |---|---|---|---|
+
+Offline baseline, `just cache-prefix` on the Stage 0 code: every gate (G0–G5, G7)
+fails, as described above. Consecutive chat continuations share 5,799 characters
+(`L_j` for S1–S3); the two S6 consults first differ at character 1,116; S5
+overflows the history budget and breaks before the last turn block on 10 of 11
+pairs. The harness does not build S4 (informational).
 
 ## Unverified provider facts
 

@@ -48,6 +48,13 @@ with `"enabled_by_default": false` counts as configured, so once
 triaged yet. `ACTIONABLE` still excludes it: new releases land weekly, and a
 fresh release is not drift.
 
+For `openrouter_models.json`, `STALE` reports `max_output_tokens` only when the
+configured value is **above** OpenRouter's `top_provider.max_completion_tokens`.
+That number belongs to whichever upstream provider OpenRouter ranks first that
+week and moves in both directions, so matching it exactly flipped back to
+STALE on the next run ([#234](https://github.com/laurigates/pal-mcp-server/issues/234)).
+A value above it is sent as `max_tokens` and can fail the request.
+
 `ORPHAN_REF` is the one finding that is not about the config at all. Providers
 pin canonical ids *outside* the registry — `PRIMARY_MODEL`, `FALLBACK_MODEL`,
 and the per-category preference lists in `get_preferred_model` — as plain
@@ -64,11 +71,12 @@ re-run the audit, which now does it for you.
 
 ## The one trap that matters: absence is not withdrawal
 
-Two catalogs back the audit, and they carry **different authority**:
+Two public catalogs back the audit, plus one keyed gateway list, and they carry **different authority**:
 
 | Catalog | Covers | A model's absence means |
 |---|---|---|
 | `openrouter.ai/api/v1/models` | `openrouter_models.json` | **Confirmed gone.** This is the provider's own live serving list. It also carries `expiration_date`, reported as a confirmed DEPRECATED finding. |
+| `opencode.ai/zen/go/v1/models` (only with `OPENCODE_API_KEY` set) | `opencode_go_models.json` | **Confirmed gone.** The gateway's own curated list; it replaces models.dev for this config, so CANDIDATE ADDITIONS and `models-generate` take only ids it lists. On 2026-11-16 models.dev listed `mimo-v2.5` and `mimo-v2.5-pro` as live while the gateway answered 410 for both (#235). The COVERAGE line reads `source=opencode_go` when it was used; without the key, or when the fetch fails, the audit falls back to models.dev. |
 | `models.dev/api.json` | gemini, openai, xai, opencode zen | **Review only.** Community-maintained. It lags new releases and omits live models outright. Its per-model `status: "deprecated"` keeps a model out of CANDIDATE ADDITIONS and `models-generate`, and a configured one gets a `[review]` DEPRECATED finding: on 2026-10-07 the flag sat on `kimi-k2.6`, `qwen3.6-plus` and `qwen3.7-max` while the OpenCode Go gateway still served all three. |
 
 The script marks every models.dev-derived finding `[review]`. Treat that marker

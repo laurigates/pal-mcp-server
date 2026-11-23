@@ -315,8 +315,12 @@ class CustomModelRegistryBase:
                     )
                 alias_map[alias_lower] = config.model_name
 
-        self.alias_map = alias_map
+        # Swap in fresh maps, never mutate the live ones: a background catalog
+        # refresh (#240) reloads while requests resolve. model_map goes first,
+        # so a reader between the two assignments that takes a canonical name
+        # from the old alias_map still finds it (a refresh only adds entries).
         self.model_map = model_map
+        self.alias_map = alias_map
 
 
 class CapabilityModelRegistry(CustomModelRegistryBase):

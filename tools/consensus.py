@@ -531,8 +531,15 @@ of the evidence, even when it strongly points in one direction.""",
                 self.work_history.append(step_data)
                 self._update_consolidated_findings(step_data)
 
-                # Consult the model for this step
+                # Consult the model for this step. Its usage is recorded on this
+                # step's turn only: accumulated_responses is carried across steps,
+                # so usage kept there would be counted again on every later turn.
                 model_response = await self._consult_model(self.models_to_consult[model_idx], request)
+                call_usage = self.call_usage_record(
+                    model_response.get("model"),
+                    (model_response.get("metadata") or {}).get("provider"),
+                    model_response.pop("usage", None),
+                )
 
                 # Add to accumulated responses
                 self.accumulated_responses.append(model_response)
@@ -579,7 +586,7 @@ of the evidence, even when it strongly points in one direction.""",
                 self._add_workflow_metadata(response_data, arguments)
 
                 if continuation_id:
-                    self.store_conversation_turn(continuation_id, response_data, request)
+                    self.store_conversation_turn(continuation_id, response_data, request, call_usage=call_usage)
                     continuation_offer = self._build_continuation_offer(continuation_id)
                     if continuation_offer:
                         response_data["continuation_offer"] = continuation_offer
@@ -703,6 +710,8 @@ of the evidence, even when it strongly points in one direction.""",
                     "provider": provider.get_provider_type().value,
                     "model_name": model_name,
                 },
+                # Popped by execute_workflow into the step's call_usage record.
+                "usage": response.usage,
             }
 
         except Exception as e:

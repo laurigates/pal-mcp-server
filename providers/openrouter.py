@@ -78,6 +78,11 @@ class OpenRouterProvider(OpenAICompatibleProvider):
     ) -> ModelCapabilities | None:
         """Fetch OpenRouter capabilities from the registry or build a generic fallback."""
 
+        if isinstance(self._registry, OpenRouterModelRegistry) and self._registry.is_withdrawn(canonical_name):
+            raise ValueError(
+                f"Model '{requested_name or canonical_name}' is unavailable: the OpenRouter catalog no longer lists it."
+            )
+
         capabilities = self._registry.get_capabilities(canonical_name)
         if capabilities:
             return capabilities

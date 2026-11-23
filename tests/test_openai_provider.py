@@ -401,6 +401,35 @@ class TestOpenAIProvider:
         assert result.metadata["endpoint"] == "responses"
 
     @patch("providers.openai_compatible.AsyncOpenAI")
+    async def test_responses_endpoint_records_input_and_cached_tokens(self, mock_openai_class):
+        """The Responses path reads Responses field names, so input_tokens is the fixture value, not 0 (#193)."""
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+
+        usage = MagicMock(spec=["input_tokens", "output_tokens", "total_tokens", "input_tokens_details"])
+        usage.input_tokens = 1200
+        usage.output_tokens = 40
+        usage.total_tokens = 1240
+        usage.input_tokens_details = MagicMock(spec=["cached_tokens"])
+        usage.input_tokens_details.cached_tokens = 1024
+        mock_response = MagicMock()
+        mock_response.output_text = "4"
+        mock_response.model = "o3-pro"
+        mock_response.id = "test-id"
+        mock_response.created_at = 1234567890
+        mock_response.usage = usage
+        mock_client.responses.create = AsyncMock(return_value=mock_response)
+
+        provider = OpenAIModelProvider("test-key")
+        result = await provider.generate_content(prompt="What is 2 + 2?", model_name="o3-pro", temperature=1.0)
+
+        assert result.usage["input_tokens"] == 1200
+        assert result.usage["output_tokens"] == 40
+        assert result.usage["total_tokens"] == 1240
+        assert result.usage["cached_input_tokens"] == 1024
+        assert "cache_write_input_tokens" not in result.usage
+
+    @patch("providers.openai_compatible.AsyncOpenAI")
     async def test_non_o3_pro_uses_chat_completions(self, mock_openai_class):
         """Test that non-o3-pro models use the standard chat completions endpoint."""
         # Set up mock
