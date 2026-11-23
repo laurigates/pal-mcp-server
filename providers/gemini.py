@@ -18,6 +18,7 @@ from .base import ModelProvider
 from .registries.gemini import GeminiModelRegistry
 from .registry_provider_mixin import RegistryBackedProviderMixin
 from .shared import ModelCapabilities, ModelResponse, ProviderType
+from .shared.usage import CACHED_INPUT_TOKENS, int_field
 
 logger = logging.getLogger(__name__)
 
@@ -383,6 +384,11 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
                     pass
                 if input_tokens is not None and output_tokens is not None:
                     usage["total_tokens"] = input_tokens + output_tokens
+                # The SDK omits cached_content_token_count on a cache miss, so a
+                # response that reported counts but not this field is a miss: 0,
+                # not unknown (issue #193).
+                if usage:
+                    usage[CACHED_INPUT_TOKENS] = int_field(metadata, "cached_content_token_count") or 0
         except (AttributeError, TypeError):
             pass
         return usage

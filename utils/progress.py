@@ -88,12 +88,20 @@ def _token_count(usage: Any, key: str) -> int | None:
 
 
 def summarize_usage(usage: dict[str, int] | None) -> str:
-    """Render provider token usage for a status line: `12.4k in → 3.1k out`."""
+    """Render provider token usage for a status line: `12.4k in (9.8k cached) → 3.1k out`.
+
+    The cached part is the input the provider served from its prompt cache
+    (``cached_input_tokens``, issue #193), shown only when it is positive.
+    """
     parts = []
     for key, label in (("input_tokens", "in"), ("output_tokens", "out")):
         count = _token_count(usage, key)
         if count is not None:
-            parts.append(f"{format_tokens(count)} {label}")
+            part = f"{format_tokens(count)} {label}"
+            cached = _token_count(usage, "cached_input_tokens") if key == "input_tokens" else None
+            if cached is not None:
+                part += f" ({format_tokens(cached)} cached)"
+            parts.append(part)
 
     if not parts:
         total = _token_count(usage, "total_tokens")
