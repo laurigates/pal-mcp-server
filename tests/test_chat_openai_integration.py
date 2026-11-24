@@ -30,8 +30,8 @@ async def test_chat_auto_mode_with_openai(monkeypatch, tmp_path):
         "DEFAULT_MODEL": "auto",
         "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", ""),
     }
-    # Remove Gemini/XAI keys to force OpenAI selection
-    keys_to_clear = ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]
+    # Remove Gemini keys to force OpenAI selection
+    keys_to_clear = ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]
 
     with monkeypatch.context() as m:
         m.setenv("DEFAULT_MODEL", env_updates["DEFAULT_MODEL"])
@@ -96,7 +96,7 @@ async def test_chat_openai_continuation(monkeypatch, tmp_path):
         "DEFAULT_MODEL": "auto",
         "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", ""),
     }
-    keys_to_clear = ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]
+    keys_to_clear = ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]
 
     recording_mode = not CASSETTE_CONTINUATION_PATH.exists()
     if recording_mode:

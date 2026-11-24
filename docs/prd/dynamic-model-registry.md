@@ -72,7 +72,6 @@ The facts PAL sends to providers reflect the provider's catalog as of the last s
 | 2 | Gemini | `models.list` (needs `GEMINI_API_KEY`) | Phase 1 machinery |
 | 3 | OpenAI | `/v1/models` `shutdown_date` only. It carries no limits, so limits stay curated | Phase 1 machinery |
 | 4 | OpenCode Go | Gateway `/v1/models` id list (needs `OPENCODE_API_KEY`) | #235 |
-| — | xAI | Not scheduled. Its list endpoint's fields are unverified | Verification |
 
 ## Decisions
 

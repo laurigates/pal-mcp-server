@@ -9,11 +9,13 @@ contract is now exercised against the provider classes directly.
 
 from __future__ import annotations
 
+import logging
 import os
 from unittest.mock import patch
 
 import pytest
 
+import server
 from providers.azure_openai import AzureOpenAIProvider
 from providers.custom import CustomProvider
 from providers.dial import DIALModelProvider
@@ -21,9 +23,8 @@ from providers.gemini import GeminiModelProvider
 from providers.openai import OpenAIModelProvider
 from providers.opencode_go import OpenCodeGoProvider
 from providers.openrouter import OpenRouterProvider
-from providers.registry import REGISTERED_PROVIDER_CLASSES
+from providers.registry import REGISTERED_PROVIDER_CLASSES, REMOVED_PROVIDER_ENV_VARS
 from providers.shared import ProviderType
-from providers.xai import XAIModelProvider
 
 pytestmark = pytest.mark.no_mock_provider
 
@@ -41,7 +42,6 @@ def test_registered_provider_classes_priority_order():
         GeminiModelProvider,
         OpenAIModelProvider,
         AzureOpenAIProvider,
-        XAIModelProvider,
         DIALModelProvider,
         CustomProvider,
         OpenCodeGoProvider,
@@ -67,7 +67,6 @@ def test_every_registered_class_exposes_from_env():
     [
         (GeminiModelProvider, "GEMINI_API_KEY", ProviderType.GOOGLE),
         (OpenAIModelProvider, "OPENAI_API_KEY", ProviderType.OPENAI),
-        (XAIModelProvider, "XAI_API_KEY", ProviderType.XAI),
         (DIALModelProvider, "DIAL_API_KEY", ProviderType.DIAL),
         (OpenCodeGoProvider, "OPENCODE_API_KEY", ProviderType.OPENCODE_GO),
         (OpenRouterProvider, "OPENROUTER_API_KEY", ProviderType.OPENROUTER),
@@ -92,7 +91,6 @@ def test_from_env_returns_instance_when_key_present(provider_cls, env_var, expec
     [
         (GeminiModelProvider, "GEMINI_API_KEY", "your_gemini_api_key_here"),
         (OpenAIModelProvider, "OPENAI_API_KEY", "your_openai_api_key_here"),
-        (XAIModelProvider, "XAI_API_KEY", "your_xai_api_key_here"),
         (DIALModelProvider, "DIAL_API_KEY", "your_dial_api_key_here"),
         (OpenCodeGoProvider, "OPENCODE_API_KEY", "your_opencode_api_key_here"),
         (OpenRouterProvider, "OPENROUTER_API_KEY", "your_openrouter_api_key_here"),
@@ -297,3 +295,31 @@ def test_custom_placeholder_key_does_not_authenticate_through_the_registry():
 
     assert instance is not None
     assert instance.api_key == _UNAUTHENTICATED_KEY
+
+
+# --------------------------------------------------------------------------
+# Removed providers - a leftover key is named, not silently ignored
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("env_var", sorted(REMOVED_PROVIDER_ENV_VARS))
+def test_removed_provider_key_logs_a_warning(monkeypatch, caplog, env_var):
+    """A key for a removed provider configures nothing, so startup says so."""
+    monkeypatch.setenv(env_var, "a-real-looking-key")
+    with caplog.at_level(logging.WARNING, logger="server"):
+        server.configure_providers()
+
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING and r.name == "server"]
+    assert [m for m in warnings if env_var in m] == [
+        f"{env_var} is set but ignored: {REMOVED_PROVIDER_ENV_VARS[env_var]}."
+    ]
+
+
+@pytest.mark.parametrize("env_var", sorted(REMOVED_PROVIDER_ENV_VARS))
+def test_removed_provider_key_unset_logs_nothing(monkeypatch, caplog, env_var):
+    """Control for the test above: the warning is tied to the key being set."""
+    monkeypatch.delenv(env_var, raising=False)
+    with caplog.at_level(logging.WARNING, logger="server"):
+        server.configure_providers()
+
+    assert not [r for r in caplog.records if r.name == "server" and env_var in r.getMessage()]

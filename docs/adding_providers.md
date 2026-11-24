@@ -254,7 +254,6 @@ return [
     GeminiModelProvider,
     OpenAIModelProvider,
     AzureOpenAIProvider,
-    XAIModelProvider,
     DIALModelProvider,
     ExampleModelProvider,  # native APIs first...
     CustomProvider,  # ...then local/self-hosted...

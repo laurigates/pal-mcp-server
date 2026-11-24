@@ -87,7 +87,6 @@ from providers.shared import ProviderType  # noqa: E402
 DEFAULT_TEST_PROVIDERS: tuple[ProviderType, ...] = (
     ProviderType.GOOGLE,
     ProviderType.OPENAI,
-    ProviderType.XAI,
 )
 
 

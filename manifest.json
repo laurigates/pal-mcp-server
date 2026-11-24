@@ -3,7 +3,7 @@
   "name": "pal-mcp-server",
   "display_name": "PAL",
   "version": "12.1.0",
-  "description": "Consult Gemini, OpenAI, Grok, OpenRouter and local models from Claude.",
+  "description": "Consult Gemini, OpenAI, OpenRouter and local models from Claude.",
   "long_description": "PAL (Provider Abstraction Layer) lets Claude hand work to other models — second opinions, multi-model consensus, code review, debugging, planning, and CLI-to-CLI bridging (clink) — while keeping one conversation context. Configure at least one provider key; the rest can stay empty. Claude Desktop installs the Python dependencies with uv on first launch.",
   "author": {
     "name": "Lauri Gates",
@@ -42,7 +42,6 @@
         "GEMINI_API_KEY": "${user_config.gemini_api_key}",
         "OPENAI_API_KEY": "${user_config.openai_api_key}",
         "OPENROUTER_API_KEY": "${user_config.openrouter_api_key}",
-        "XAI_API_KEY": "${user_config.xai_api_key}",
         "AZURE_OPENAI_API_KEY": "${user_config.azure_openai_api_key}",
         "AZURE_OPENAI_ENDPOINT": "${user_config.azure_openai_endpoint}",
         "DIAL_API_KEY": "${user_config.dial_api_key}",
@@ -75,14 +74,6 @@
       "type": "string",
       "title": "OpenRouter API key",
       "description": "From https://openrouter.ai/keys. One key for many vendors' models.",
-      "sensitive": true,
-      "required": false,
-      "default": ""
-    },
-    "xai_api_key": {
-      "type": "string",
-      "title": "X.AI API key",
-      "description": "From https://console.x.ai/. Leave empty to skip this provider.",
       "sensitive": true,
       "required": false,
       "default": ""

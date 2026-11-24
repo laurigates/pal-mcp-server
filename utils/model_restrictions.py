@@ -30,7 +30,6 @@ Environment Variables:
 Example:
     OPENAI_ALLOWED_MODELS=gpt-5-nano,gpt-5.6-terra
     GOOGLE_ALLOWED_MODELS=flash
-    XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
     OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
     DISABLED_MODELS=grok,gpt-5-nano,openrouter:x-ai/grok-4.6
 """

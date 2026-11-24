@@ -138,12 +138,12 @@ class TestEnvironmentValidation:
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
             # Here we should have a function that validates the keys
             # Let's simulate the validation logic
-            has_api_key = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("XAI_API_KEY"))
+            has_api_key = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY"))
             assert has_api_key, "At least one API key must be present"
 
         # Test without API key
         with patch.dict(os.environ, {}, clear=True):
-            has_api_key = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("XAI_API_KEY"))
+            has_api_key = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY"))
             assert not has_api_key, "No API key should be present"
 
     def test_environment_file_parsing(self):

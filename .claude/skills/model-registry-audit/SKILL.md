@@ -62,7 +62,7 @@ strings. Remove a model from the config and those keep pointing at it, so
 category routing resolves to nothing while every test still passes: the suite
 exercises the resolver, not the constants.
 
-> Found 2026-08-28: `providers/xai.py` named `grok-4-1-fast-reasoning` and
+> Found 2026-08-28: `providers/xai.py` (since removed) named `grok-4-1-fast-reasoning` and
 > `grok-4` as PRIMARY/FALLBACK after xAI retired both, and `providers/openai.py`
 > listed the shut-down `gpt-5-codex` in three preference lists.
 
@@ -77,7 +77,7 @@ Two public catalogs back the audit, plus one keyed gateway list, and they carry 
 |---|---|---|
 | `openrouter.ai/api/v1/models` | `openrouter_models.json` | **Confirmed gone.** This is the provider's own live serving list. It also carries `expiration_date`, reported as a confirmed DEPRECATED finding. |
 | `opencode.ai/zen/go/v1/models` (only with `OPENCODE_API_KEY` set) | `opencode_go_models.json` | **Confirmed gone.** The gateway's own curated list; it replaces models.dev for this config, so CANDIDATE ADDITIONS and `models-generate` take only ids it lists. On 2026-11-16 models.dev listed `mimo-v2.5` and `mimo-v2.5-pro` as live while the gateway answered 410 for both (#235). The COVERAGE line reads `source=opencode_go` when it was used; without the key, or when the fetch fails, the audit falls back to models.dev. |
-| `models.dev/api.json` | gemini, openai, xai, opencode zen | **Review only.** Community-maintained. It lags new releases and omits live models outright. Its per-model `status: "deprecated"` keeps a model out of CANDIDATE ADDITIONS and `models-generate`, and a configured one gets a `[review]` DEPRECATED finding: on 2026-10-07 the flag sat on `kimi-k2.6`, `qwen3.6-plus` and `qwen3.7-max` while the OpenCode Go gateway still served all three. |
+| `models.dev/api.json` | gemini, openai, opencode zen | **Review only.** Community-maintained. It lags new releases and omits live models outright. Its per-model `status: "deprecated"` keeps a model out of CANDIDATE ADDITIONS and `models-generate`, and a configured one gets a `[review]` DEPRECATED finding: on 2026-10-07 the flag sat on `kimi-k2.6`, `qwen3.6-plus` and `qwen3.7-max` while the OpenCode Go gateway still served all three. |
 
 The script marks every models.dev-derived finding `[review]`. Treat that marker
 as a hard gate: **never delete a configured entry on a `[review]` finding
@@ -96,7 +96,6 @@ vendors in opposite directions. Before removing anything, read the vendor page:
 |---|---|
 | Gemini | Google's deprecations page — reachable via the `gemini-api-docs` MCP (`gemini_search_docs` for "deprecations"). It carries shutdown dates neither catalog has. |
 | OpenAI | `https://developers.openai.com/api/docs/deprecations` — a table of shutdown dates and named replacements. |
-| xAI | `https://docs.x.ai/docs/models` — a plain list of what is served. |
 
 Two directions of disagreement, both observed on 2026-08-28:
 
@@ -183,7 +182,7 @@ Untriaged catalog models enter the registry switched off:
 
 ```
 just models-generate                    # every catalog-backed config
-just models-generate --only xai_models.json --dry-run
+just models-generate --only openai_models.json --dry-run
 ```
 
 `scripts/generate_model_entries.py` writes one entry per `MISSING` candidate

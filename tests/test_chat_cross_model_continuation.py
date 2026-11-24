@@ -64,7 +64,6 @@ async def test_chat_cross_model_continuation(monkeypatch, tmp_path):
         "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),
     }
     keys_to_clear = [
-        "XAI_API_KEY",
         "OPENROUTER_API_KEY",
         "ANTHROPIC_API_KEY",
         "MISTRAL_API_KEY",

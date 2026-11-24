@@ -39,7 +39,7 @@ class TestServerTools:
             os.environ["DEFAULT_MODEL"] = "o3-mini"
 
             # Clear other provider keys to isolate to OpenAI
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Reload config and clear registry

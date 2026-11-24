@@ -78,10 +78,10 @@ Chat-Completions-shaped extractor (`:427-428`), so the 18 models with
 
 | Mechanism | Providers | PAL must provide |
 |---|---|---|
-| Automatic prefix match | OpenAI ≤ 5.5, Azure, xAI, OpenRouter's automatic upstreams (OpenAI, DeepSeek, Grok, Moonshot, Z.AI, Gemini…), OpenCode Go upstreams, Gemini 2.5+ implicit caching, local KV-cache reuse | Byte-stable, append-only requests above the model's minimum |
+| Automatic prefix match | OpenAI ≤ 5.5, Azure, OpenRouter's automatic upstreams (OpenAI, DeepSeek, Grok, Moonshot, Z.AI, Gemini…), OpenCode Go upstreams, Gemini 2.5+ implicit caching, local KV-cache reuse | Byte-stable, append-only requests above the model's minimum |
 | Implicit caching at message endings | OpenAI / Azure GPT-5.6+ | Turn boundaries that are message boundaries; one message that grows each turn is never reused |
 | Nothing unless marked | Anthropic models via OpenRouter and DIAL | `cache_control` breakpoints on stable segments |
-| Routing affinity | OpenRouter `x-session-id`; xAI `x-grok-conv-id` (Chat Completions) or `prompt_cache_key` (Responses); OpenAI `prompt_cache_key`; OpenCode Go `x-opencode-session` (already sent) | A per-thread key that is identical from turn 1 |
+| Routing affinity | OpenRouter `x-session-id`; OpenAI `prompt_cache_key`; OpenCode Go `x-opencode-session` (already sent) | A per-thread key that is identical from turn 1 |
 
 Minimum cacheable prefix, from the providers' current documentation:
 
@@ -151,8 +151,7 @@ Nothing else can be judged without this, so it lands first.
    trailer already states the turn number after the history.
 3. **Per-thread routing key from turn 1.** Set the session id to the thread id as soon
    as the thread is created, before the model call. Add `_build_request` overrides
-   (modelled on `providers/opencode_go.py`) for OpenRouter (`x-session-id`), xAI
-   (header or `prompt_cache_key` depending on the endpoint PAL uses) and OpenAI
+   (modelled on `providers/opencode_go.py`) for OpenRouter (`x-session-id`) and OpenAI
    (`prompt_cache_key`). Never add these to the shared builder: strict OpenAI-compatible
    backends may reject unknown fields. Measure turn-1 hits with and without the key,
    since a per-thread key can reduce cross-thread reuse of a shared system prompt.
@@ -388,7 +387,6 @@ pairs. The harness does not build S4 (informational).
 - Whether OpenRouter's `prompt_tokens` includes cached tokens for `anthropic/*`, and the
   same for DIAL.
 - Azure `prompt_cache_key` support at the api-version PAL uses.
-- Whether xAI on PAL's endpoint returns the cached field.
 - The minimum prefix for Gemini models reached through OpenRouter.
 
 ## Noticed while investigating (not part of this work)

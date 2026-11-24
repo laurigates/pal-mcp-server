@@ -24,7 +24,6 @@ from providers.opencode_go import OpenCodeGoProvider
 from providers.openrouter import OpenRouterProvider
 from providers.registry import REGISTERED_PROVIDER_CLASSES, ModelProviderRegistry
 from providers.shared import ProviderType
-from providers.xai import XAIModelProvider
 from tools.listmodels import ListModelsTool
 
 pytestmark = pytest.mark.no_mock_provider
@@ -34,7 +33,6 @@ EXPECTED_CLASS_ORDER = [
     GeminiModelProvider,
     OpenAIModelProvider,
     AzureOpenAIProvider,
-    XAIModelProvider,
     DIALModelProvider,
     CustomProvider,
     OpenCodeGoProvider,
@@ -45,7 +43,6 @@ EXPECTED_PRIORITY_ORDER = [
     ProviderType.GOOGLE,
     ProviderType.OPENAI,
     ProviderType.AZURE,
-    ProviderType.XAI,
     ProviderType.DIAL,
     ProviderType.CUSTOM,
     ProviderType.OPENCODE_GO,
@@ -58,7 +55,6 @@ EXPECTED_API_KEY_ENV = {
     ProviderType.GOOGLE: "GEMINI_API_KEY",
     ProviderType.OPENAI: "OPENAI_API_KEY",
     ProviderType.AZURE: "AZURE_OPENAI_API_KEY",
-    ProviderType.XAI: "XAI_API_KEY",
     ProviderType.OPENROUTER: "OPENROUTER_API_KEY",
     ProviderType.CUSTOM: "CUSTOM_API_KEY",
     ProviderType.DIAL: "DIAL_API_KEY",
@@ -71,13 +67,12 @@ EXPECTED_API_KEY_ENV = {
 #: "URL-gated, no placeholder". Being URL-gated is why the key is optional, not
 #: a reason to accept a template string as a credential - with no placeholder
 #: declared, ``your_custom_api_key_here`` reached the endpoint as a bearer
-#: token. CUSTOM now declares one like the other seven; the URL remains the
+#: token. CUSTOM now declares one like the other six; the URL remains the
 #: activation gate.
 EXPECTED_PLACEHOLDERS = {
     ProviderType.GOOGLE: "your_gemini_api_key_here",
     ProviderType.OPENAI: "your_openai_api_key_here",
     ProviderType.AZURE: "your_azure_openai_key_here",
-    ProviderType.XAI: "your_xai_api_key_here",
     ProviderType.DIAL: "your_dial_api_key_here",
     ProviderType.OPENCODE_GO: "your_opencode_api_key_here",
     ProviderType.OPENROUTER: "your_openrouter_api_key_here",
@@ -89,7 +84,6 @@ EXPECTED_SECTION_ORDER = [
     "Google Gemini",
     "OpenAI",
     "Azure OpenAI",
-    "X.AI (Grok)",
     "AI DIAL",
     "OpenCode Go",
     "OpenRouter",
@@ -162,7 +156,6 @@ def test_friendly_names_snapshot():
         "Gemini",
         "OpenAI",  # was the inherited "OpenAI Compatible"
         "Azure OpenAI",
-        "X.AI",
         "DIAL",
         "Custom API",
         "OpenCode Go",
@@ -224,7 +217,6 @@ async def test_listmodels_not_configured_lines_name_the_right_env_vars():
         "GEMINI_API_KEY",
         "OPENAI_API_KEY",
         "AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT",  # was "AZURE_OPENAI_API_KEY"
-        "XAI_API_KEY",
         "DIAL_API_KEY",
         "OPENCODE_API_KEY",
         "OPENROUTER_API_KEY",
@@ -270,7 +262,6 @@ def test_no_provider_error_names_every_provider(monkeypatch):
         for var in provider_cls.gating_env_vars():
             assert var in message, f"{var} missing from bootstrap help text"
     # Phrases preserved verbatim from the hand-written text.
-    assert "for X.AI GROK models" in message
     assert "for OpenRouter (multiple models)" in message
     assert "for local models (Ollama, vLLM, etc.)" in message
 

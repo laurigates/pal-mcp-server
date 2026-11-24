@@ -14,7 +14,6 @@ from providers.openai import OpenAIModelProvider
 from providers.openrouter import OpenRouterProvider
 from providers.registry import ModelProviderRegistry
 from providers.shared import ProviderType
-from providers.xai import XAIModelProvider
 from tests.mcp_call_helpers import call_tool
 
 
@@ -62,12 +61,10 @@ def reset_registry():
     model_restrictions._restriction_service = None
 
 
-def _register_core_providers(*, include_xai: bool = False):
+def _register_core_providers():
     ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
     ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
     ModelProviderRegistry.register_provider(ProviderType.OPENROUTER, OpenRouterProvider)
-    if include_xai:
-        ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
 
 
 @pytest.mark.no_mock_provider
@@ -78,7 +75,6 @@ def test_error_listing_respects_env_restrictions(monkeypatch, reset_registry):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter")
-    monkeypatch.delenv("XAI_API_KEY", raising=False)
     # Ensure Azure provider stays disabled regardless of developer workstation env
     for azure_var in (
         "AZURE_OPENAI_API_KEY",
@@ -99,7 +95,6 @@ def test_error_listing_respects_env_restrictions(monkeypatch, reset_registry):
     monkeypatch.setenv("GOOGLE_ALLOWED_MODELS", "gemini-2.5-pro")
     monkeypatch.setenv("OPENAI_ALLOWED_MODELS", "gpt-5.2")
     monkeypatch.setenv("OPENROUTER_ALLOWED_MODELS", "gpt5nano")
-    monkeypatch.setenv("XAI_ALLOWED_MODELS", "")
 
     import config
 
@@ -120,11 +115,10 @@ def test_error_listing_respects_env_restrictions(monkeypatch, reset_registry):
         ("GOOGLE_ALLOWED_MODELS", "gemini-2.5-pro"),
         ("OPENAI_ALLOWED_MODELS", "gpt-5.2"),
         ("OPENROUTER_ALLOWED_MODELS", "gpt5nano"),
-        ("XAI_ALLOWED_MODELS", ""),
     ):
         monkeypatch.setenv(key, value)
 
-    for var in ("XAI_API_KEY", "CUSTOM_API_URL", "CUSTOM_API_KEY", "DIAL_API_KEY"):
+    for var in ("CUSTOM_API_URL", "CUSTOM_API_KEY", "DIAL_API_KEY"):
         monkeypatch.delenv(var, raising=False)
     for azure_var in (
         "AZURE_OPENAI_API_KEY",
@@ -163,7 +157,6 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter")
-    monkeypatch.setenv("XAI_API_KEY", "test-xai")
     monkeypatch.setenv("PAL_MCP_FORCE_ENV_OVERRIDE", "false")
     for azure_var in (
         "AZURE_OPENAI_API_KEY",
@@ -184,7 +177,6 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
         "GOOGLE_ALLOWED_MODELS",
         "OPENAI_ALLOWED_MODELS",
         "OPENROUTER_ALLOWED_MODELS",
-        "XAI_ALLOWED_MODELS",
         "DIAL_ALLOWED_MODELS",
     ):
         monkeypatch.delenv(var, raising=False)
@@ -193,7 +185,7 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
 
     importlib.reload(config)
 
-    _register_core_providers(include_xai=True)
+    _register_core_providers()
 
     import server
 
@@ -211,7 +203,6 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
         "GOOGLE_ALLOWED_MODELS",
         "OPENAI_ALLOWED_MODELS",
         "OPENROUTER_ALLOWED_MODELS",
-        "XAI_ALLOWED_MODELS",
         "DIAL_ALLOWED_MODELS",
         "CUSTOM_API_URL",
         "CUSTOM_API_KEY",
@@ -238,5 +229,4 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
     available_models = _extract_available_models(payload["content"])
     assert "gemini-2.5-pro" in available_models
     assert any(model in available_models for model in {"gpt-5.2", "gpt-5"})
-    assert "grok-4.6" in available_models
     assert len(available_models) >= 5

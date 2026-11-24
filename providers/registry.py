@@ -593,13 +593,11 @@ def _build_registered_provider_classes() -> list[type[ModelProvider]]:
     from .openai import OpenAIModelProvider
     from .opencode_go import OpenCodeGoProvider
     from .openrouter import OpenRouterProvider
-    from .xai import XAIModelProvider
 
     return [
         GeminiModelProvider,
         OpenAIModelProvider,
         AzureOpenAIProvider,
-        XAIModelProvider,
         DIALModelProvider,
         CustomProvider,
         OpenCodeGoProvider,
@@ -615,6 +613,14 @@ def _build_registered_provider_classes() -> list[type[ModelProvider]]:
 # resilient to that (it dispatches via ``provider.get_provider_type()``),
 # and tests that care about identity import the provider class directly.
 REGISTERED_PROVIDER_CLASSES: list[type[ModelProvider]] = _build_registered_provider_classes()
+
+#: Env vars of providers that were removed, mapped to the alternative to name
+#: in the warning :func:`server.configure_providers` logs when one is still
+#: set. The keys are still real credentials on a user's machine, so the clink
+#: environment-isolation test keeps asserting they never reach a relayed CLI.
+REMOVED_PROVIDER_ENV_VARS: dict[str, str] = {
+    "XAI_API_KEY": "The xAI provider was removed; reach Grok models through OpenRouter (x-ai/grok-*)",
+}
 
 #: ProviderType -> declaring class. Total over ProviderType by construction;
 #: guarded by tests/test_provider_metadata.py.

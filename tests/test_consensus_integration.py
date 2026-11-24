@@ -49,7 +49,6 @@ async def test_consensus_multi_model_consultations(monkeypatch, openai_model):
         "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),
     }
     keys_to_clear = [
-        "XAI_API_KEY",
         "OPENROUTER_API_KEY",
         "ANTHROPIC_API_KEY",
         "MISTRAL_API_KEY",
@@ -212,7 +211,6 @@ async def test_consensus_auto_mode_with_openrouter_and_gemini(monkeypatch):
 
         for key in [
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "DIAL_API_KEY",
             "CUSTOM_API_KEY",
             "CUSTOM_API_URL",

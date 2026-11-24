@@ -31,10 +31,6 @@ You need at least one API key. Choose based on your needs:
 - Visit [OpenAI Platform](https://platform.openai.com/api-keys)
 - Generate an API key for GPT-5.2, GPT-5.1-Codex, GPT-5, O3 access
 
-**X.AI (Grok):**
-- Visit [X.AI Console](https://console.x.ai/)
-- Generate an API key for Grok models
-
 **DIAL Platform:**
 - Visit [DIAL Platform](https://dialx.ai/)
 - Generate API key for vendor-agnostic model access
@@ -279,7 +275,6 @@ Add your API keys (at least one required):
 # Choose your providers (at least one required)
 GEMINI_API_KEY=your-gemini-api-key-here      # For Gemini models  
 OPENAI_API_KEY=your-openai-api-key-here      # For GPT-5.2, GPT-5.1-Codex, O3
-XAI_API_KEY=your-xai-api-key-here            # For Grok models
 OPENCODE_API_KEY=your-opencode-api-key-here  # For OpenCode Go coding models
 OPENROUTER_API_KEY=your-openrouter-key       # For multiple models
 

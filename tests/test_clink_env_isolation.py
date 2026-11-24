@@ -18,6 +18,7 @@ from clink.agents import create_agent
 from clink.constants import PROJECT_ROOT
 from clink.models import ResolvedCLIClient, ResolvedCLIRole
 from clink.registry import ClinkRegistry
+from providers.registry import REMOVED_PROVIDER_ENV_VARS
 
 # The provider key each shipped CLI legitimately needs. `claude` authenticates
 # with ANTHROPIC_API_KEY, which is not a PAL provider key and so never appears
@@ -35,9 +36,13 @@ def _provider_api_keys() -> frozenset[str]:
     Derived rather than hardcoded so a newly documented provider is covered the
     moment it is added. Commented-out lines count: CUSTOM_API_KEY ships
     commented and is still a real credential in a configured deployment.
+
+    Keys of removed providers are added back: they left .env.example with the
+    provider, but users still have them set, and a relayed CLI must not see them.
     """
     text = (PROJECT_ROOT / ".env.example").read_text(encoding="utf-8")
-    return frozenset(re.findall(r"^\s*#?\s*([A-Z][A-Z0-9_]*_API_KEY)\s*=", text, flags=re.MULTILINE))
+    documented = frozenset(re.findall(r"^\s*#?\s*([A-Z][A-Z0-9_]*_API_KEY)\s*=", text, flags=re.MULTILINE))
+    return documented | frozenset(REMOVED_PROVIDER_ENV_VARS)
 
 
 def test_provider_key_set_is_not_vacuous():

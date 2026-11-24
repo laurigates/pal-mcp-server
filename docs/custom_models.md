@@ -39,7 +39,6 @@ PAL ships multiple registries:
 
 - `conf/openai_models.json` – native OpenAI catalogue (override with `OPENAI_MODELS_CONFIG_PATH`)
 - `conf/gemini_models.json` – native Google Gemini catalogue (`GEMINI_MODELS_CONFIG_PATH`)
-- `conf/xai_models.json` – native X.AI / GROK catalogue (`XAI_MODELS_CONFIG_PATH`)
 - `conf/openrouter_models.json` – OpenRouter catalogue (`OPENROUTER_MODELS_CONFIG_PATH`)
 - `conf/dial_models.json` – DIAL aggregation catalogue (`DIAL_MODELS_CONFIG_PATH`)
 - `conf/custom_models.json` – local/self-hosted OpenAI-compatible catalogue (`CUSTOM_MODELS_CONFIG_PATH`)
@@ -80,7 +79,7 @@ Consult the JSON file for the full list, aliases, and capability flags. Add new 
 
 View the baseline OpenRouter catalogue in [`conf/openrouter_models.json`](conf/openrouter_models.json) and populate [`conf/custom_models.json`](conf/custom_models.json) with your local models.
 
-Native catalogues (`conf/openai_models.json`, `conf/gemini_models.json`, `conf/xai_models.json`, `conf/dial_models.json`) follow the same schema. Updating those files lets you:
+Native catalogues (`conf/openai_models.json`, `conf/gemini_models.json`, `conf/dial_models.json`) follow the same schema. Updating those files lets you:
 
 - Expose new aliases (e.g., map `enterprise-pro` to `gpt-5.2-pro`)
 - Advertise support for JSON mode or vision if the upstream provider adds it
