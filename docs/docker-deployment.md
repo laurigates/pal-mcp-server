@@ -38,15 +38,8 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # OpenAI
 OPENAI_API_KEY=your_openai_api_key_here
 
-# X.AI GROK
-XAI_API_KEY=your_xai_api_key_here
-
 # OpenRouter (unified access)
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-
-# Additional providers
-DIAL_API_KEY=your_dial_api_key_here
-DIAL_API_HOST=your_dial_host
 ```
 
 ### Optional Configuration
@@ -252,7 +245,7 @@ cat .env
 **4. API key validation errors:**
 ```bash
 # Check environment variables in container
-docker exec pal-mcp-server env | grep -E "(GEMINI|OPENAI|XAI)"
+docker exec pal-mcp-server env | grep -E "(GEMINI|OPENAI|OPENROUTER)"
 ```
 
 ### Debug Mode

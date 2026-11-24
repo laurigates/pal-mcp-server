@@ -368,15 +368,15 @@ class TestAliasAndSchemaChecks:
 
 class TestUnverifiableTargets:
     def test_unverifiable_target_still_runs_local_checks(self, conf_dir, catalogs):
-        """DIAL/custom/azure get no catalog, but alias and schema checks apply."""
+        """Custom gets no catalog, but alias and schema checks apply."""
         conf_dir(
-            "dial_models.json",
+            "custom_models.json",
             [
                 {"model_name": "a", "aliases": ["dup"]},
                 {"model_name": "b", "aliases": ["dup"], "bogus_field": 1},
             ],
         )
-        target = audit.Target("dial_models.json", "unverifiable", label="DIAL", reason="no public catalog")
+        target = audit.Target("custom_models.json", "unverifiable", label="Custom", reason="no public catalog")
         findings, meta = audit.audit_target(target, catalogs, top_n=10)
         assert meta["catalog"] == 0
         assert meta["reason"] == "no public catalog"
@@ -406,27 +406,27 @@ class TestProviderReferenceCheck:
         return "fake.py"
 
     def test_hardcoded_id_absent_from_config_is_flagged(self, tmp_path, monkeypatch):
-        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "grok-4"\nFALLBACK_MODEL = "grok-4.6"\n')
-        findings = audit.check_provider_references("xai_models.json", mod, [{"model_name": "grok-4.6"}])
-        assert [f.model_name for f in findings] == ["grok-4"]
+        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "gpt-4"\nFALLBACK_MODEL = "gpt-5.2"\n')
+        findings = audit.check_provider_references("openai_models.json", mod, [{"model_name": "gpt-5.2"}])
+        assert [f.model_name for f in findings] == ["gpt-4"]
         assert findings[0].kind == "orphan_ref"
 
     def test_configured_id_is_not_flagged(self, tmp_path, monkeypatch):
-        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "grok-4.6"\n')
-        assert audit.check_provider_references("xai_models.json", mod, [{"model_name": "grok-4.6"}]) == []
+        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "gpt-5.2"\n')
+        assert audit.check_provider_references("openai_models.json", mod, [{"model_name": "gpt-5.2"}]) == []
 
     def test_an_alias_counts_as_configured(self, tmp_path, monkeypatch):
         """Providers legitimately pin an alias rather than a canonical name."""
-        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "grok4"\n')
-        models = [{"model_name": "grok-4.6", "aliases": ["grok4"]}]
-        assert audit.check_provider_references("xai_models.json", mod, models) == []
+        mod = self._module(tmp_path, monkeypatch, 'PRIMARY_MODEL = "gpt5.2"\n')
+        models = [{"model_name": "gpt-5.2", "aliases": ["gpt5.2"]}]
+        assert audit.check_provider_references("openai_models.json", mod, models) == []
 
     @pytest.mark.parametrize(
         "literal",
         [
-            "https://api.x.ai/v1",
+            "https://api.openai.com/v1",
             "application/json",
-            "XAI_MODELS_CONFIG_PATH",
+            "OPENAI_MODELS_CONFIG_PATH",
             "text",
             "provider",
             # These pass MODEL_ID_SHAPE outright -- lowercase, separated, with a

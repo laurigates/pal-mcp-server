@@ -30,7 +30,6 @@ Environment Variables:
 Example:
     OPENAI_ALLOWED_MODELS=gpt-5-nano,gpt-5.6-terra
     GOOGLE_ALLOWED_MODELS=flash
-    XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
     OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
     DISABLED_MODELS=grok,gpt-5-nano,openrouter:x-ai/grok-4.6
 """
@@ -122,8 +121,8 @@ class ModelRestrictionService:
             return ModelProviderRegistry.allowed_models_env_vars(provider_type)
         except (ImportError, AttributeError, NameError) as exc:
             # Policy must never fail to load, but it must not degrade silently
-            # either: for AZURE the fallback drops AZURE_OPENAI_ALLOWED_MODELS
-            # -- the documented name -- and the service is a process-lifetime
+            # either: the fallback drops any provider-declared allow-list name
+            # (ALLOWED_MODELS_ENV), and the service is a process-lifetime
             # singleton, so one unlucky early call would bake that in.
             fallback = f"{provider_type.value.upper()}_ALLOWED_MODELS"
             logger.warning(

@@ -198,7 +198,7 @@ class TestErrorHandling:
 
         # Simulate environment without API keys
         with patch.dict(os.environ, {}, clear=True):
-            api_keys = [os.getenv("GEMINI_API_KEY"), os.getenv("OPENAI_API_KEY"), os.getenv("XAI_API_KEY")]
+            api_keys = [os.getenv("GEMINI_API_KEY"), os.getenv("OPENAI_API_KEY")]
 
             has_api_key = any(key for key in api_keys)
 

@@ -45,7 +45,6 @@ class TestListModelsTool:
             # Check that providers show as not configured
             assert "Google Gemini ❌" in content
             assert "OpenAI ❌" in content
-            assert "X.AI (Grok) ❌" in content
             assert "OpenCode Go ❌" in content
             assert "OpenRouter ❌" in content
             assert "Custom/Local API ❌" in content
@@ -109,7 +108,6 @@ class TestListModelsTool:
         env_vars = {
             "GEMINI_API_KEY": "test-key",
             "OPENAI_API_KEY": "test-key",
-            "XAI_API_KEY": "test-key",
             "DEFAULT_MODEL": "auto",
         }
 
@@ -122,14 +120,12 @@ class TestListModelsTool:
             # Check all show as configured
             assert "Google Gemini ✅" in content
             assert "OpenAI ✅" in content
-            assert "X.AI (Grok) ✅" in content
 
             # Check models are listed
             assert "`o3`" in content
-            assert "`grok`" in content
 
             # Check summary
-            assert "**Configured Providers**: 3" in content
+            assert "**Configured Providers**: 2" in content
 
     @pytest.mark.asyncio
     async def test_execute_with_openrouter(self, tool):

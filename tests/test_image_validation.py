@@ -236,10 +236,10 @@ class TestProviderIntegration:
     @patch("providers.openai_compatible.logging")
     def test_openai_compatible_provider_uses_validation(self, mock_logging: Mock) -> None:
         """Test that OpenAI-compatible providers use the base validation."""
-        from providers.xai import XAIModelProvider
+        from providers.openai import OpenAIModelProvider
 
-        # Create a provider instance (XAI inherits from OpenAICompatibleProvider)
-        provider = XAIModelProvider(api_key="test-key")
+        # Create a provider instance (OpenAI inherits from OpenAICompatibleProvider)
+        provider = OpenAIModelProvider(api_key="test-key")
 
         # Test with non-existent file
         result = provider._process_image("/nonexistent/image.png")
@@ -248,9 +248,9 @@ class TestProviderIntegration:
 
     def test_data_url_preservation(self) -> None:
         """Test that data URLs are properly preserved through validation."""
-        from providers.xai import XAIModelProvider
+        from providers.openai import OpenAIModelProvider
 
-        provider = XAIModelProvider(api_key="test-key")
+        provider = OpenAIModelProvider(api_key="test-key")
 
         # Valid data URL
         data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="

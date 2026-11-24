@@ -47,11 +47,6 @@ Regardless of your default configuration, you can specify models per request:
 | **`gpt5`** (GPT-5) | OpenAI | 400K tokens | Advanced model with reasoning support | Complex problems requiring advanced reasoning |
 | **`gpt5-mini`** (GPT-5 Mini) | OpenAI | 400K tokens | Efficient variant with reasoning | Balanced performance and capability |
 | **`gpt5-nano`** (GPT-5 Nano) | OpenAI | 400K tokens | Fastest, cheapest GPT-5 variant | Summarization and classification tasks |
-| **`grok-4.7`** | X.AI | 500K tokens | Latest flagship Grok model with configurable reasoning, vision | Complex analysis, reasoning tasks |
-| **`grok-4.6`** | X.AI | 500K tokens | Previous flagship Grok model with reasoning, vision | Long-running agents, coding |
-| **`grok-4.5`** | X.AI | 500K tokens | Grok for chat, coding, agentic tools, lower hallucination risk | Balanced day-to-day work |
-| **`grok-4.3`** | X.AI | 1M tokens | Long-context Grok with reasoning and vision | Document-heavy analysis |
-| **`grok-build-0.1`** | X.AI | 256K tokens | Fast Grok coding model for agentic engineering | Iterative code edits |
 | **`llama`** (Llama 3.2) | Custom/Local | 128K tokens | Local inference, privacy | On-device analysis, cost-free processing |
 | **Any model** | OpenRouter | Varies | Access to GPT-4, Claude, Llama, etc. | User-specified or based on task requirements |
 
@@ -73,7 +68,6 @@ cloud models (expensive/powerful) AND local models (free/private) in the same co
   - **GPT-5**: Full-featured with reasoning support and vision
   - **GPT-5 Mini**: Balanced efficiency and capability
   - **GPT-5 Nano**: Optimized for fast, low-cost tasks
-- **Grok-4 / Grok-4.1-fast-reasoning**: Extended thinking support, vision capabilities (256K / 2M context)
 
 ## Model Usage Restrictions
 
@@ -181,7 +175,7 @@ All tools that work with files support **both individual files and entire direct
 **`analyze`** - Analyze files or directories
 - `files`: List of file paths or directories (required)
 - `question`: What to analyze (required)  
-- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano (default: server default)
 - `analysis_type`: architecture|performance|security|quality|general
 - `output_format`: summary|detailed|actionable
 - `thinking_mode`: minimal|low|medium|high|max (default: medium, Gemini only)
@@ -196,7 +190,7 @@ All tools that work with files support **both individual files and entire direct
 
 **`codereview`** - Review code files or directories
 - `files`: List of file paths or directories (required)
-- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano (default: server default)
 - `review_type`: full|security|performance|quick
 - `focus_on`: Specific aspects to focus on
 - `standards`: Coding standards to enforce
@@ -212,7 +206,7 @@ All tools that work with files support **both individual files and entire direct
 
 **`debug`** - Debug with file context
 - `error_description`: Description of the issue (required)
-- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano (default: server default)
 - `error_context`: Stack trace or logs
 - `files`: Files or directories related to the issue
 - `runtime_info`: Environment details
@@ -228,7 +222,7 @@ All tools that work with files support **both individual files and entire direct
 
 **`thinkdeep`** - Extended analysis with file context
 - `current_analysis`: Your current thinking (required)
-- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano (default: server default)
 - `problem_context`: Additional context
 - `focus_areas`: Specific aspects to focus on
 - `files`: Files or directories for context
@@ -244,7 +238,7 @@ All tools that work with files support **both individual files and entire direct
 **`testgen`** - Comprehensive test generation with edge case coverage
 - `files`: Code files or directories to generate tests for (required)
 - `prompt`: Description of what to test, testing objectives, and scope (required)
-- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano (default: server default)
 - `test_examples`: Optional existing test files as style/pattern reference
 - `thinking_mode`: minimal|low|medium|high|max (default: medium, Gemini only)
 
@@ -259,7 +253,7 @@ All tools that work with files support **both individual files and entire direct
 - `files`: Code files or directories to analyze for refactoring opportunities (required)
 - `prompt`: Description of refactoring goals, context, and specific areas of focus (required)
 - `refactor_type`: codesmells|decompose|modernize|organization (required)
-- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano (default: server default)
 - `focus_areas`: Specific areas to focus on (e.g., 'performance', 'readability', 'maintainability', 'security')
 - `style_guide_examples`: Optional existing code files to use as style/pattern reference
 - `thinking_mode`: minimal|low|medium|high|max (default: medium, Gemini only)

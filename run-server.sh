@@ -33,8 +33,6 @@ LOG_DIR=""
 readonly PLACEHOLDER_KEYS=(
     "GEMINI_API_KEY:your_gemini_api_key_here"
     "OPENAI_API_KEY:your_openai_api_key_here"
-    "XAI_API_KEY:your_xai_api_key_here"
-    "DIAL_API_KEY:your_dial_api_key_here"
     "OPENROUTER_API_KEY:your_openrouter_api_key_here"
 )
 
@@ -154,7 +152,7 @@ check_api_keys() {
     if [[ $has_real_key -eq 0 ]]; then
         print_warning "No real API keys detected in .env (all values look like placeholders)"
         echo "  Edit .env and set at least one of: GEMINI_API_KEY, OPENAI_API_KEY," >&2
-        echo "  XAI_API_KEY, DIAL_API_KEY, OPENROUTER_API_KEY, or CUSTOM_API_URL." >&2
+        echo "  OPENROUTER_API_KEY, OPENCODE_API_KEY, or CUSTOM_API_URL." >&2
         echo "  Setup will continue; the server won't talk to any model until keys are set." >&2
     fi
 }

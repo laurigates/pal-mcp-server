@@ -37,7 +37,7 @@ test-integration:
 #
 # Mechanical drift detection against two public, keyless catalogs:
 # OpenRouter /api/v1/models (authoritative, carries expiration_date) and
-# models.dev/api.json (community-maintained, covers google/openai/xai/opencode).
+# models.dev/api.json (community-maintained, covers google/openai/opencode).
 #
 # The audit reports; it never edits conf/*.json. models-generate writes the
 # catalog-derived fields of each candidate as a disabled entry; enabling one,

@@ -52,7 +52,6 @@ class TestWorkflowMetadata:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -62,7 +61,6 @@ class TestWorkflowMetadata:
             # Set up test environment with OpenRouter API key
             os.environ.pop("GEMINI_API_KEY", None)
             os.environ.pop("OPENAI_API_KEY", None)
-            os.environ.pop("XAI_API_KEY", None)
             os.environ.pop("OPENROUTER_ALLOWED_MODELS", None)  # Clear any restrictions
             os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
@@ -139,7 +137,6 @@ class TestWorkflowMetadata:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -149,7 +146,6 @@ class TestWorkflowMetadata:
             # Set up test environment with OpenRouter API key
             os.environ.pop("GEMINI_API_KEY", None)
             os.environ.pop("OPENAI_API_KEY", None)
-            os.environ.pop("XAI_API_KEY", None)
             os.environ.pop("OPENROUTER_ALLOWED_MODELS", None)  # Clear any restrictions
             os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
@@ -272,7 +268,6 @@ class TestWorkflowMetadata:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -282,7 +277,6 @@ class TestWorkflowMetadata:
             # Set up test environment
             os.environ.pop("GEMINI_API_KEY", None)
             os.environ.pop("OPENAI_API_KEY", None)
-            os.environ.pop("XAI_API_KEY", None)
             os.environ.pop("OPENROUTER_ALLOWED_MODELS", None)  # Clear any restrictions
             os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 

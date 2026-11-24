@@ -13,7 +13,7 @@ Two public, keyless catalogs back the audit:
               OpenRouter config, and the only source carrying an explicit
               ``expiration_date`` deprecation signal.
   models.dev  https://models.dev/api.json          -- community-maintained
-              cross-provider catalog covering google, openai, xai and the
+              cross-provider catalog covering google, openai and the
               opencode zen gateway.
 
 Because models.dev is community-maintained, absence from it is reported as
@@ -105,7 +105,6 @@ TARGETS: tuple[Target, ...] = (
     Target("openrouter_models.json", "openrouter", label="OpenRouter", module="openrouter.py"),
     Target("gemini_models.json", "modelsdev", "google", "Gemini", module="gemini.py"),
     Target("openai_models.json", "modelsdev", "openai", "OpenAI", module="openai.py"),
-    Target("xai_models.json", "modelsdev", "xai", "xAI", module="xai.py"),
     # "opencode-go", not "opencode": models.dev carries both, and they are
     # different gateways. The bare "opencode" slice (93 models) lacks the whole
     # mimo/qwen3.7 family this config serves, so pointing at it reported six
@@ -119,23 +118,10 @@ TARGETS: tuple[Target, ...] = (
         gateway="opencode_go",
     ),
     Target(
-        "dial_models.json",
-        "unverifiable",
-        label="DIAL",
-        reason="enterprise aggregator, no public keyless catalog",
-        module="dial.py",
-    ),
-    Target(
         "custom_models.json",
         "unverifiable",
         label="Custom",
         reason="user-supplied local endpoints (Ollama, vLLM)",
-    ),
-    Target(
-        "azure_models.json",
-        "unverifiable",
-        label="Azure",
-        reason="per-deployment names chosen by the operator",
     ),
 )
 
@@ -505,7 +491,7 @@ def check_provider_references(filename: str, module: str, models: list[dict[str,
     category routing silently resolves to nothing. Nothing else in the suite
     notices: the tests exercise the resolver, not the constants.
 
-    Observed 2026-08-28: ``providers/xai.py`` named ``grok-4-1-fast-reasoning``
+    Observed 2026-08-28: ``providers/xai.py`` (since removed) named ``grok-4-1-fast-reasoning``
     and ``grok-4`` as PRIMARY/FALLBACK after xAI retired both, and
     ``providers/openai.py`` listed the shut-down ``gpt-5-codex`` in three
     preference lists.
