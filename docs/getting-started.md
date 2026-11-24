@@ -287,7 +287,7 @@ OPENROUTER_API_KEY=your-openrouter-key       # For multiple models
 DIAL_API_KEY=your-dial-api-key-here
 DIAL_API_HOST=https://core.dialx.ai          # Default host (optional)
 DIAL_API_VERSION=2024-12-01-preview          # API version (optional) 
-DIAL_ALLOWED_MODELS=o3,gemini-2.5-pro       # Restrict models (optional)
+DIAL_ALLOWED_MODELS=o3                      # Restrict models (optional)
 
 # Custom/Local models (Ollama, vLLM, etc.)
 CUSTOM_API_URL=http://localhost:11434/v1     # Ollama example

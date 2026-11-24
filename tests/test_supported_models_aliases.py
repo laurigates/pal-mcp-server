@@ -115,20 +115,12 @@ class TestSupportedModelsAliases:
 
         # Test specific aliases
         assert "o3" in provider.MODEL_CAPABILITIES["o3-2025-04-16"].aliases
-        assert "o4-mini" in provider.MODEL_CAPABILITIES["o4-mini-2025-04-16"].aliases
-        assert "sonnet-4.1" in provider.MODEL_CAPABILITIES["anthropic.claude-sonnet-4.1-20250805-v1:0"].aliases
-        assert "opus-4.1" in provider.MODEL_CAPABILITIES["anthropic.claude-opus-4.1-20250805-v1:0"].aliases
-        assert "gemini-2.5-pro" in provider.MODEL_CAPABILITIES["gemini-2.5-pro-preview-05-06"].aliases
 
         # Test alias resolution
         assert provider._resolve_model_name("o3") == "o3-2025-04-16"
-        assert provider._resolve_model_name("o4-mini") == "o4-mini-2025-04-16"
-        assert provider._resolve_model_name("sonnet-4.1") == "anthropic.claude-sonnet-4.1-20250805-v1:0"
-        assert provider._resolve_model_name("opus-4.1") == "anthropic.claude-opus-4.1-20250805-v1:0"
 
         # Test case insensitive resolution
         assert provider._resolve_model_name("O3") == "o3-2025-04-16"
-        assert provider._resolve_model_name("SONNET-4.1") == "anthropic.claude-sonnet-4.1-20250805-v1:0"
 
     def test_list_models_includes_aliases(self):
         """Test that list_models returns both base models and aliases."""

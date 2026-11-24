@@ -49,13 +49,13 @@ class TestDIALProvider:
         # Test valid models
         assert provider.validate_model_name("o3-2025-04-16") is True
         assert provider.validate_model_name("o3") is True  # Shorthand
-        assert provider.validate_model_name("anthropic.claude-opus-4.1-20250805-v1:0") is True
-        assert provider.validate_model_name("opus-4.1") is True  # Shorthand
-        assert provider.validate_model_name("gemini-2.5-pro-preview-05-06") is True
-        assert provider.validate_model_name("gemini-2.5-pro") is True  # Shorthand
 
         # Test invalid model
         assert provider.validate_model_name("invalid-model") is False
+        # Retired at their origin providers and removed from conf/dial_models.json
+        assert provider.validate_model_name("o4-mini-2025-04-16") is False
+        assert provider.validate_model_name("anthropic.claude-opus-4.1-20250805-v1:0") is False
+        assert provider.validate_model_name("gemini-2.5-pro-preview-05-06") is False
 
     def test_resolve_model_name(self):
         """Test model name resolution for shorthands."""
@@ -63,18 +63,10 @@ class TestDIALProvider:
 
         # Test shorthand resolution
         assert provider._resolve_model_name("o3") == "o3-2025-04-16"
-        assert provider._resolve_model_name("o4-mini") == "o4-mini-2025-04-16"
-        assert provider._resolve_model_name("opus-4.1") == "anthropic.claude-opus-4.1-20250805-v1:0"
-        assert provider._resolve_model_name("sonnet-4.1") == "anthropic.claude-sonnet-4.1-20250805-v1:0"
-        assert provider._resolve_model_name("gemini-2.5-pro") == "gemini-2.5-pro-preview-05-06"
-        assert provider._resolve_model_name("gemini-2.5-flash") == "gemini-2.5-flash-preview-05-20"
+        assert provider._resolve_model_name("O3") == "o3-2025-04-16"  # Case insensitive
 
         # Test full name passthrough
         assert provider._resolve_model_name("o3-2025-04-16") == "o3-2025-04-16"
-        assert (
-            provider._resolve_model_name("anthropic.claude-opus-4.1-20250805-v1:0")
-            == "anthropic.claude-opus-4.1-20250805-v1:0"
-        )
 
     @patch.dict(os.environ, {"DIAL_ALLOWED_MODELS": ""}, clear=False)
     @patch("utils.model_restrictions._restriction_service", None)
@@ -91,30 +83,9 @@ class TestDIALProvider:
         assert capabilities.supports_images is True
         assert capabilities.supports_extended_thinking is False
 
-        # Test Claude 4.1 capabilities
-        capabilities = provider.get_capabilities("opus-4.1")
-        assert capabilities.model_name == "anthropic.claude-opus-4.1-20250805-v1:0"
-        assert capabilities.context_window == 200_000
-        assert capabilities.supports_images is True
-        assert capabilities.supports_extended_thinking is False
-
-        # Test Claude 4.1 with thinking mode
-        capabilities = provider.get_capabilities("opus-4.1-thinking")
-        assert capabilities.model_name == "anthropic.claude-opus-4.1-20250805-v1:0-with-thinking"
-        assert capabilities.context_window == 200_000
-        assert capabilities.supports_images is True
-        assert capabilities.supports_extended_thinking is True
-
-        # Test Gemini capabilities
-        capabilities = provider.get_capabilities("gemini-2.5-pro")
-        assert capabilities.model_name == "gemini-2.5-pro-preview-05-06"
-        assert capabilities.context_window == 1_000_000
-        assert capabilities.supports_images is True
-
-        # Test temperature constraint
-        assert capabilities.temperature_constraint.min_temp == 0.0
-        assert capabilities.temperature_constraint.max_temp == 2.0
-        assert capabilities.temperature_constraint.default_temp == 0.3
+        # O3 is a reasoning model with a fixed temperature
+        assert capabilities.supports_temperature is False
+        assert capabilities.temperature_constraint.get_default() == 1.0
 
     @patch.dict(os.environ, {"DIAL_ALLOWED_MODELS": ""}, clear=False)
     @patch("utils.model_restrictions._restriction_service", None)
@@ -146,8 +117,6 @@ class TestDIALProvider:
 
         assert provider.get_capabilities("o3-2025-04-16").supports_images is True
         assert provider.get_capabilities("o3").supports_images is True  # Via resolution
-        assert provider.get_capabilities("anthropic.claude-opus-4.1-20250805-v1:0").supports_images is True
-        assert provider.get_capabilities("gemini-2.5-pro-preview-05-06").supports_images is True
 
         with pytest.raises(ValueError):
             provider.get_capabilities("unknown-model")
@@ -219,7 +188,7 @@ class TestDIALProvider:
             # Check that Api-Key header is set
             assert provider.DEFAULT_HEADERS["Api-Key"] == "test-key"
 
-    @patch.dict(os.environ, {"DIAL_ALLOWED_MODELS": "o3-2025-04-16,anthropic.claude-opus-4.1-20250805-v1:0"})
+    @patch.dict(os.environ, {"DIAL_ALLOWED_MODELS": "o3-2025-04-16"})
     @patch("utils.model_restrictions._restriction_service", None)
     def test_allowed_models_restriction(self):
         """Test model allow-list functionality."""
@@ -228,13 +197,15 @@ class TestDIALProvider:
         # These should be allowed
         assert provider.validate_model_name("o3-2025-04-16") is True
         assert provider.validate_model_name("o3") is True  # Alias for o3-2025-04-16
-        assert provider.validate_model_name("anthropic.claude-opus-4.1-20250805-v1:0") is True
-        assert provider.validate_model_name("opus-4.1") is True  # Resolves to anthropic.claude-opus-4.1-20250805-v1:0
 
-        # These should be blocked
-        assert provider.validate_model_name("gemini-2.5-pro-preview-05-06") is False
-        assert provider.validate_model_name("o4-mini-2025-04-16") is False
-        assert provider.validate_model_name("sonnet-4.1") is False  # sonnet-4.1 is not in allowed list
+    @patch.dict(os.environ, {"DIAL_ALLOWED_MODELS": "some-other-deployment"})
+    @patch("utils.model_restrictions._restriction_service", None)
+    def test_allowed_models_restriction_blocks_configured_model(self):
+        """A configured model outside the allow-list is rejected by full name and by alias."""
+        provider = DIALModelProvider("test-key")
+
+        assert provider.validate_model_name("o3-2025-04-16") is False
+        assert provider.validate_model_name("o3") is False
 
     @patch("httpx.AsyncClient")
     @patch("openai.AsyncOpenAI")
