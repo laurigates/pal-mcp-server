@@ -19,13 +19,13 @@ This guide explains how to configure PAL MCP Server to work with [Gemini CLI](ht
 {
   "mcpServers": {
     "pal": {
-      "command": "/path/to/pal-mcp-server/pal-mcp-server"
+      "command": "/path/to/palaver-mcp-server/pal-mcp-server"
     }
   }
 }
 ```
 
-2. Replace `/path/to/pal-mcp-server` with your actual PAL MCP installation path (the folder name may still be `pal-mcp-server`).
+2. Replace `/path/to/palaver-mcp-server` with your actual PAL MCP checkout path (a clone made before the rename is still named `pal-mcp-server`). The wrapper script keeps its `pal-mcp-server` filename.
 
 3. If the `pal-mcp-server` wrapper script doesn't exist, create it:
 

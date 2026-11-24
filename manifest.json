@@ -1,6 +1,6 @@
 {
   "manifest_version": "0.4",
-  "name": "pal-mcp-server",
+  "name": "palaver-mcp-server",
   "display_name": "PAL",
   "version": "12.1.0",
   "description": "Consult Gemini, OpenAI, OpenRouter and local models from Claude.",
@@ -11,11 +11,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/laurigates/pal-mcp-server.git"
+    "url": "https://github.com/laurigates/palaver-mcp-server.git"
   },
-  "homepage": "https://github.com/laurigates/pal-mcp-server#readme",
-  "documentation": "https://github.com/laurigates/pal-mcp-server/blob/main/docs/getting-started.md",
-  "support": "https://github.com/laurigates/pal-mcp-server/issues",
+  "homepage": "https://github.com/laurigates/palaver-mcp-server#readme",
+  "documentation": "https://github.com/laurigates/palaver-mcp-server/blob/main/docs/getting-started.md",
+  "support": "https://github.com/laurigates/palaver-mcp-server/issues",
   "license": "Apache-2.0",
   "keywords": [
     "gemini",

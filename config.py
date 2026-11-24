@@ -17,7 +17,7 @@ from utils.env import get_env
 def _read_version() -> str:
     """Return the installed package version, or parse pyproject.toml as a source-tree fallback."""
     try:
-        return _pkg_version("pal-mcp-server")
+        return _pkg_version("palaver-mcp-server")
     except PackageNotFoundError:
         pass
 

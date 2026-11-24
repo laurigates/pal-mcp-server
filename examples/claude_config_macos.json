@@ -1,12 +1,12 @@
 {
   "comment": "macOS configuration using the published package.",
-  "comment2": "Requires uv on PATH (brew install uv). uvx resolves pal-mcp-server itself.",
+  "comment2": "Requires uv on PATH (brew install uv). uvx resolves palaver-mcp-server itself.",
   "comment3": "If your client does not inherit your shell PATH, use the absolute uvx path:",
   "comment4": "  /opt/homebrew/bin/uvx (Apple silicon) or /usr/local/bin/uvx (Intel).",
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "GEMINI_API_KEY": "${GEMINI_API_KEY}"
       }

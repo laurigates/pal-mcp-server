@@ -811,7 +811,7 @@ function Build-DockerImage {
     
     # Check if image exists
     try {
-        $imageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "pal-mcp-server:latest" }
+        $imageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "palaver-mcp-server:latest" }
         if ($imageExists -and !$Force) {
             Write-Success "Docker image already exists. Use -Force to rebuild."
             return $true
@@ -824,7 +824,7 @@ function Build-DockerImage {
     if ($Force -and $imageExists) {
         Write-Info "Forcing rebuild of Docker image..."
         try {
-            docker rmi pal-mcp-server:latest 2>$null
+            docker rmi palaver-mcp-server:latest 2>$null
         }
         catch {
             Write-Warning "Could not remove existing image, continuing..."
@@ -839,7 +839,7 @@ function Build-DockerImage {
             Write-Info "Building with development support..."
         }
         
-        docker build -t pal-mcp-server:latest .
+        docker build -t palaver-mcp-server:latest .
         if ($LASTEXITCODE -ne 0) {
             throw "Docker build failed"
         }
@@ -946,10 +946,10 @@ function Start-DockerServices {
         
         if (!$Follow) {
             Write-Success "Docker services started successfully"
-            Write-Info "Container name: pal-mcp-server"
+            Write-Info "Container name: palaver-mcp-server"
             Write-Host ""
             Write-Host "To view logs: " -NoNewline
-            Write-Host "docker logs -f pal-mcp-server" -ForegroundColor Yellow
+            Write-Host "docker logs -f palaver-mcp-server" -ForegroundColor Yellow
             Write-Host "To stop: " -NoNewline
             Write-Host "docker-compose down" -ForegroundColor Yellow
         }
@@ -965,7 +965,7 @@ function Start-DockerServices {
 # Get Docker container status
 function Get-DockerStatus {
     try {
-        $containerStatus = docker ps --filter "name=pal-mcp-server" --format "{{.Status}}"
+        $containerStatus = docker ps --filter "name=palaver-mcp-server" --format "{{.Status}}"
         if ($containerStatus) {
             Write-Success "Container status: $containerStatus"
             return $true
@@ -1084,7 +1084,7 @@ $script:McpClientDefinitions = @(
 # Docker MCP configuration template (legacy, kept for backward compatibility)
 $script:DockerMcpConfig = @{
     command = "docker"
-    args    = @("exec", "-i", "pal-mcp-server", "python", "server.py")
+    args    = @("exec", "-i", "palaver-mcp-server", "python", "server.py")
     type    = "stdio"
 }
 
@@ -1097,7 +1097,7 @@ function Get-DockerMcpConfigRun {
     
     return @{
         command = "docker"
-        args    = @("run", "--rm", "-i", "--env-file", $envFile, "pal-mcp-server:latest", "python", "server.py")
+        args    = @("run", "--rm", "-i", "--env-file", $envFile, "palaver-mcp-server:latest", "python", "server.py")
         type    = "stdio"
     }
 }
@@ -1985,7 +1985,7 @@ function Show-SetupInstructions {
     
     if ($UseDocker) {
         Write-Success "PAL MCP Server is configured for Docker deployment"
-        Write-Host "Docker command: docker exec -i pal-mcp-server python server.py" -ForegroundColor Cyan
+        Write-Host "Docker command: docker exec -i palaver-mcp-server python server.py" -ForegroundColor Cyan
     }
     else {
         Write-Success "PAL MCP Server is configured for Python virtual environment"
@@ -2176,7 +2176,7 @@ function Invoke-DockerWorkflow {
     Write-Host ""
     Write-Host "Useful commands:" -ForegroundColor Cyan
     Write-Host "  View logs: " -NoNewline -ForegroundColor White
-    Write-Host "docker logs -f pal-mcp-server" -ForegroundColor Yellow
+    Write-Host "docker logs -f palaver-mcp-server" -ForegroundColor Yellow
     Write-Host "  Stop server: " -NoNewline -ForegroundColor White
     Write-Host "docker-compose down" -ForegroundColor Yellow
     Write-Host "  Restart server: " -NoNewline -ForegroundColor White

@@ -75,7 +75,7 @@ Choose your AI coding assistant and add the corresponding configuration:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -93,7 +93,7 @@ Create `.mcp.json` in your project root:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -111,7 +111,7 @@ Edit `~/.gemini/settings.json`:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -127,7 +127,7 @@ Edit `~/.codex/config.toml`:
 ```toml
 [mcp_servers.pal]
 command = "bash"
-args = ["pal-mcp-server"]
+args = ["palaver-mcp-server"]
 tool_timeout_sec = 1200  # 20 minutes; added automatically by the setup script so upstream providers can respond
 
 [mcp_servers.pal.env]
@@ -153,8 +153,8 @@ Create or edit `~/.qwen/settings.json`:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
-      "cwd": "/path/to/pal-mcp-server",
+      "args": ["palaver-mcp-server"],
+      "cwd": "/path/to/palaver-mcp-server",
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -177,9 +177,9 @@ Edit `~/.config/opencode/opencode.json`:
       "type": "local",
       "command": [
         "uv",
-        "run", "--project", "/path/to/pal-mcp-server", "python", "server.py"
+        "run", "--project", "/path/to/palaver-mcp-server", "python", "server.py"
       ],
-      "cwd": "/path/to/pal-mcp-server",
+      "cwd": "/path/to/palaver-mcp-server",
       "enabled": true,
       "environment": {
         "GEMINI_API_KEY": "your_api_key_here"
@@ -200,7 +200,7 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 1. Open Cursor → `Settings` (`Cmd+,`/`Ctrl+,`) → **Integrations › Model Context Protocol (MCP)**.
 2. Click **Add MCP Server** and supply the following values:
    - Command: `sh`
-   - Args: `pal-mcp-server`
+   - Args: `palaver-mcp-server`
    - Environment (example):
      - `PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin`
      - `GEMINI_API_KEY=your_api_key_here`
@@ -212,7 +212,7 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 2. Open the Command Palette (`Cmd+Shift+P`/`Ctrl+Shift+P`) → **Claude: Configure MCP Servers** → **Add server**.
 3. When prompted, use the same values as above:
    - Command: `sh`
-   - Args: `pal-mcp-server`
+   - Args: `palaver-mcp-server`
    - Environment: add the API keys you need (e.g. `GEMINI_API_KEY`, `OPENAI_API_KEY`)
 4. Save the JSON snippet the extension generates. VS Code will reload the server automatically the next time you interact with Claude.
 
@@ -228,8 +228,8 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 
 ```bash
 # Clone the repository
-git clone https://github.com/laurigates/pal-mcp-server.git
-cd pal-mcp-server
+git clone https://github.com/laurigates/palaver-mcp-server.git
+cd palaver-mcp-server
 
 # One-command setup (handles everything)
 ./run-server.sh
@@ -247,7 +247,7 @@ cd pal-mcp-server
 - ✅ Prints the client config to copy
 
 It does not register the server with any MCP client — point your client at
-`uvx pal-mcp-server` (Method A) or at this checkout via
+`uvx palaver-mcp-server` (Method A) or at this checkout via
 `uv run --project <path> python server.py`.
 
 **After updates:** Always run `./run-server.sh` again after `git pull`.
@@ -322,7 +322,7 @@ Gemini uses a single `timeout` field per server inside `~/.gemini/settings.json`
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "timeout": 300000
     }
   }

@@ -1741,7 +1741,7 @@ async def main():
 
 
 def run():
-    """Console script entry point for pal-mcp-server."""
+    """Console script entry point for palaver-mcp-server."""
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

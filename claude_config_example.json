@@ -6,7 +6,7 @@
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "GEMINI_API_KEY": "${GEMINI_API_KEY}"
       }

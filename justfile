@@ -90,7 +90,7 @@ tool-surface-preset:
 # pyproject.toml + uv.lock and the host installs dependencies with uv, so one
 # bundle covers every platform. release-please.yml attaches it to each release.
 
-# Build dist/pal-mcp-server-<version>.mcpb
+# Build dist/palaver-mcp-server-<version>.mcpb
 mcpb-build:
     uv run python scripts/build_mcpb.py
 

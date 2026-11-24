@@ -55,7 +55,7 @@ GATEWAYS: dict[str, tuple[str, str]] = {
     "opencode_go": ("https://opencode.ai/zen/go/v1/models", "OPENCODE_API_KEY"),
 }
 
-USER_AGENT = "pal-mcp-server-model-audit/1 (+https://github.com/laurigates/pal-mcp-server)"
+USER_AGENT = "palaver-mcp-server-model-audit/1 (+https://github.com/laurigates/palaver-mcp-server)"
 
 # Mirrors providers/shared/model_capabilities.py :: ModelCapabilities. Fields
 # outside this set are dropped by providers/registries/base.py's

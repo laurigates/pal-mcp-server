@@ -884,7 +884,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pal-mcp-server"
+name = "palaver-mcp-server"
 version = "12.1.0"
 source = { editable = "." }
 dependencies = [
