@@ -42,7 +42,6 @@
         "GEMINI_API_KEY": "${user_config.gemini_api_key}",
         "OPENAI_API_KEY": "${user_config.openai_api_key}",
         "OPENROUTER_API_KEY": "${user_config.openrouter_api_key}",
-        "DIAL_API_KEY": "${user_config.dial_api_key}",
         "OPENCODE_API_KEY": "${user_config.opencode_api_key}",
         "CUSTOM_API_URL": "${user_config.custom_api_url}",
         "DEFAULT_MODEL": "${user_config.default_model}",
@@ -72,14 +71,6 @@
       "type": "string",
       "title": "OpenRouter API key",
       "description": "From https://openrouter.ai/keys. One key for many vendors' models.",
-      "sensitive": true,
-      "required": false,
-      "default": ""
-    },
-    "dial_api_key": {
-      "type": "string",
-      "title": "DIAL API key",
-      "description": "From https://dialx.ai/. Leave empty to skip this provider.",
       "sensitive": true,
       "required": false,
       "default": ""

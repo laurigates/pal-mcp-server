@@ -368,15 +368,15 @@ class TestAliasAndSchemaChecks:
 
 class TestUnverifiableTargets:
     def test_unverifiable_target_still_runs_local_checks(self, conf_dir, catalogs):
-        """DIAL/custom get no catalog, but alias and schema checks apply."""
+        """Custom gets no catalog, but alias and schema checks apply."""
         conf_dir(
-            "dial_models.json",
+            "custom_models.json",
             [
                 {"model_name": "a", "aliases": ["dup"]},
                 {"model_name": "b", "aliases": ["dup"], "bogus_field": 1},
             ],
         )
-        target = audit.Target("dial_models.json", "unverifiable", label="DIAL", reason="no public catalog")
+        target = audit.Target("custom_models.json", "unverifiable", label="Custom", reason="no public catalog")
         findings, meta = audit.audit_target(target, catalogs, top_n=10)
         assert meta["catalog"] == 0
         assert meta["reason"] == "no public catalog"

@@ -17,7 +17,6 @@ import pytest
 
 import server
 from providers.custom import CustomProvider
-from providers.dial import DIALModelProvider
 from providers.gemini import GeminiModelProvider
 from providers.openai import OpenAIModelProvider
 from providers.opencode_go import OpenCodeGoProvider
@@ -40,7 +39,6 @@ def test_registered_provider_classes_priority_order():
     assert classes == [
         GeminiModelProvider,
         OpenAIModelProvider,
-        DIALModelProvider,
         CustomProvider,
         OpenCodeGoProvider,
         OpenRouterProvider,
@@ -65,7 +63,6 @@ def test_every_registered_class_exposes_from_env():
     [
         (GeminiModelProvider, "GEMINI_API_KEY", ProviderType.GOOGLE),
         (OpenAIModelProvider, "OPENAI_API_KEY", ProviderType.OPENAI),
-        (DIALModelProvider, "DIAL_API_KEY", ProviderType.DIAL),
         (OpenCodeGoProvider, "OPENCODE_API_KEY", ProviderType.OPENCODE_GO),
         (OpenRouterProvider, "OPENROUTER_API_KEY", ProviderType.OPENROUTER),
     ],
@@ -89,7 +86,6 @@ def test_from_env_returns_instance_when_key_present(provider_cls, env_var, expec
     [
         (GeminiModelProvider, "GEMINI_API_KEY", "your_gemini_api_key_here"),
         (OpenAIModelProvider, "OPENAI_API_KEY", "your_openai_api_key_here"),
-        (DIALModelProvider, "DIAL_API_KEY", "your_dial_api_key_here"),
         (OpenCodeGoProvider, "OPENCODE_API_KEY", "your_opencode_api_key_here"),
         (OpenRouterProvider, "OPENROUTER_API_KEY", "your_openrouter_api_key_here"),
     ],

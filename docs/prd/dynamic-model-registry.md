@@ -25,7 +25,7 @@ The facts PAL sends to providers reflect the provider's catalog as of the last s
 
 - **Automating judgment.** `intelligence_score`, aliases, `allow_code_generation` and `enabled_by_default` stay hand-curated. A model the catalog adds appears disabled, as `just models-generate` already does.
 - **Using models.dev at runtime.** It is community-maintained and was wrong four ways on 2026-11-16 (#235, the Gemini findings in #236). It stays an input to the weekly audit only.
-- **DIAL and Custom.** These have no public catalog; their names are chosen by the operator.
+- **Custom.** It has no public catalog; their names are chosen by the operator.
 - **Changing tool schemas.** The auto-mode `model` field lists only the top-ranked models (`tools/shared/base_tool.py`, `get_model_field_schema`), and new catalog models are disabled, so a refresh must not change any tool description.
 
 ## Users and scenarios

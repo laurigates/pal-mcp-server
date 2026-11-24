@@ -15,7 +15,7 @@ the gap by:
 1. Exposing **tools** (chat, codereview, debug, planner, etc.) over the MCP
    wire protocol.
 2. Routing each tool call to one or more **providers** (Gemini, OpenAI,
-   OpenRouter, DIAL, custom/Ollama) selected via a registry.
+   OpenRouter, custom/Ollama) selected via a registry.
 3. Pairing each tool with a dedicated **system prompt** that shapes the model's
    behaviour for that workflow.
 4. Persisting **conversation threads** in process memory so consecutive tool
@@ -148,7 +148,7 @@ available models. The hierarchy:
   (alias resolution, restriction checks, token counting) has sensible defaults.
 - **`providers/openai_compatible.py::OpenAICompatibleProvider`** extends the
   base for any backend speaking the OpenAI chat-completions wire format. Most
-  providers (`openai`, `dial`, `custom`, `openrouter`) inherit from it
+  providers (`openai`, `custom`, `openrouter`) inherit from it
   and only customise base URL plus `MODEL_CAPABILITIES`.
 - **`providers/gemini.py::GeminiModelProvider`** is a full `ModelProvider`
   using the Google Generative AI SDK directly.
@@ -160,7 +160,7 @@ that:
 
 - Maps `ProviderType` enum values to provider classes via
   `register_provider()`.
-- Maintains `PROVIDER_PRIORITY_ORDER` (Google → OpenAI → DIAL →
+- Maintains `PROVIDER_PRIORITY_ORDER` (Google → OpenAI →
   Custom → OpenRouter). `get_provider_for_model(model_name)` walks this list
   and returns the first provider whose capabilities include the requested
   model.

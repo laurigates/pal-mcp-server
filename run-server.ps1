@@ -867,9 +867,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GOOGLE_API_KEY=your_google_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
-DIAL_API_KEY=your_dial_api_key_here
-DIAL_API_HOST=your_dial_api_host_here
-DIAL_API_VERSION=your_dial_api_version_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 CUSTOM_API_URL=your_custom_api_url_here
 CUSTOM_API_KEY=your_custom_api_key_here
@@ -1804,7 +1801,7 @@ function Test-QwenCliIntegration {
     }
 
     $extraKeys = @(
-        "GEMINI_API_KEY", "OPENAI_API_KEY", "DIAL_API_KEY", "OPENROUTER_API_KEY",
+        "GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY",
         "CUSTOM_API_URL", "CUSTOM_API_KEY", "CUSTOM_MODEL_NAME", "DEFAULT_MODEL", "GOOGLE_ALLOWED_MODELS",
         "OPENAI_ALLOWED_MODELS", "OPENROUTER_ALLOWED_MODELS", "DEFAULT_THINKING_MODE_THINKDEEP",
         "DISABLED_TOOLS", "CONVERSATION_TIMEOUT_HOURS", "MAX_CONVERSATION_TURNS", "LOG_LEVEL", "PAL_MCP_FORCE_ENV_OVERRIDE"
@@ -2079,9 +2076,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GOOGLE_API_KEY=your_google_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
-DIAL_API_KEY=your_dial_api_key_here
-DIAL_API_HOST=your_dial_api_host_here
-DIAL_API_VERSION=your_dial_api_version_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 CUSTOM_API_URL=your_custom_api_url_here
 CUSTOM_API_KEY=your_custom_api_key_here

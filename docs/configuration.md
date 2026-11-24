@@ -71,7 +71,6 @@ DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
   - `conf/openai_models.json` – OpenAI catalogue (can be overridden with `OPENAI_MODELS_CONFIG_PATH`)
   - `conf/gemini_models.json` – Gemini catalogue (`GEMINI_MODELS_CONFIG_PATH`)
   - `conf/openrouter_models.json` – OpenRouter catalogue (`OPENROUTER_MODELS_CONFIG_PATH`)
-  - `conf/dial_models.json` – DIAL aggregation catalogue (`DIAL_MODELS_CONFIG_PATH`)
   - `conf/opencode_go_models.json` – OpenCode Go gateway catalogue (`OPENCODE_GO_MODELS_CONFIG_PATH`)
   - `conf/custom_models.json` – Custom/OpenAI-compatible endpoints (`CUSTOM_MODELS_CONFIG_PATH`)
 
@@ -195,7 +194,7 @@ DISABLED_MODELS=grok,gpt-5-nano
 DISABLED_MODELS=openrouter:x-ai/grok-4.6
 ```
 
-A blocked model is left out of auto mode, the ranked model summary and `listmodels`, and a request that names it is rejected. The provider prefix is one of `google`, `openai`, `openrouter`, `custom`, `dial`, `opencode_go`; any other text before a colon is part of the model name (`llama3.2:1b`). Names no configured provider recognizes produce a startup warning, not an error.
+A blocked model is left out of auto mode, the ranked model summary and `listmodels`, and a request that names it is rejected. The provider prefix is one of `google`, `openai`, `openrouter`, `custom`, `opencode_go`; any other text before a colon is part of the model name (`llama3.2:1b`). Names no configured provider recognizes produce a startup warning, not an error.
 
 **Preferring models in auto mode:** `PREFERRED_MODELS` is an ordered list that auto mode prefers over the default ranking by score. The auto-mode fallback picks the first available entry regardless of tool category, and the model summary in tool descriptions lists the available entries first, in your order, before filling the remaining slots by score.
 
@@ -246,7 +245,6 @@ OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra
 OPENAI_MODELS_CONFIG_PATH=/path/to/openai_models.json
 GEMINI_MODELS_CONFIG_PATH=/path/to/gemini_models.json
 OPENROUTER_MODELS_CONFIG_PATH=/path/to/openrouter_models.json
-DIAL_MODELS_CONFIG_PATH=/path/to/dial_models.json
 CUSTOM_MODELS_CONFIG_PATH=/path/to/custom_models.json
 ```
 

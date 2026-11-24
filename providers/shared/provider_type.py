@@ -12,5 +12,4 @@ class ProviderType(Enum):
     OPENAI = "openai"
     OPENROUTER = "openrouter"
     CUSTOM = "custom"
-    DIAL = "dial"
     OPENCODE_GO = "opencode_go"

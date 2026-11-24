@@ -60,7 +60,6 @@ py-modules = ["server", "config"]
     "conf/openrouter_models.json",
     "conf/openai_models.json",
     "conf/gemini_models.json",
-    "conf/dial_models.json",
 ]
 
 [tool.uv]

@@ -572,7 +572,6 @@ def _build_registered_provider_classes() -> list[type[ModelProvider]]:
     """
 
     from .custom import CustomProvider
-    from .dial import DIALModelProvider
     from .gemini import GeminiModelProvider
     from .openai import OpenAIModelProvider
     from .opencode_go import OpenCodeGoProvider
@@ -581,7 +580,6 @@ def _build_registered_provider_classes() -> list[type[ModelProvider]]:
     return [
         GeminiModelProvider,
         OpenAIModelProvider,
-        DIALModelProvider,
         CustomProvider,
         OpenCodeGoProvider,
         OpenRouterProvider,
@@ -604,6 +602,10 @@ REGISTERED_PROVIDER_CLASSES: list[type[ModelProvider]] = _build_registered_provi
 REMOVED_PROVIDER_ENV_VARS: dict[str, str] = {
     "XAI_API_KEY": "The xAI provider was removed; reach Grok models through OpenRouter (x-ai/grok-*)",
     "AZURE_OPENAI_API_KEY": "The Azure OpenAI provider was removed; use the OpenAI provider (OPENAI_API_KEY)",
+    "DIAL_API_KEY": (
+        "The DIAL provider was removed; use OpenRouter or a native provider, or the Custom provider "
+        "(CUSTOM_API_URL) if your installation serves a standard OpenAI-compatible endpoint"
+    ),
 }
 
 #: ProviderType -> declaring class. Total over ProviderType by construction;

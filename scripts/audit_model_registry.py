@@ -118,13 +118,6 @@ TARGETS: tuple[Target, ...] = (
         gateway="opencode_go",
     ),
     Target(
-        "dial_models.json",
-        "unverifiable",
-        label="DIAL",
-        reason="enterprise aggregator, no public keyless catalog",
-        module="dial.py",
-    ),
-    Target(
         "custom_models.json",
         "unverifiable",
         label="Custom",

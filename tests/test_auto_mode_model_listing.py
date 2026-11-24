@@ -110,7 +110,7 @@ def test_error_listing_respects_env_restrictions(monkeypatch, reset_registry):
     ):
         monkeypatch.setenv(key, value)
 
-    for var in ("CUSTOM_API_URL", "CUSTOM_API_KEY", "DIAL_API_KEY"):
+    for var in ("CUSTOM_API_URL", "CUSTOM_API_KEY"):
         monkeypatch.delenv(var, raising=False)
 
     ModelProviderRegistry.reset_for_testing()
@@ -155,7 +155,6 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
         "GOOGLE_ALLOWED_MODELS",
         "OPENAI_ALLOWED_MODELS",
         "OPENROUTER_ALLOWED_MODELS",
-        "DIAL_ALLOWED_MODELS",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -181,7 +180,6 @@ def test_error_listing_without_restrictions_shows_full_catalog(monkeypatch, rese
         "GOOGLE_ALLOWED_MODELS",
         "OPENAI_ALLOWED_MODELS",
         "OPENROUTER_ALLOWED_MODELS",
-        "DIAL_ALLOWED_MODELS",
         "CUSTOM_API_URL",
         "CUSTOM_API_KEY",
     ):

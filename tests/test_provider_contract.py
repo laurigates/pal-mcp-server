@@ -10,8 +10,6 @@ concrete provider honours that contract:
 * a successful response is returned as a populated :class:`ModelResponse`
 """
 
-import os
-
 import pytest
 
 from providers.shared import ModelResponse, ProviderType
@@ -40,17 +38,9 @@ def _openai_provider():
     return OpenAIModelProvider("test-key"), "gpt-4.1", ProviderType.OPENAI
 
 
-def _dial_provider():
-    os.environ.pop("DIAL_ALLOWED_MODELS", None)
-    from providers.dial import DIALModelProvider
-
-    return DIALModelProvider("test-key"), "o3", ProviderType.DIAL
-
-
 PROVIDER_FACTORIES = [
     pytest.param(_gemini_provider, id="gemini"),
     pytest.param(_openai_provider, id="openai"),
-    pytest.param(_dial_provider, id="dial"),
 ]
 
 

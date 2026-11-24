@@ -245,7 +245,6 @@ cascade where it belongs:
 return [
     GeminiModelProvider,
     OpenAIModelProvider,
-    DIALModelProvider,
     ExampleModelProvider,  # native APIs first...
     CustomProvider,  # ...then local/self-hosted...
     OpenCodeGoProvider,

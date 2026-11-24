@@ -31,10 +31,6 @@ You need at least one API key. Choose based on your needs:
 - Visit [OpenAI Platform](https://platform.openai.com/api-keys)
 - Generate an API key for GPT-5.2, GPT-5.1-Codex, GPT-5, O3 access
 
-**DIAL Platform:**
-- Visit [DIAL Platform](https://dialx.ai/)
-- Generate API key for vendor-agnostic model access
-
 **OpenCode Go:**
 - Visit [OpenCode Go](https://opencode.ai/docs/go/) and subscribe at [opencode.ai/auth](https://opencode.ai/auth)
 - Flat-rate subscription for open-source coding models (GLM, Kimi, DeepSeek, Qwen, MiniMax, MiMo)
@@ -277,12 +273,6 @@ GEMINI_API_KEY=your-gemini-api-key-here      # For Gemini models
 OPENAI_API_KEY=your-openai-api-key-here      # For GPT-5.2, GPT-5.1-Codex, O3
 OPENCODE_API_KEY=your-opencode-api-key-here  # For OpenCode Go coding models
 OPENROUTER_API_KEY=your-openrouter-key       # For multiple models
-
-# DIAL Platform (optional)
-DIAL_API_KEY=your-dial-api-key-here
-DIAL_API_HOST=https://core.dialx.ai          # Default host (optional)
-DIAL_API_VERSION=2024-12-01-preview          # API version (optional) 
-DIAL_ALLOWED_MODELS=o3,gemini-2.5-pro       # Restrict models (optional)
 
 # Custom/Local models (Ollama, vLLM, etc.)
 CUSTOM_API_URL=http://localhost:11434/v1     # Ollama example

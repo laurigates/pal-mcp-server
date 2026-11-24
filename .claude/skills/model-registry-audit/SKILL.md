@@ -134,13 +134,9 @@ live before acting on any of it:
 python3 -c "import json;d=json.load(open('.cache/model-catalogs/modelsdev.json'));print([k for k in d if 'opencode' in k])"
 ```
 
-Two configs cannot be machine-verified at all, and the script says so rather
-than reporting them clean:
+One config cannot be machine-verified at all, and the script says so rather
+than reporting it clean:
 
-- **DIAL** — enterprise aggregator, no public keyless catalog. Audit it by
-  checking whether the *underlying* models (`o3-2025-04-16`,
-  `claude-sonnet-4.1`, `gemini-2.5-pro-preview-03-25`) are still current at
-  their origin providers, and treat every conclusion as advisory.
 - **Custom** — user-supplied local endpoints (Ollama, vLLM). Whatever the
   operator runs is correct by definition.
 
@@ -247,8 +243,8 @@ tier rather than a specific version. Two rules:
   model keeps only its version-pinned alias (`flash3.5`). Leaving `flash` on
   the old model is how a registry silently rots while every test still passes.
 
-Across files the same alias legitimately appears more than once (`opus` in
-both `openrouter_models.json` and `dial_models.json`) — `providers/registry.py`
+Across files the same alias legitimately appears more than once (`flash` in
+both `gemini_models.json` and `openrouter_models.json`) — `providers/registry.py`
 resolves those by provider priority. That is not a collision.
 
 ## Verify before committing

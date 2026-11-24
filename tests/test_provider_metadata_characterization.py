@@ -16,7 +16,6 @@ from unittest.mock import patch
 import pytest
 
 from providers.custom import CustomProvider
-from providers.dial import DIALModelProvider
 from providers.gemini import GeminiModelProvider
 from providers.openai import OpenAIModelProvider
 from providers.opencode_go import OpenCodeGoProvider
@@ -31,7 +30,6 @@ pytestmark = pytest.mark.no_mock_provider
 EXPECTED_CLASS_ORDER = [
     GeminiModelProvider,
     OpenAIModelProvider,
-    DIALModelProvider,
     CustomProvider,
     OpenCodeGoProvider,
     OpenRouterProvider,
@@ -40,7 +38,6 @@ EXPECTED_CLASS_ORDER = [
 EXPECTED_PRIORITY_ORDER = [
     ProviderType.GOOGLE,
     ProviderType.OPENAI,
-    ProviderType.DIAL,
     ProviderType.CUSTOM,
     ProviderType.OPENCODE_GO,
     ProviderType.OPENROUTER,
@@ -53,7 +50,6 @@ EXPECTED_API_KEY_ENV = {
     ProviderType.OPENAI: "OPENAI_API_KEY",
     ProviderType.OPENROUTER: "OPENROUTER_API_KEY",
     ProviderType.CUSTOM: "CUSTOM_API_KEY",
-    ProviderType.DIAL: "DIAL_API_KEY",
     ProviderType.OPENCODE_GO: "OPENCODE_API_KEY",
 }
 
@@ -63,12 +59,11 @@ EXPECTED_API_KEY_ENV = {
 #: "URL-gated, no placeholder". Being URL-gated is why the key is optional, not
 #: a reason to accept a template string as a credential - with no placeholder
 #: declared, ``your_custom_api_key_here`` reached the endpoint as a bearer
-#: token. CUSTOM now declares one like the other five; the URL remains the
+#: token. CUSTOM now declares one like the other four; the URL remains the
 #: activation gate.
 EXPECTED_PLACEHOLDERS = {
     ProviderType.GOOGLE: "your_gemini_api_key_here",
     ProviderType.OPENAI: "your_openai_api_key_here",
-    ProviderType.DIAL: "your_dial_api_key_here",
     ProviderType.OPENCODE_GO: "your_opencode_api_key_here",
     ProviderType.OPENROUTER: "your_openrouter_api_key_here",
     ProviderType.CUSTOM: "your_custom_api_key_here",  # was None
@@ -78,7 +73,6 @@ EXPECTED_PLACEHOLDERS = {
 EXPECTED_SECTION_ORDER = [
     "Google Gemini",
     "OpenAI",
-    "AI DIAL",
     "OpenCode Go",
     "OpenRouter",
     "Custom/Local API",
@@ -149,7 +143,6 @@ def test_friendly_names_snapshot():
     assert [cls.FRIENDLY_NAME for cls in REGISTERED_PROVIDER_CLASSES] == [
         "Gemini",
         "OpenAI",  # was the inherited "OpenAI Compatible"
-        "DIAL",
         "Custom API",
         "OpenCode Go",
         "OpenRouter",
@@ -203,7 +196,6 @@ async def test_listmodels_not_configured_lines_name_the_right_env_vars():
     assert re.findall(r"^\*\*Status\*\*: Not configured \(set (.+?)\)$", content, flags=re.MULTILINE) == [
         "GEMINI_API_KEY",
         "OPENAI_API_KEY",
-        "DIAL_API_KEY",
         "OPENCODE_API_KEY",
         "OPENROUTER_API_KEY",
         "CUSTOM_API_URL",

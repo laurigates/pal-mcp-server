@@ -211,7 +211,6 @@ async def test_consensus_auto_mode_with_openrouter_and_gemini(monkeypatch):
 
         for key in [
             "OPENAI_API_KEY",
-            "DIAL_API_KEY",
             "CUSTOM_API_KEY",
             "CUSTOM_API_URL",
         ]:
