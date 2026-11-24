@@ -14,7 +14,7 @@ the gap by:
 
 1. Exposing **tools** (chat, codereview, debug, planner, etc.) over the MCP
    wire protocol.
-2. Routing each tool call to one or more **providers** (Gemini, OpenAI, Azure,
+2. Routing each tool call to one or more **providers** (Gemini, OpenAI,
    OpenRouter, DIAL, custom/Ollama) selected via a registry.
 3. Pairing each tool with a dedicated **system prompt** that shapes the model's
    behaviour for that workflow.
@@ -150,8 +150,6 @@ available models. The hierarchy:
   base for any backend speaking the OpenAI chat-completions wire format. Most
   providers (`openai`, `dial`, `custom`, `openrouter`) inherit from it
   and only customise base URL plus `MODEL_CAPABILITIES`.
-- **`providers/azure_openai.py::AzureOpenAIProvider`** is the OpenAI-compatible
-  flow plus a deployment map loaded from `conf/azure_models.json`.
 - **`providers/gemini.py::GeminiModelProvider`** is a full `ModelProvider`
   using the Google Generative AI SDK directly.
 
@@ -162,7 +160,7 @@ that:
 
 - Maps `ProviderType` enum values to provider classes via
   `register_provider()`.
-- Maintains `PROVIDER_PRIORITY_ORDER` (Google → OpenAI → Azure → DIAL →
+- Maintains `PROVIDER_PRIORITY_ORDER` (Google → OpenAI → DIAL →
   Custom → OpenRouter). `get_provider_for_model(model_name)` walks this list
   and returns the first provider whose capabilities include the requested
   model.
@@ -173,8 +171,8 @@ that:
 
 There is no static provider config file. `configure_providers()` in `server.py`
 reads env vars at startup and calls `register_provider()` for each present
-key. Provider-specific tunables (allowed models, base URLs, API versions,
-Azure deployment maps) are also env-sourced and consumed when the registry
+key. Provider-specific tunables (allowed models, base URLs, API versions)
+are also env-sourced and consumed when the registry
 instantiates a provider. This is what lets the same Docker image flex between
 "OpenAI only", "Ollama only", or "everything via OpenRouter" — drop the keys
 into `.env`, restart.

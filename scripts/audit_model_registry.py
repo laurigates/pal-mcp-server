@@ -130,12 +130,6 @@ TARGETS: tuple[Target, ...] = (
         label="Custom",
         reason="user-supplied local endpoints (Ollama, vLLM)",
     ),
-    Target(
-        "azure_models.json",
-        "unverifiable",
-        label="Azure",
-        reason="per-deployment names chosen by the operator",
-    ),
 )
 
 # Non-chat model families PAL never routes to. Matched as substrings against the

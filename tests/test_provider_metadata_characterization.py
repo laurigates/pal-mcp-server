@@ -15,7 +15,6 @@ from unittest.mock import patch
 
 import pytest
 
-from providers.azure_openai import AzureOpenAIProvider
 from providers.custom import CustomProvider
 from providers.dial import DIALModelProvider
 from providers.gemini import GeminiModelProvider
@@ -32,7 +31,6 @@ pytestmark = pytest.mark.no_mock_provider
 EXPECTED_CLASS_ORDER = [
     GeminiModelProvider,
     OpenAIModelProvider,
-    AzureOpenAIProvider,
     DIALModelProvider,
     CustomProvider,
     OpenCodeGoProvider,
@@ -42,7 +40,6 @@ EXPECTED_CLASS_ORDER = [
 EXPECTED_PRIORITY_ORDER = [
     ProviderType.GOOGLE,
     ProviderType.OPENAI,
-    ProviderType.AZURE,
     ProviderType.DIAL,
     ProviderType.CUSTOM,
     ProviderType.OPENCODE_GO,
@@ -54,7 +51,6 @@ EXPECTED_PRIORITY_ORDER = [
 EXPECTED_API_KEY_ENV = {
     ProviderType.GOOGLE: "GEMINI_API_KEY",
     ProviderType.OPENAI: "OPENAI_API_KEY",
-    ProviderType.AZURE: "AZURE_OPENAI_API_KEY",
     ProviderType.OPENROUTER: "OPENROUTER_API_KEY",
     ProviderType.CUSTOM: "CUSTOM_API_KEY",
     ProviderType.DIAL: "DIAL_API_KEY",
@@ -67,12 +63,11 @@ EXPECTED_API_KEY_ENV = {
 #: "URL-gated, no placeholder". Being URL-gated is why the key is optional, not
 #: a reason to accept a template string as a credential - with no placeholder
 #: declared, ``your_custom_api_key_here`` reached the endpoint as a bearer
-#: token. CUSTOM now declares one like the other six; the URL remains the
+#: token. CUSTOM now declares one like the other five; the URL remains the
 #: activation gate.
 EXPECTED_PLACEHOLDERS = {
     ProviderType.GOOGLE: "your_gemini_api_key_here",
     ProviderType.OPENAI: "your_openai_api_key_here",
-    ProviderType.AZURE: "your_azure_openai_key_here",
     ProviderType.DIAL: "your_dial_api_key_here",
     ProviderType.OPENCODE_GO: "your_opencode_api_key_here",
     ProviderType.OPENROUTER: "your_openrouter_api_key_here",
@@ -83,7 +78,6 @@ EXPECTED_PLACEHOLDERS = {
 EXPECTED_SECTION_ORDER = [
     "Google Gemini",
     "OpenAI",
-    "Azure OpenAI",
     "AI DIAL",
     "OpenCode Go",
     "OpenRouter",
@@ -155,7 +149,6 @@ def test_friendly_names_snapshot():
     assert [cls.FRIENDLY_NAME for cls in REGISTERED_PROVIDER_CLASSES] == [
         "Gemini",
         "OpenAI",  # was the inherited "OpenAI Compatible"
-        "Azure OpenAI",
         "DIAL",
         "Custom API",
         "OpenCode Go",
@@ -164,26 +157,21 @@ def test_friendly_names_snapshot():
 
 
 def test_allowed_models_env_var_derivation():
-    """7 of 8 derive from ProviderType; Azure declares an override chain."""
+    """Every shipped provider derives its allow-list variable from ProviderType."""
     assert GeminiModelProvider.allowed_models_env_vars() == ("GOOGLE_ALLOWED_MODELS",)
     assert OpenCodeGoProvider.allowed_models_env_vars() == ("OPENCODE_GO_ALLOWED_MODELS",)
     assert CustomProvider.allowed_models_env_vars() == ("CUSTOM_ALLOWED_MODELS",)
-    assert AzureOpenAIProvider.allowed_models_env_vars() == (
-        "AZURE_OPENAI_ALLOWED_MODELS",
-        "AZURE_ALLOWED_MODELS",
-    )
 
 
 def test_gating_env_vars_capture_the_awkward_providers():
     """Activation is not always "has API key"; this is the metadata that lets
-    consumers stop special-casing Custom and Azure by name.
+    consumers stop special-casing Custom by name.
 
     Unchanged by issue #115: declaring an API_KEY_PLACEHOLDER on Custom governs
     whether the key is believed, not whether the provider activates.
     CUSTOM_API_KEY stays in OPTIONAL_ENV, so the URL remains the sole gate and
     an Ollama endpoint with a leftover template key still registers."""
     assert CustomProvider.gating_env_vars() == ("CUSTOM_API_URL",)
-    assert AzureOpenAIProvider.gating_env_vars() == ("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")
     assert OpenCodeGoProvider.gating_env_vars() == ("OPENCODE_API_KEY",)
 
 
@@ -208,15 +196,13 @@ async def test_listmodels_section_order_is_exact():
 
 @pytest.mark.asyncio
 async def test_listmodels_not_configured_lines_name_the_right_env_vars():
-    """DELTA (intentional): Azure's line gains AZURE_OPENAI_ENDPOINT, which is
-    genuinely required for the provider to activate and was never mentioned."""
+    """Each not-configured line names the variables that activate the provider."""
     with patch.dict(os.environ, {"DEFAULT_MODEL": "auto"}, clear=True):
         content = await _listmodels_content()
 
     assert re.findall(r"^\*\*Status\*\*: Not configured \(set (.+?)\)$", content, flags=re.MULTILINE) == [
         "GEMINI_API_KEY",
         "OPENAI_API_KEY",
-        "AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT",  # was "AZURE_OPENAI_API_KEY"
         "DIAL_API_KEY",
         "OPENCODE_API_KEY",
         "OPENROUTER_API_KEY",
@@ -242,9 +228,7 @@ async def test_listmodels_configured_count_matches_the_checkmarks():
 
 
 def test_no_provider_error_names_every_provider(monkeypatch):
-    """DELTA (intentional): the message used to omit AZURE_OPENAI_API_KEY
-    entirely, so a user with only an Azure subscription was told Azure was
-    not an option. It is now generated from the roster."""
+    """The message is generated from the roster, so no provider can be left out."""
     import server
 
     for provider_cls in REGISTERED_PROVIDER_CLASSES:
@@ -372,15 +356,26 @@ def test_is_configured_accepts_a_real_key():
 
 
 def test_is_configured_requires_every_gating_var():
-    """Azure needs endpoint as well as key; Custom needs the URL."""
-    for provider_cls in REGISTERED_PROVIDER_CLASSES:
-        gating = provider_cls.gating_env_vars()
-        if len(gating) < 2:
-            continue
-        for omitted in gating:
-            env = {var: f"real-{var.lower()}" for var in gating if var != omitted}
-            with patch.dict(os.environ, env, clear=True):
-                assert provider_cls.is_configured() is False, (provider_cls.__name__, omitted)
+    """A provider gated on a key and a second variable needs both.
+
+    No shipped provider has two gating variables since Azure was removed, so
+    the rule is exercised on a minimal subclass rather than the roster.
+    """
+
+    class _TwoGateProvider(OpenAIModelProvider):
+        API_KEY_ENV = "TWO_GATE_API_KEY"
+        API_KEY_PLACEHOLDER = None
+        REQUIRED_ENV = ("TWO_GATE_ENDPOINT",)
+        OPTIONAL_ENV = ()
+
+    gating = _TwoGateProvider.gating_env_vars()
+    assert gating == ("TWO_GATE_API_KEY", "TWO_GATE_ENDPOINT")
+    with patch.dict(os.environ, {var: f"real-{var.lower()}" for var in gating}, clear=True):
+        assert _TwoGateProvider.is_configured() is True
+    for omitted in gating:
+        env = {var: f"real-{var.lower()}" for var in gating if var != omitted}
+        with patch.dict(os.environ, env, clear=True):
+            assert _TwoGateProvider.is_configured() is False, omitted
 
 
 def test_listmodels_custom_section_honours_the_allow_list():

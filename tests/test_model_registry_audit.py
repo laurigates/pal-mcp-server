@@ -368,7 +368,7 @@ class TestAliasAndSchemaChecks:
 
 class TestUnverifiableTargets:
     def test_unverifiable_target_still_runs_local_checks(self, conf_dir, catalogs):
-        """DIAL/custom/azure get no catalog, but alias and schema checks apply."""
+        """DIAL/custom get no catalog, but alias and schema checks apply."""
         conf_dir(
             "dial_models.json",
             [

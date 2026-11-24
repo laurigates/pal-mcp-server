@@ -134,7 +134,7 @@ live before acting on any of it:
 python3 -c "import json;d=json.load(open('.cache/model-catalogs/modelsdev.json'));print([k for k in d if 'opencode' in k])"
 ```
 
-Three configs cannot be machine-verified at all, and the script says so rather
+Two configs cannot be machine-verified at all, and the script says so rather
 than reporting them clean:
 
 - **DIAL** — enterprise aggregator, no public keyless catalog. Audit it by
@@ -143,7 +143,6 @@ than reporting them clean:
   their origin providers, and treat every conclusion as advisory.
 - **Custom** — user-supplied local endpoints (Ollama, vLLM). Whatever the
   operator runs is correct by definition.
-- **Azure** — deployment names are chosen per-subscription by the operator.
 
 ## Applying findings
 

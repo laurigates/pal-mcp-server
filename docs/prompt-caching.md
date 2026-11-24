@@ -78,8 +78,8 @@ Chat-Completions-shaped extractor (`:427-428`), so the 18 models with
 
 | Mechanism | Providers | PAL must provide |
 |---|---|---|
-| Automatic prefix match | OpenAI ≤ 5.5, Azure, OpenRouter's automatic upstreams (OpenAI, DeepSeek, Grok, Moonshot, Z.AI, Gemini…), OpenCode Go upstreams, Gemini 2.5+ implicit caching, local KV-cache reuse | Byte-stable, append-only requests above the model's minimum |
-| Implicit caching at message endings | OpenAI / Azure GPT-5.6+ | Turn boundaries that are message boundaries; one message that grows each turn is never reused |
+| Automatic prefix match | OpenAI ≤ 5.5, OpenRouter's automatic upstreams (OpenAI, DeepSeek, Grok, Moonshot, Z.AI, Gemini…), OpenCode Go upstreams, Gemini 2.5+ implicit caching, local KV-cache reuse | Byte-stable, append-only requests above the model's minimum |
+| Implicit caching at message endings | OpenAI GPT-5.6+ | Turn boundaries that are message boundaries; one message that grows each turn is never reused |
 | Nothing unless marked | Anthropic models via OpenRouter and DIAL | `cache_control` breakpoints on stable segments |
 | Routing affinity | OpenRouter `x-session-id`; OpenAI `prompt_cache_key`; OpenCode Go `x-opencode-session` (already sent) | A per-thread key that is identical from turn 1 |
 
@@ -386,7 +386,6 @@ pairs. The harness does not build S4 (informational).
 - Whether OpenCode Go passes upstream cache fields through.
 - Whether OpenRouter's `prompt_tokens` includes cached tokens for `anthropic/*`, and the
   same for DIAL.
-- Azure `prompt_cache_key` support at the api-version PAL uses.
 - The minimum prefix for Gemini models reached through OpenRouter.
 
 ## Noticed while investigating (not part of this work)

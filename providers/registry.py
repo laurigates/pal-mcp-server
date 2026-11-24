@@ -176,21 +176,6 @@ class ModelProviderRegistry:
                 provider_kwargs["base_url"] = gemini_base_url
                 logging.info(f"Initialized Gemini provider with custom endpoint: {gemini_base_url}")
             provider = provider_class(**provider_kwargs)
-        elif provider_type == ProviderType.AZURE:
-            if not api_key:
-                return None
-
-            azure_endpoint = get_env("AZURE_OPENAI_ENDPOINT")
-            if not azure_endpoint:
-                logging.warning("AZURE_OPENAI_ENDPOINT missing – skipping Azure OpenAI provider")
-                return None
-
-            azure_version = get_env("AZURE_OPENAI_API_VERSION")
-            provider = provider_class(
-                api_key=api_key,
-                azure_endpoint=azure_endpoint,
-                api_version=azure_version,
-            )
         else:
             if not api_key:
                 return None
@@ -586,7 +571,6 @@ def _build_registered_provider_classes() -> list[type[ModelProvider]]:
     point where the provider modules themselves import this module.
     """
 
-    from .azure_openai import AzureOpenAIProvider
     from .custom import CustomProvider
     from .dial import DIALModelProvider
     from .gemini import GeminiModelProvider
@@ -597,7 +581,6 @@ def _build_registered_provider_classes() -> list[type[ModelProvider]]:
     return [
         GeminiModelProvider,
         OpenAIModelProvider,
-        AzureOpenAIProvider,
         DIALModelProvider,
         CustomProvider,
         OpenCodeGoProvider,
@@ -620,6 +603,7 @@ REGISTERED_PROVIDER_CLASSES: list[type[ModelProvider]] = _build_registered_provi
 #: environment-isolation test keeps asserting they never reach a relayed CLI.
 REMOVED_PROVIDER_ENV_VARS: dict[str, str] = {
     "XAI_API_KEY": "The xAI provider was removed; reach Grok models through OpenRouter (x-ai/grok-*)",
+    "AZURE_OPENAI_API_KEY": "The Azure OpenAI provider was removed; use the OpenAI provider (OPENAI_API_KEY)",
 }
 
 #: ProviderType -> declaring class. Total over ProviderType by construction;

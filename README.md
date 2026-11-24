@@ -5,7 +5,7 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/laurigates/pal-mcp-server/test.yml?label=tests)](https://github.com/laurigates/pal-mcp-server/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-A Model Context Protocol server that connects AI CLIs to multiple AI models. It works with Claude Code, Gemini CLI, Codex CLI, Qwen Code CLI, and Cursor, and supports providers including Gemini, OpenAI, Anthropic, Azure, Ollama, OpenRouter, DIAL, and OpenCode Go.
+A Model Context Protocol server that connects AI CLIs to multiple AI models. It works with Claude Code, Gemini CLI, Codex CLI, Qwen Code CLI, and Cursor, and supports providers including Gemini, OpenAI, Anthropic, Ollama, OpenRouter, DIAL, and OpenCode Go.
 
 ---
 
@@ -31,7 +31,6 @@ You stay in control. Your CLI orchestrates the AI team, but you decide the workf
 - [OpenRouter](https://openrouter.ai/) - Access multiple models with one API
 - [Gemini](https://makersuite.google.com/app/apikey) - Google's latest models
 - [OpenAI](https://platform.openai.com/api-keys) - O3, GPT-5 series
-- [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) - Enterprise deployments of GPT-4o, GPT-4.1, GPT-5 family
 - [DIAL](https://dialx.ai/) - Vendor-agnostic model access
 - [OpenCode Go](https://opencode.ai/docs/go/) - Flat-rate subscription for open-source coding models
 - [Ollama](https://ollama.ai/) - Local models (free)
@@ -69,8 +68,6 @@ repo. The full set of recognised keys:
 "env": {
   "GEMINI_API_KEY": "${GEMINI_API_KEY}",
   "OPENAI_API_KEY": "${OPENAI_API_KEY}",
-  "AZURE_OPENAI_API_KEY": "${AZURE_OPENAI_API_KEY}",
-  "AZURE_OPENAI_ENDPOINT": "https://your-resource.openai.azure.com/",
   "DIAL_API_KEY": "${DIAL_API_KEY}",
   "OPENCODE_API_KEY": "${OPENCODE_API_KEY}",
   "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
@@ -119,7 +116,6 @@ PAL activates any provider that has credentials in your `.env`. Set the environm
 |---|---|---|
 | Gemini | `GEMINI_API_KEY` | `GEMINI_BASE_URL`, `GOOGLE_ALLOWED_MODELS` |
 | OpenAI | `OPENAI_API_KEY` | `OPENAI_ALLOWED_MODELS` |
-| Azure OpenAI | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT` | `AZURE_OPENAI_API_VERSION`, `AZURE_OPENAI_ALLOWED_MODELS`, `AZURE_MODELS_CONFIG_PATH` |
 | DIAL | `DIAL_API_KEY` | `DIAL_API_HOST`, `DIAL_API_VERSION`, `DIAL_ALLOWED_MODELS` |
 | OpenCode Go | `OPENCODE_API_KEY` | `OPENCODE_GO_ALLOWED_MODELS`, `OPENCODE_GO_MODELS_CONFIG_PATH` |
 | OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_ALLOWED_MODELS`, `OPENROUTER_MODELS_CONFIG_PATH` |
@@ -128,6 +124,7 @@ PAL activates any provider that has credentials in your `.env`. Set the environm
 **Removed providers.** These keys are ignored, and the server logs a warning at startup when one is set:
 
 - `XAI_API_KEY` (X.AI): Grok models are available through OpenRouter as `x-ai/grok-*`.
+- `AZURE_OPENAI_API_KEY` (Azure OpenAI): use `OPENAI_API_KEY`; the OpenAI provider serves the same models.
 
 **General configuration**
 
@@ -261,7 +258,7 @@ Videos demonstrating the `chat`, `consensus`, `precommit`, `apilookup`, and `cha
 - [Context revival](docs/context-revival.md) — continue conversations even after context resets
 
 **Model Support**
-- Multiple providers — Gemini, OpenAI, Azure, OpenRouter, DIAL, OpenCode Go, Ollama
+- Multiple providers — Gemini, OpenAI, OpenRouter, DIAL, OpenCode Go, Ollama
 - Latest models — GPT-5, Gemini 3.0 Pro, O3, local Llama
 - [Thinking modes](docs/advanced-usage.md#thinking-modes) — control reasoning depth vs cost
 - Vision support — analyze images, diagrams, screenshots
@@ -298,7 +295,7 @@ See the [Advanced Usage Guide](docs/advanced-usage.md) for complex workflows, mo
 | Lint & format | [ruff](https://docs.astral.sh/ruff/) |
 | Type check | [ty](https://github.com/astral-sh/ty) (pre-1.0, advisory) |
 | Tests | pytest (`pytest-asyncio`, `pytest-mock`) |
-| Provider SDKs | `google-genai`, `openai` (also fronts Azure, DIAL, OpenRouter, OpenCode Go, and OpenAI-compatible local servers) |
+| Provider SDKs | `google-genai`, `openai` (also fronts DIAL, OpenRouter, OpenCode Go, and OpenAI-compatible local servers) |
 | Release | release-please, conventional commits, GHCR container builds |
 
 ## Development
@@ -333,7 +330,7 @@ the version and write the changelog, so never hand-edit `CHANGELOG.md` or the
 - [Tools Reference](docs/tools/) - All tools with examples
 - [Advanced Usage](docs/advanced-usage.md) - Power user features
 - [Configuration](docs/configuration.md) - Environment variables, restrictions
-- [Adding Providers](docs/adding_providers.md) - Provider-specific setup (OpenAI, Azure, custom gateways)
+- [Adding Providers](docs/adding_providers.md) - Provider-specific setup (OpenAI, custom gateways)
 - [Model Ranking Guide](docs/model_ranking.md) - How intelligence scores drive auto-mode suggestions
 
 ### Setup & Support
@@ -352,4 +349,3 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - [Claude Code](https://claude.ai/code)
 - [Gemini](https://ai.google.dev/)
 - [OpenAI](https://openai.com/)
-- [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/)

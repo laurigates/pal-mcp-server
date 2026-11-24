@@ -10,7 +10,6 @@ Each provider:
 - **Declares its metadata as class attributes** (see below) — this is the single source of truth
 - Implements the one remaining abstract hook, `generate_content()`
 - Gets appended to `_build_registered_provider_classes()` in [`providers/registry.py`](../providers/registry.py)
-- Can leverage helper subclasses (e.g., `AzureOpenAIProvider`) when only client wiring differs
 
 ## The declarative provider contract
 
@@ -42,7 +41,7 @@ from `PROVIDER_TYPE`. Do not override it in new providers.
 `from_env()` is likewise inherited: the base implementation reads
 `API_KEY_ENV`, rejects `API_KEY_PLACEHOLDER`, and constructs the provider.
 Override it only if you need to pass extra constructor kwargs — Gemini
-(`base_url`), Azure (`azure_endpoint`) and Custom (URL-gated) do.
+(`base_url`) and Custom (URL-gated) do.
 
 These guards in [`tests/test_provider_metadata.py`](../tests/test_provider_metadata.py)
 will fail if you skip a step, so a half-registered provider cannot ship
@@ -76,13 +75,6 @@ features ([details here](model_ranking.md)).
 - Inherits all API handling automatically
 
 ⚠️ **Important**: If you implement a custom `generate_content()`, call `_resolve_model_name()` before invoking the SDK so aliases (e.g. `"gpt"` → `"gpt-4"`) resolve correctly. The shared implementations already do this for you.
-
-**Option C: Azure OpenAI (`AzureOpenAIProvider`)**
-- For Azure-hosted deployments of OpenAI models
-- Reuses the OpenAI-compatible pipeline but swaps in the `AzureOpenAI` client and a deployment mapping (canonical model → deployment ID)
-- Define deployments in [`conf/azure_models.json`](../conf/azure_models.json) (or the file referenced by `AZURE_MODELS_CONFIG_PATH`).
-- Entries follow the [`ModelCapabilities`](../providers/shared/model_capabilities.py) schema and must include a `deployment` identifier.
-  See [Azure OpenAI Configuration](azure_openai.md) for a step-by-step walkthrough.
 
 ## Step-by-Step Guide
 
@@ -253,7 +245,6 @@ cascade where it belongs:
 return [
     GeminiModelProvider,
     OpenAIModelProvider,
-    AzureOpenAIProvider,
     DIALModelProvider,
     ExampleModelProvider,  # native APIs first...
     CustomProvider,  # ...then local/self-hosted...
@@ -291,19 +282,6 @@ DISABLED_TOOLS=debug,tracer
 # Optional (OpenAI-compatible providers): Restrict accessible models
 EXAMPLE_ALLOWED_MODELS=example-model-large,example-model-small
 ```
-
-For Azure OpenAI deployments:
-
-```bash
-AZURE_OPENAI_API_KEY=your_azure_openai_key_here
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-# Models are defined in conf/azure_models.json (or AZURE_MODELS_CONFIG_PATH)
-# AZURE_OPENAI_API_VERSION=2024-02-15-preview
-# AZURE_OPENAI_ALLOWED_MODELS=gpt-4o,gpt-4o-mini
-# AZURE_MODELS_CONFIG_PATH=/absolute/path/to/custom_azure_models.json
-```
-
-You can also define Azure models in [`conf/azure_models.json`](../conf/azure_models.json) (the bundled file is empty so you can copy it safely). Each entry mirrors the `ModelCapabilities` schema and must include a `deployment` field. Set `AZURE_MODELS_CONFIG_PATH` if you maintain a custom copy outside the repository.
 
 **Note**: The `description` field in `ModelCapabilities` helps Claude choose the best model in auto mode.
 

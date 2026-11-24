@@ -16,7 +16,6 @@ from unittest.mock import patch
 import pytest
 
 import server
-from providers.azure_openai import AzureOpenAIProvider
 from providers.custom import CustomProvider
 from providers.dial import DIALModelProvider
 from providers.gemini import GeminiModelProvider
@@ -41,7 +40,6 @@ def test_registered_provider_classes_priority_order():
     assert classes == [
         GeminiModelProvider,
         OpenAIModelProvider,
-        AzureOpenAIProvider,
         DIALModelProvider,
         CustomProvider,
         OpenCodeGoProvider,
@@ -106,65 +104,6 @@ def test_from_env_returns_none_for_missing_or_placeholder(provider_cls, env_var,
         assert provider_cls.from_env() is None
     with patch.dict(os.environ, {env_var: placeholder}, clear=False):
         assert provider_cls.from_env() is None
-
-
-# --------------------------------------------------------------------------
-# Azure - dual-requirement provider (key + endpoint + non-empty registry)
-# --------------------------------------------------------------------------
-
-
-def test_azure_from_env_missing_endpoint_returns_none():
-    """Azure must have BOTH a key AND an endpoint configured."""
-
-    env = {
-        "AZURE_OPENAI_API_KEY": "real-test-key",
-    }
-    # Strip endpoint from the parent environment so this is a clean negative.
-    cleared = {k: v for k, v in os.environ.items() if k != "AZURE_OPENAI_ENDPOINT"}
-    cleared.update(env)
-    with patch.dict(os.environ, cleared, clear=True):
-        assert AzureOpenAIProvider.from_env() is None
-
-
-def test_azure_from_env_missing_key_returns_none():
-    """Azure must reject configurations that have an endpoint but no key."""
-
-    env = {"AZURE_OPENAI_ENDPOINT": "https://example.openai.azure.com"}
-    cleared = {k: v for k, v in os.environ.items() if k != "AZURE_OPENAI_API_KEY"}
-    cleared.update(env)
-    with patch.dict(os.environ, cleared, clear=True):
-        assert AzureOpenAIProvider.from_env() is None
-
-
-def test_azure_from_env_placeholder_key_returns_none():
-    """The documented placeholder key must be treated as 'not configured'."""
-
-    env = {
-        "AZURE_OPENAI_API_KEY": "your_azure_openai_key_here",
-        "AZURE_OPENAI_ENDPOINT": "https://example.openai.azure.com",
-    }
-    with patch.dict(os.environ, env, clear=False):
-        assert AzureOpenAIProvider.from_env() is None
-
-
-def test_azure_from_env_empty_model_registry_returns_none(monkeypatch):
-    """Azure refuses to register itself when no deployments are configured."""
-
-    env = {
-        "AZURE_OPENAI_API_KEY": "real-test-key",
-        "AZURE_OPENAI_ENDPOINT": "https://example.openai.azure.com",
-    }
-
-    class _EmptyRegistry:
-        def list_models(self):
-            return []
-
-    monkeypatch.setattr(
-        "providers.azure_openai.AzureModelRegistry",
-        lambda *args, **kwargs: _EmptyRegistry(),
-    )
-    with patch.dict(os.environ, env, clear=False):
-        assert AzureOpenAIProvider.from_env() is None
 
 
 # --------------------------------------------------------------------------

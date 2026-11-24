@@ -11,17 +11,10 @@ concrete provider honours that contract:
 """
 
 import os
-import sys
-import types
 
 import pytest
 
 from providers.shared import ModelResponse, ProviderType
-
-if "openai" not in sys.modules:  # pragma: no cover - shim for optional Azure dep
-    _stub = types.ModuleType("openai")
-    _stub.AsyncAzureOpenAI = object
-    sys.modules["openai"] = _stub
 
 
 def _make_response(model_name: str, provider: ProviderType) -> ModelResponse:
@@ -54,25 +47,10 @@ def _dial_provider():
     return DIALModelProvider("test-key"), "o3", ProviderType.DIAL
 
 
-def _azure_provider():
-    from providers.azure_openai import AzureOpenAIProvider
-
-    return (
-        AzureOpenAIProvider(
-            api_key="test-key",
-            azure_endpoint="https://example.openai.azure.com/",
-            deployments={"gpt-4o": "prod-gpt4o"},
-        ),
-        "gpt-4o",
-        ProviderType.AZURE,
-    )
-
-
 PROVIDER_FACTORIES = [
     pytest.param(_gemini_provider, id="gemini"),
     pytest.param(_openai_provider, id="openai"),
     pytest.param(_dial_provider, id="dial"),
-    pytest.param(_azure_provider, id="azure"),
 ]
 
 

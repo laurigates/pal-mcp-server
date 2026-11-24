@@ -188,7 +188,7 @@ def _isolated_provider_registry(request, monkeypatch):
     Scrubs ``credential_env_vars()`` for every registered provider. Despite the
     name that is wider than API keys: it covers ``REQUIRED_ENV``,
     ``OPTIONAL_ENV`` and the allow-lists, so ``CUSTOM_API_URL``,
-    ``AZURE_OPENAI_ENDPOINT``, every ``*_MODELS_CONFIG_PATH`` and every
+    ``GEMINI_BASE_URL``, every ``*_MODELS_CONFIG_PATH`` and every
     ``*_ALLOWED_MODELS`` are unset inside a test unless the test sets them
     itself. That breadth is deliberate -- it is what stops a developer's .env
     from reaching the assertions (issue #66) -- but it means a test that
