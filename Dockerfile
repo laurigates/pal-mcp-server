@@ -40,10 +40,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.12-slim-trixie AS runtime
 
 LABEL maintainer="PAL MCP Server Team"
-LABEL org.opencontainers.image.title="pal-mcp-server"
+LABEL org.opencontainers.image.title="palaver-mcp-server"
 LABEL org.opencontainers.image.description="AI-powered Model Context Protocol server with multi-provider support"
-LABEL org.opencontainers.image.source="https://github.com/laurigates/pal-mcp-server"
-LABEL org.opencontainers.image.documentation="https://github.com/laurigates/pal-mcp-server/blob/main/README.md"
+LABEL org.opencontainers.image.source="https://github.com/laurigates/palaver-mcp-server"
+LABEL org.opencontainers.image.documentation="https://github.com/laurigates/palaver-mcp-server/blob/main/README.md"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 # Create non-root user for security

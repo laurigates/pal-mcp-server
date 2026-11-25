@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Smoke test for the Claude Desktop extension bundle.
 
-Unzips dist/pal-mcp-server-<version>.mcpb into an empty directory, resolves the
+Unzips dist/palaver-mcp-server-<version>.mcpb into an empty directory, resolves the
 manifest's mcp_config the way a host does (``${__dirname}``, ``${user_config.*}``
 with every key left at its default, so no provider is configured) and fails on
 any unresolved ``${...}`` placeholder. It then launches the server from an
@@ -59,7 +59,7 @@ def uv_dir(*args: str) -> str:
 
 def main() -> None:
     version = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())["project"]["version"]
-    bundle = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO_ROOT / "dist" / f"pal-mcp-server-{version}.mcpb"
+    bundle = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO_ROOT / "dist" / f"palaver-mcp-server-{version}.mcpb"
     if not bundle.is_file():
         fail(f"bundle not found: {bundle} — run `just mcpb-build` first")
 

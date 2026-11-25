@@ -147,7 +147,7 @@ docker-compose ps
 docker-compose logs -f pal-mcp
 
 # View health status
-docker inspect pal-mcp-server --format='{{.State.Health.Status}}'
+docker inspect palaver-mcp-server --format='{{.State.Health.Status}}'
 ```
 
 ### Stopping the Service
@@ -226,7 +226,7 @@ ports:
 docker-compose logs pal-mcp
 
 # Manual health check
-docker exec pal-mcp-server python /usr/local/bin/healthcheck.py
+docker exec palaver-mcp-server python /usr/local/bin/healthcheck.py
 ```
 
 **2. Permission errors:**
@@ -245,7 +245,7 @@ cat .env
 **4. API key validation errors:**
 ```bash
 # Check environment variables in container
-docker exec pal-mcp-server env | grep -E "(GEMINI|OPENAI|OPENROUTER)"
+docker exec palaver-mcp-server env | grep -E "(GEMINI|OPENAI|OPENROUTER)"
 ```
 
 ### Debug Mode
@@ -312,7 +312,7 @@ deploy:
 
 Monitor memory usage:
 ```bash
-docker stats pal-mcp-server
+docker stats palaver-mcp-server
 ```
 
 Adjust Python memory settings if needed:
@@ -342,7 +342,7 @@ Configure Claude Desktop to use the containerized server. **Choose one of the co
         "/absolute/path/to/pal-mcp-server/.env",
         "-v",
         "/absolute/path/to/pal-mcp-server/logs:/app/logs",
-        "pal-mcp-server:latest"
+        "palaver-mcp-server:latest"
       ]
     }
   }
@@ -363,7 +363,7 @@ Configure Claude Desktop to use the containerized server. **Choose one of the co
         "C:/path/to/pal-mcp-server/.env",
         "-v",
         "C:/path/to/pal-mcp-server/logs:/app/logs",
-        "pal-mcp-server:latest"
+        "palaver-mcp-server:latest"
       ]
     }
   }
@@ -405,7 +405,7 @@ Configure Claude Desktop to use the containerized server. **Choose one of the co
         "-e", "LOG_LEVEL=INFO",
         "-e", "DEFAULT_MODEL=auto",
         "-v", "/path/to/logs:/app/logs",
-        "pal-mcp-server:latest"
+        "palaver-mcp-server:latest"
       ]
     }
   }
@@ -429,7 +429,7 @@ OPENAI_API_KEY=your_openai_key
 ```
 
 **Troubleshooting:**
-- If Option 1 fails: check that the Docker image exists (`docker images pal-mcp-server`).
+- If Option 1 fails: check that the Docker image exists (`docker images palaver-mcp-server`).
 - If Option 2 fails: verify the compose file path and ensure the service is not already in use.
 - Permission issues: make sure the `logs` folder is writable.
 

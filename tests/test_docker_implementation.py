@@ -80,7 +80,9 @@ class TestDockerCommands:
 
         # Simulate docker build
         subprocess.run(
-            ["docker", "build", "-t", "pal-mcp-server:latest", str(self.project_root)], capture_output=True, text=True
+            ["docker", "build", "-t", "palaver-mcp-server:latest", str(self.project_root)],
+            capture_output=True,
+            text=True,
         )
 
         mock_run.assert_called_once()
@@ -100,7 +102,7 @@ class TestDockerCommands:
             ".env",
             "-v",
             "logs:/app/logs",
-            "pal-mcp-server:latest",
+            "palaver-mcp-server:latest",
             "python",
             "server.py",
         ]
@@ -111,7 +113,7 @@ class TestDockerCommands:
         assert "--rm" in cmd, "Must contain --rm for cleanup"
         assert "-i" in cmd, "Must contain -i for stdio"
         assert "--env-file" in cmd, "Must contain --env-file"
-        assert "pal-mcp-server:latest" in cmd, "Must reference the image"
+        assert "palaver-mcp-server:latest" in cmd, "Must reference the image"
 
     @patch("subprocess.run")
     def test_docker_health_check(self, mock_run):
@@ -121,7 +123,7 @@ class TestDockerCommands:
 
         # Simulate health check
         subprocess.run(
-            ["docker", "run", "--rm", "pal-mcp-server:latest", "python", "/usr/local/bin/healthcheck.py"],
+            ["docker", "run", "--rm", "palaver-mcp-server:latest", "python", "/usr/local/bin/healthcheck.py"],
             capture_output=True,
             text=True,
         )
@@ -197,7 +199,7 @@ class TestMCPIntegration:
                         "/path/to/.env",
                         "-v",
                         "/path/to/logs:/app/logs",
-                        "pal-mcp-server:latest",
+                        "palaver-mcp-server:latest",
                         "python",
                         "server.py",
                     ],
@@ -279,7 +281,7 @@ class TestDockerPerformance:
         expected_max_size_mb = 500  # 500MB max
 
         # In production, we would do:
-        # result = subprocess.run(['docker', 'images', '--format', '{{.Size}}', 'pal-mcp-server:latest'])
+        # result = subprocess.run(['docker', 'images', '--format', '{{.Size}}', 'palaver-mcp-server:latest'])
         # Here we simulate
         simulated_size = "294MB"  # Current observed size
 
@@ -344,7 +346,7 @@ LOG_LEVEL=INFO
             "-i",
             "--env-file",
             ".env",
-            "pal-mcp-server:latest",
+            "palaver-mcp-server:latest",
             "python",
             "server.py",
         ]

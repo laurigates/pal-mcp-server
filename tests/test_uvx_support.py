@@ -133,14 +133,14 @@ class TestUvxProjectConfiguration:
 
         # Essential fields for uvx
         assert "name" in project
-        assert project["name"] == "pal-mcp-server"
+        assert project["name"] == "palaver-mcp-server"
         assert "dependencies" in project
         assert "requires-python" in project
 
         # Script entry point for uvx
         assert "scripts" in project
-        assert "pal-mcp-server" in project["scripts"]
-        assert project["scripts"]["pal-mcp-server"] == "server:run"
+        assert "palaver-mcp-server" in project["scripts"]
+        assert project["scripts"]["palaver-mcp-server"] == "server:run"
 
     def test_pyproject_dependencies_match_requirements(self):
         """Test that pyproject.toml dependencies align with requirements.txt."""

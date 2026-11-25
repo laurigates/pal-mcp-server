@@ -4,12 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: pal-mcp-server:latest
-    container_name: pal-mcp-server
+    image: palaver-mcp-server:latest
+    container_name: palaver-mcp-server
     
     # Container labels for traceability
     labels:
-      - "com.pal-mcp.service=pal-mcp-server"
+      - "com.pal-mcp.service=palaver-mcp-server"
       - "com.pal-mcp.version=1.0.0"
       - "com.pal-mcp.environment=production"
       - "com.pal-mcp.description=AI-powered Model Context Protocol server"

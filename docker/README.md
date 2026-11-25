@@ -22,7 +22,7 @@ nano .env
 
 ```bash
 # Build the Docker image
-docker build -t pal-mcp-server:latest .
+docker build -t palaver-mcp-server:latest .
 
 # Or use the build script (Bash)
 chmod +x docker/scripts/build.sh
@@ -41,14 +41,14 @@ docker/scripts/build.ps1
 # Run with environment file
 docker run --rm -i --env-file .env \
   -v $(pwd)/logs:/app/logs \
-  pal-mcp-server:latest
+  palaver-mcp-server:latest
 
 # Run with inline environment variables
 docker run --rm -i \
   -e GEMINI_API_KEY="your_key_here" \
   -e LOG_LEVEL=INFO \
   -v $(pwd)/logs:/app/logs \
-  pal-mcp-server:latest
+  palaver-mcp-server:latest
 ```
 
 #### B. Docker Compose (For Development/Monitoring)
@@ -77,7 +77,7 @@ docker ps
 docker logs <container_id>
 
 # Stop all pal-mcp containers
-docker stop $(docker ps -q --filter "ancestor=pal-mcp-server:latest")
+docker stop $(docker ps -q --filter "ancestor=palaver-mcp-server:latest")
 
 # Remove old containers and images
 docker container prune
@@ -155,16 +155,16 @@ volumes:
 
 ```bash
 # Check if image exists
-docker images pal-mcp-server
+docker images palaver-mcp-server
 
 # Test container interactively
-docker run --rm -it --env-file .env pal-mcp-server:latest bash
+docker run --rm -it --env-file .env palaver-mcp-server:latest bash
 
 # Check environment variables
-docker run --rm --env-file .env pal-mcp-server:latest env | grep API
+docker run --rm --env-file .env palaver-mcp-server:latest env | grep API
 
 # Test with minimal configuration
-docker run --rm -i -e GEMINI_API_KEY="test" pal-mcp-server:latest python server.py
+docker run --rm -i -e GEMINI_API_KEY="test" palaver-mcp-server:latest python server.py
 ```
 
 ### MCP Connection Issues
@@ -174,7 +174,7 @@ docker run --rm -i -e GEMINI_API_KEY="test" pal-mcp-server:latest python server.
 docker run --rm hello-world
 
 # Verify container stdio
-echo '{"jsonrpc": "2.0", "method": "ping"}' | docker run --rm -i --env-file .env pal-mcp-server:latest python server.py
+echo '{"jsonrpc": "2.0", "method": "ping"}' | docker run --rm -i --env-file .env palaver-mcp-server:latest python server.py
 
 # Check Claude Desktop logs for connection errors
 ```
@@ -183,10 +183,10 @@ echo '{"jsonrpc": "2.0", "method": "ping"}' | docker run --rm -i --env-file .env
 
 ```bash
 # Verify API keys are loaded
-docker run --rm --env-file .env pal-mcp-server:latest python -c "import os; print('GEMINI_API_KEY:', bool(os.getenv('GEMINI_API_KEY')))"
+docker run --rm --env-file .env palaver-mcp-server:latest python -c "import os; print('GEMINI_API_KEY:', bool(os.getenv('GEMINI_API_KEY')))"
 
 # Test API connectivity
-docker run --rm --env-file .env pal-mcp-server:latest python /usr/local/bin/healthcheck.py
+docker run --rm --env-file .env palaver-mcp-server:latest python /usr/local/bin/healthcheck.py
 ```
 
 ### Permission Issues
@@ -206,10 +206,10 @@ chmod 755 logs/
 docker stats
 
 # Run with memory limits
-docker run --rm -i --memory="512m" --env-file .env pal-mcp-server:latest
+docker run --rm -i --memory="512m" --env-file .env palaver-mcp-server:latest
 
 # Monitor Docker logs
-docker run --rm -i --env-file .env pal-mcp-server:latest 2>&1 | tee docker.log
+docker run --rm -i --env-file .env palaver-mcp-server:latest 2>&1 | tee docker.log
 ```
 
 ## MCP Integration (Claude Desktop)
@@ -226,10 +226,10 @@ docker run --rm -i --env-file .env pal-mcp-server:latest 2>&1 | tee docker.log
         "--rm",
         "-i",
         "--env-file",
-        "/absolute/path/to/pal-mcp-server/.env",
+        "/absolute/path/to/palaver-mcp-server/.env",
         "-v",
-        "/absolute/path/to/pal-mcp-server/logs:/app/logs",
-        "pal-mcp-server:latest"
+        "/absolute/path/to/palaver-mcp-server/logs:/app/logs",
+        "palaver-mcp-server:latest"
       ]
     }
   }
@@ -248,10 +248,10 @@ docker run --rm -i --env-file .env pal-mcp-server:latest 2>&1 | tee docker.log
         "--rm",
         "-i",
         "--env-file",
-        "C:/Users/YourName/path/to/pal-mcp-server/.env",
+        "C:/Users/YourName/path/to/palaver-mcp-server/.env",
         "-v",
-        "C:/Users/YourName/path/to/pal-mcp-server/logs:/app/logs",
-        "pal-mcp-server:latest"
+        "C:/Users/YourName/path/to/palaver-mcp-server/logs:/app/logs",
+        "palaver-mcp-server:latest"
       ]
     }
   }
@@ -267,7 +267,7 @@ docker run --rm -i --env-file .env pal-mcp-server:latest 2>&1 | tee docker.log
       "command": "docker-compose",
       "args": [
         "-f",
-        "/absolute/path/to/pal-mcp-server/docker-compose.yml",
+        "/absolute/path/to/palaver-mcp-server/docker-compose.yml",
         "run",
         "--rm",
         "pal-mcp"
@@ -303,10 +303,10 @@ CUSTOM_API_URL=
 
 ```bash
 # Test container starts correctly
-docker run --rm pal-mcp-server:latest python --version
+docker run --rm palaver-mcp-server:latest python --version
 
 # Test health check
-docker run --rm -e GEMINI_API_KEY="test" pal-mcp-server:latest python /usr/local/bin/healthcheck.py
+docker run --rm -e GEMINI_API_KEY="test" palaver-mcp-server:latest python /usr/local/bin/healthcheck.py
 ```
 
 ### 2. Test MCP Protocol
@@ -314,7 +314,7 @@ docker run --rm -e GEMINI_API_KEY="test" pal-mcp-server:latest python /usr/local
 ```bash
 # Test basic MCP communication
 echo '{"jsonrpc": "2.0", "method": "initialize", "params": {}}' | \
-  docker run --rm -i --env-file .env pal-mcp-server:latest python server.py
+  docker run --rm -i --env-file .env palaver-mcp-server:latest python server.py
 ```
 
 ### 3. Validate Configuration

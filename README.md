@@ -1,9 +1,20 @@
 # PAL MCP: Many Workflows. One Context.
 
-[![PyPI](https://img.shields.io/pypi/v/pal-mcp-server)](https://pypi.org/project/pal-mcp-server/)
+[![PyPI](https://img.shields.io/pypi/v/palaver-mcp-server)](https://pypi.org/project/palaver-mcp-server/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/github/actions/workflow/status/laurigates/pal-mcp-server/test.yml?label=tests)](https://github.com/laurigates/pal-mcp-server/actions/workflows/test.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/laurigates/palaver-mcp-server/test.yml?label=tests)](https://github.com/laurigates/palaver-mcp-server/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+
+> **Renamed from `pal-mcp-server`.** This is a divergent continuation of
+> [BeehiveInnovations/pal-mcp-server](https://github.com/BeehiveInnovations/pal-mcp-server),
+> published as `palaver-mcp-server` from 13.0.0 so it no longer occupies the
+> upstream project's name on PyPI.
+>
+> **Migrating:** change `uvx pal-mcp-server` to `uvx palaver-mcp-server` in your
+> MCP config. The old name still works for now: `pal-mcp-server` 13.0.0 is a
+> tombstone package that prints a notice and starts palaver. Keep `pal` as the
+> server key; the tools stay `mcp__pal__*`, and the `PAL_*` environment
+> variables and `~/.local/state/pal-mcp-server` state directory are unchanged.
 
 A Model Context Protocol server that connects AI CLIs to multiple AI models. It works with Claude Code, Gemini CLI, Codex CLI, Qwen Code CLI, and Cursor, and supports providers including Gemini, OpenAI, Anthropic, Ollama, OpenRouter, and OpenCode Go.
 
@@ -36,13 +47,13 @@ You stay in control. Your CLI orchestrates the AI team, but you decide the workf
 
 **2. Install**
 
-**Claude Desktop:** download `pal-mcp-server-<version>.mcpb` from the
-[latest release](https://github.com/laurigates/pal-mcp-server/releases/latest)
+**Claude Desktop:** download `palaver-mcp-server-<version>.mcpb` from the
+[latest release](https://github.com/laurigates/palaver-mcp-server/releases/latest)
 and double-click it. Desktop asks for your provider keys (set at least one) and
 installs the Python dependencies with uv on first launch.
 
 **Other clients:** add PAL to your MCP client config (`~/.claude/settings.json`, `.mcp.json`, or your
-client's equivalent). `uvx` fetches [the published package](https://pypi.org/project/pal-mcp-server/)
+client's equivalent). `uvx` fetches [the published package](https://pypi.org/project/palaver-mcp-server/)
 on first run — there is nothing to clone and no virtualenv to maintain.
 
 ```json
@@ -50,7 +61,7 @@ on first run — there is nothing to clone and no virtualenv to maintain.
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "GEMINI_API_KEY": "${GEMINI_API_KEY}"
       }
@@ -83,13 +94,13 @@ Apple silicon).
 instead:
 
 ```bash
-git clone https://github.com/laurigates/pal-mcp-server.git
-cd pal-mcp-server
+git clone https://github.com/laurigates/palaver-mcp-server.git
+cd palaver-mcp-server
 ./run-server.sh          # syncs .venv via uv and scaffolds .env
 ```
 
 ```json
-{ "command": "uv", "args": ["run", "--project", "/path/to/pal-mcp-server", "python", "server.py"] }
+{ "command": "uv", "args": ["run", "--project", "/path/to/palaver-mcp-server", "python", "server.py"] }
 ```
 
 **3. Start Using!**
@@ -298,12 +309,12 @@ See the [Advanced Usage Guide](docs/advanced-usage.md) for complex workflows, mo
 
 ## Development
 
-Running PAL as a user needs no clone — `uvx pal-mcp-server` fetches the published
+Running PAL as a user needs no clone — `uvx palaver-mcp-server` fetches the published
 package. Working *on* PAL does:
 
 ```bash
-git clone https://github.com/laurigates/pal-mcp-server.git
-cd pal-mcp-server
+git clone https://github.com/laurigates/palaver-mcp-server.git
+cd palaver-mcp-server
 uv sync --group dev
 ```
 

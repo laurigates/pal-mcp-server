@@ -8,7 +8,7 @@ set -euo pipefail
 # and optionally tails the log file.
 #
 # This does NOT register the server with an MCP client. The published package
-# is the registration path — point your client at `uvx pal-mcp-server` and let
+# is the registration path — point your client at `uvx palaver-mcp-server` and let
 # it own the environment (see README). Self-registration used to hand-maintain
 # a list of env keys to forward, which drifted from the provider registry.
 #
@@ -82,7 +82,7 @@ Development setup (linting, formatting, tests):
   ./code_quality_checks.sh
 
 For more information:
-  https://github.com/laurigates/pal-mcp-server
+  https://github.com/laurigates/palaver-mcp-server
 EOF
 }
 
@@ -238,7 +238,7 @@ main() {
     echo ""
     echo "To use PAL from an MCP client, add this to its config:"
     echo ""
-    echo '  "pal": { "command": "uvx", "args": ["pal-mcp-server"],'
+    echo '  "pal": { "command": "uvx", "args": ["palaver-mcp-server"],'
     echo '           "env": { "GEMINI_API_KEY": "${GEMINI_API_KEY}" } }'
     echo ""
     echo "  To run this checkout instead of the published package:"

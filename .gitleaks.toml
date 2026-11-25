@@ -6,7 +6,7 @@
 # then reports "no leaks found". gitleaks prints no rule count, so the way to
 # check a change here is to scan a planted fake key with this config and
 # require a detection.
-title = "pal-mcp-server gitleaks config"
+title = "palaver-mcp-server gitleaks config"
 
 [extend]
 useDefault = true

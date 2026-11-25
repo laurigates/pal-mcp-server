@@ -70,6 +70,45 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
+  # One-time tombstone for the old PyPI name (issue #95). The package moved to
+  # palaver-mcp-server at 13.0.0; this publishes pal-mcp-server 13.0.0, a shim
+  # that depends on palaver-mcp-server>=13.0.0 and keeps the `pal-mcp-server`
+  # command (packaging/pal-mcp-server-tombstone/). It runs only for v13.0.0,
+  # and only after publish-pypi succeeds, so a failed palaver upload cannot
+  # leave a shim on PyPI that depends on a package that does not exist.
+  #
+  # Trusted publishing matches on repo name and workflow filename, so the
+  # pal-mcp-server publisher on PyPI must name the renamed repo before this
+  # runs. Delete this job and the packaging directory after 13.0.0 ships;
+  # tests/test_tombstone_package.py fails once the version passes 13.0.0 while
+  # either still exists.
+  publish-tombstone:
+    needs: [release-please, publish-pypi]
+    if: ${{ needs.release-please.outputs.release_created == 'true' && needs.release-please.outputs.tag_name == 'v13.0.0' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4.4.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6.8.0
+        with:
+          # Keep in step with [tool.uv] required-version in pyproject.toml and
+          # the uv base image in Dockerfile — three places, not two.
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.13.4"
+          enable-cache: true
+
+      - name: Build tombstone distributions
+        run: uv build packaging/pal-mcp-server-tombstone --out-dir dist-tombstone
+
+      - name: Publish tombstone to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist-tombstone/
+
   # Claude Desktop extension bundle (.mcpb), attached to the GitHub release.
   # Built from the release tag so it matches the PyPI package of the same
   # version; release-please bumps manifest.json via extra-files. Releases here
