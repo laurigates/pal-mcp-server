@@ -20,7 +20,6 @@ default_language_version:
 
 exclude: |
   (?x)^(
-    \.git/|
     \.venv/|
     venv/|
     \.pal_venv/|
