@@ -30,8 +30,17 @@ logger = logging.getLogger(__name__)
 class RecordingTransport(httpx.HTTPTransport):
     """Transport that wraps default httpx transport and records all interactions."""
 
-    def __init__(self, cassette_path: str, capture_content: bool = True, sanitize: bool = True):
+    def __init__(
+        self,
+        cassette_path: str,
+        capture_content: bool = True,
+        sanitize: bool = True,
+        async_upstream: httpx.AsyncBaseTransport | None = None,
+    ):
         super().__init__()
+        # Async clients (the OpenAI provider builds an httpx.AsyncClient) call
+        # handle_async_request; HTTPTransport alone serves only sync clients.
+        self._async_upstream = async_upstream
         self.cassette_path = Path(cassette_path)
         self.recorded_interactions = []
         self.capture_content = capture_content
@@ -94,6 +103,44 @@ class RecordingTransport(httpx.HTTPTransport):
             response_data = self._serialize_response(response)
             self._record_interaction(request_data, response_data)
             return response
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """Async twin of handle_request: record the interaction around a real async call."""
+        if self._async_upstream is None:
+            self._async_upstream = httpx.AsyncHTTPTransport()
+        request_data = self._serialize_request(request)
+        response = await self._async_upstream.handle_async_request(request)
+        # httpx yields decoded bytes; drop the encoding header so replay and the
+        # caller do not try to decompress them again.
+        content_bytes = await httpx.Response(
+            status_code=response.status_code, headers=response.headers, stream=response.stream
+        ).aread()
+        await response.aclose()
+        headers = httpx.Headers(response.headers)
+        headers.pop("content-encoding", None)
+        headers["content-length"] = str(len(content_bytes))
+        buffered = httpx.Response(
+            status_code=response.status_code,
+            headers=headers,
+            content=content_bytes,
+            request=request,
+            extensions=response.extensions,
+        )
+        if self.capture_content:
+            self._record_interaction(request_data, self._serialize_response_with_content(buffered, content_bytes))
+        else:
+            self._record_interaction(request_data, self._serialize_response(buffered))
+        return buffered
+
+    async def __aenter__(self) -> "RecordingTransport":
+        return self
+
+    async def __aexit__(self, *exc_info: Any) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        if self._async_upstream is not None:
+            await self._async_upstream.aclose()
 
     def _record_interaction(self, request_data: dict[str, Any], response_data: dict[str, Any]):
         """Helper method to record interaction and save cassette."""
