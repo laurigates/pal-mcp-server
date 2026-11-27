@@ -31,14 +31,6 @@ You need at least one API key. Choose based on your needs:
 - Visit [OpenAI Platform](https://platform.openai.com/api-keys)
 - Generate an API key for GPT-5.2, GPT-5.1-Codex, GPT-5, O3 access
 
-**X.AI (Grok):**
-- Visit [X.AI Console](https://console.x.ai/)
-- Generate an API key for Grok models
-
-**DIAL Platform:**
-- Visit [DIAL Platform](https://dialx.ai/)
-- Generate API key for vendor-agnostic model access
-
 **OpenCode Go:**
 - Visit [OpenCode Go](https://opencode.ai/docs/go/) and subscribe at [opencode.ai/auth](https://opencode.ai/auth)
 - Flat-rate subscription for open-source coding models (GLM, Kimi, DeepSeek, Qwen, MiniMax, MiMo)
@@ -83,7 +75,7 @@ Choose your AI coding assistant and add the corresponding configuration:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -101,7 +93,7 @@ Create `.mcp.json` in your project root:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -119,7 +111,7 @@ Edit `~/.gemini/settings.json`:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -135,7 +127,7 @@ Edit `~/.codex/config.toml`:
 ```toml
 [mcp_servers.pal]
 command = "bash"
-args = ["pal-mcp-server"]
+args = ["palaver-mcp-server"]
 tool_timeout_sec = 1200  # 20 minutes; added automatically by the setup script so upstream providers can respond
 
 [mcp_servers.pal.env]
@@ -161,8 +153,8 @@ Create or edit `~/.qwen/settings.json`:
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
-      "cwd": "/path/to/pal-mcp-server",
+      "args": ["palaver-mcp-server"],
+      "cwd": "/path/to/palaver-mcp-server",
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin",
         "GEMINI_API_KEY": "your_api_key_here"
@@ -185,9 +177,9 @@ Edit `~/.config/opencode/opencode.json`:
       "type": "local",
       "command": [
         "uv",
-        "run", "--project", "/path/to/pal-mcp-server", "python", "server.py"
+        "run", "--project", "/path/to/palaver-mcp-server", "python", "server.py"
       ],
-      "cwd": "/path/to/pal-mcp-server",
+      "cwd": "/path/to/palaver-mcp-server",
       "enabled": true,
       "environment": {
         "GEMINI_API_KEY": "your_api_key_here"
@@ -208,7 +200,7 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 1. Open Cursor → `Settings` (`Cmd+,`/`Ctrl+,`) → **Integrations › Model Context Protocol (MCP)**.
 2. Click **Add MCP Server** and supply the following values:
    - Command: `sh`
-   - Args: `pal-mcp-server`
+   - Args: `palaver-mcp-server`
    - Environment (example):
      - `PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin`
      - `GEMINI_API_KEY=your_api_key_here`
@@ -220,7 +212,7 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 2. Open the Command Palette (`Cmd+Shift+P`/`Ctrl+Shift+P`) → **Claude: Configure MCP Servers** → **Add server**.
 3. When prompted, use the same values as above:
    - Command: `sh`
-   - Args: `pal-mcp-server`
+   - Args: `palaver-mcp-server`
    - Environment: add the API keys you need (e.g. `GEMINI_API_KEY`, `OPENAI_API_KEY`)
 4. Save the JSON snippet the extension generates. VS Code will reload the server automatically the next time you interact with Claude.
 
@@ -236,8 +228,8 @@ PAL works in GUI IDEs that speak MCP. The configuration mirrors the CLI examples
 
 ```bash
 # Clone the repository
-git clone https://github.com/laurigates/pal-mcp-server.git
-cd pal-mcp-server
+git clone https://github.com/laurigates/palaver-mcp-server.git
+cd palaver-mcp-server
 
 # One-command setup (handles everything)
 ./run-server.sh
@@ -255,7 +247,7 @@ cd pal-mcp-server
 - ✅ Prints the client config to copy
 
 It does not register the server with any MCP client — point your client at
-`uvx pal-mcp-server` (Method A) or at this checkout via
+`uvx palaver-mcp-server` (Method A) or at this checkout via
 `uv run --project <path> python server.py`.
 
 **After updates:** Always run `./run-server.sh` again after `git pull`.
@@ -279,15 +271,8 @@ Add your API keys (at least one required):
 # Choose your providers (at least one required)
 GEMINI_API_KEY=your-gemini-api-key-here      # For Gemini models  
 OPENAI_API_KEY=your-openai-api-key-here      # For GPT-5.2, GPT-5.1-Codex, O3
-XAI_API_KEY=your-xai-api-key-here            # For Grok models
 OPENCODE_API_KEY=your-opencode-api-key-here  # For OpenCode Go coding models
 OPENROUTER_API_KEY=your-openrouter-key       # For multiple models
-
-# DIAL Platform (optional)
-DIAL_API_KEY=your-dial-api-key-here
-DIAL_API_HOST=https://core.dialx.ai          # Default host (optional)
-DIAL_API_VERSION=2024-12-01-preview          # API version (optional) 
-DIAL_ALLOWED_MODELS=o3,gemini-2.5-pro       # Restrict models (optional)
 
 # Custom/Local models (Ollama, vLLM, etc.)
 CUSTOM_API_URL=http://localhost:11434/v1     # Ollama example
@@ -337,7 +322,7 @@ Gemini uses a single `timeout` field per server inside `~/.gemini/settings.json`
   "mcpServers": {
     "pal": {
       "command": "uvx",
-      "args": ["pal-mcp-server"],
+      "args": ["palaver-mcp-server"],
       "timeout": 300000
     }
   }

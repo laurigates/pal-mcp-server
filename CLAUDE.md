@@ -48,7 +48,7 @@ Simulator options: `--list-tests`, `--individual <name>`, `--verbose`. After cod
 
 `--ci` selects the scenarios marked `provider_agnostic` on their test class: they ask for whatever `SIMULATOR_MODEL` names instead of hard-coding `flash`, so they run against any single provider with no key. A new scenario joins the set by declaring `provider_agnostic = True` and taking its model from `self.simulator_model`; `tests/test_simulator_ci_mode.py` rejects a model name written in literally.
 
-`.github/workflows/simulator.yml` runs that set in two tiers, since the model is ~97% of the runtime and 0% of the assertions ([#143](https://github.com/laurigates/pal-mcp-server/issues/143)): a **stub** tier (`simulator_tests/stub_provider.py`, ~20s, every PR) and an **ollama** tier (`llama3.2:1b`, ~25m, `main` + nightly + PRs labelled `simulator-full`). The stub is deliberately strict — wrong path, unknown model, malformed `messages` and streaming all get refused — because a stub that accepts anything tests nothing; relax it and CI stops catching what it refuses. See `docs/testing.md` for both invocations.
+`.github/workflows/simulator.yml` runs that set in two tiers, since the model is ~97% of the runtime and 0% of the assertions ([#143](https://github.com/laurigates/palaver-mcp-server/issues/143)): a **stub** tier (`simulator_tests/stub_provider.py`, ~20s, every PR) and an **ollama** tier (`llama3.2:1b`, ~25m, `main` + nightly + PRs labelled `simulator-full`). The stub is deliberately strict — wrong path, unknown model, malformed `messages` and streaming all get refused — because a stub that accepts anything tests nothing; relax it and CI stops catching what it refuses. See `docs/testing.md` for both invocations.
 
 ## Model registry
 
@@ -56,7 +56,7 @@ Simulator options: `--list-tests`, `--individual <name>`, `--verbose`. After cod
 
 ## Tool surface
 
-Each capability keeps its own MCP tool name. Clients that defer schema loading (Claude Code among them) show tool names first and fetch a tool's `inputSchema` only when the agent decides to call it, so on those clients the name is the whole routing signal. A blind routing benchmark ([#91](https://github.com/laurigates/pal-mcp-server/issues/91)) put 15 fixed requests through six candidate surfaces with names only: the 19-name surface routed 15/15, every surface that folded names behind an enum on a generic tool lost 4 to 6.5 points, and 38 of those 40 misses were the agent concluding the capability was absent and falling back to its own tools.
+Each capability keeps its own MCP tool name. Clients that defer schema loading (Claude Code among them) show tool names first and fetch a tool's `inputSchema` only when the agent decides to call it, so on those clients the name is the whole routing signal. A blind routing benchmark ([#91](https://github.com/laurigates/palaver-mcp-server/issues/91)) put 15 fixed requests through six candidate surfaces with names only: the 19-name surface routed 15/15, every surface that folded names behind an enum on a generic tool lost 4 to 6.5 points, and 38 of those 40 misses were the agent concluding the capability was absent and falling back to its own tools.
 
 - A new capability gets a new tool, not an enum value on an existing one. An enum mode is reachable only by a client that has already loaded that tool's schema.
 - Prevent over-triggering with an anti-trigger sentence in the description ("Not for edits you can make yourself"), not by hiding the tool. The benchmark's negative control held on every surface that carried one.
@@ -76,7 +76,7 @@ Logs go to `PAL_LOG_DIR`, else `<state dir>/logs` (`PAL_STATE_DIR`, else `$XDG_S
 ## Claude Desktop bundle (MCPB)
 
 ```bash
-just mcpb-build    # dist/pal-mcp-server-<version>.mcpb
+just mcpb-build    # dist/palaver-mcp-server-<version>.mcpb
 just mcpb-smoke    # launch it from an empty HOME, require a non-empty tools/list
 ```
 
@@ -88,7 +88,7 @@ just mcpb-smoke    # launch it from an empty HOME, require a non-empty tools/lis
 just audit    # pip-audit over the locked runtime dependencies; the lint job in test.yml runs the same command
 ```
 
-`container.yml`'s tag-phase `release / release` job scans the image with Trivy and publishes no `ghcr.io` release tag when it reports fixable CRITICAL or HIGH findings. v11.3.0 to v11.8.1 and v11.9.0 were tagged without an image this way ([#214](https://github.com/laurigates/pal-mcp-server/issues/214), [#227](https://github.com/laurigates/pal-mcp-server/issues/227)).
+`container.yml`'s tag-phase `release / release` job scans the image with Trivy and publishes no `ghcr.io` release tag when it reports fixable CRITICAL or HIGH findings. v11.3.0 to v11.8.1 and v11.9.0 were tagged without an image this way ([#214](https://github.com/laurigates/palaver-mcp-server/issues/214), [#227](https://github.com/laurigates/palaver-mcp-server/issues/227)).
 
 - **Before merging a release PR**, read the scan result in its `build / build` job log. That job scans the `:next-<version>` image the tag run promotes.
 - **A blocked release is not fixed by re-running its job.** The re-run scans the image built from the same tag. Refresh the lock on main (`uv lock --upgrade-package <name>`), then cut a patch release.

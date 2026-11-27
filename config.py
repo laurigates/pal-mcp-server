@@ -17,7 +17,7 @@ from utils.env import get_env
 def _read_version() -> str:
     """Return the installed package version, or parse pyproject.toml as a source-tree fallback."""
     try:
-        return _pkg_version("pal-mcp-server")
+        return _pkg_version("palaver-mcp-server")
     except PackageNotFoundError:
         pass
 
@@ -53,7 +53,7 @@ DEFAULT_MODEL = get_env("DEFAULT_MODEL", "auto") or "auto"
 # Auto mode detection - when DEFAULT_MODEL is "auto", Claude picks the model
 IS_AUTO_MODE = DEFAULT_MODEL.lower() == "auto"
 
-# Each provider (gemini.py, openai.py, xai.py, dial.py, openrouter.py, custom.py, azure_openai.py)
+# Each provider (gemini.py, openai.py, openrouter.py, custom.py)
 # defines its own MODEL_CAPABILITIES
 # with detailed descriptions. Tools use ModelProviderRegistry.get_available_model_names()
 # to get models only from enabled providers (those with valid API keys).

@@ -328,7 +328,7 @@ def read_cache(filename: str) -> tuple[Any, float] | None:
 
 def fetch_json(url: str, timeout: float = FETCH_TIMEOUT_SECONDS) -> Any:
     """GET ``url`` and decode the JSON body. Raises on any network or decode error."""
-    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "pal-mcp-server"})
+    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "palaver-mcp-server"})
     with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - fixed https URL
         return json.loads(response.read().decode("utf-8"))
 

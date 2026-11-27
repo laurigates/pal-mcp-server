@@ -181,7 +181,7 @@ class TestAutoMode:
         """Test that unavailable model shows helpful error with available models using real integration testing"""
         # Save original environment
         original_env = {}
-        api_keys = ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]
+        api_keys = ["GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY"]
         for key in api_keys:
             original_env[key] = os.environ.get(key)
         original_default = os.environ.get("DEFAULT_MODEL", "")
@@ -193,7 +193,7 @@ class TestAutoMode:
             os.environ["DEFAULT_MODEL"] = "auto"
 
             # Clear other provider keys to isolate to OpenAI
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Reload config and registry to pick up new environment

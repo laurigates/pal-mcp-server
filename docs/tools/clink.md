@@ -161,7 +161,7 @@ Two auth paths still work:
 - a **Gemini Code Assist Standard or Enterprise** licence, or
 - a paid **`GEMINI_API_KEY`**.
 
-On any other account, Google's replacement is the Antigravity CLI (`agy`, <https://antigravity.google>). clink does not ship an `agy` client yet — `agy` 1.0.12 exposes no structured-output flag, so it needs its own plain-text parser rather than a config file ([issue #118](https://github.com/laurigates/pal-mcp-server/issues/118)).
+On any other account, Google's replacement is the Antigravity CLI (`agy`, <https://antigravity.google>). clink does not ship an `agy` client yet — `agy` 1.0.12 exposes no structured-output flag, so it needs its own plain-text parser rather than a config file ([issue #118](https://github.com/laurigates/palaver-mcp-server/issues/118)).
 
 clink detects the rejection and reports it: a request that fails this way returns a message naming Antigravity and the two working auth paths, instead of a parse or subprocess error.
 

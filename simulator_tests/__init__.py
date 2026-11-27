@@ -41,7 +41,6 @@ from .test_testgen_validation import TestGenValidationTest
 from .test_thinkdeep_validation import ThinkDeepWorkflowValidationTest
 from .test_token_allocation_validation import TokenAllocationValidationTest
 from .test_vision_capability import VisionCapabilityTest
-from .test_xai_models import XAIModelsTest
 
 # Test registry for dynamic loading
 TEST_REGISTRY = {
@@ -72,7 +71,6 @@ TEST_REGISTRY = {
     "debug_certain_confidence": DebugCertainConfidenceTest,
     "conversation_chain_validation": ConversationChainValidationTest,
     "vision_capability": VisionCapabilityTest,
-    "xai_models": XAIModelsTest,
     "consensus_conversation": TestConsensusConversation,
     "consensus_workflow_accurate": TestConsensusWorkflowAccurate,
     "consensus_three_models": TestConsensusThreeModels,
@@ -111,7 +109,6 @@ __all__ = [
     "DebugCertainConfidenceTest",
     "ConversationChainValidationTest",
     "VisionCapabilityTest",
-    "XAIModelsTest",
     "TestConsensusConversation",
     "TestConsensusWorkflowAccurate",
     "TestConsensusThreeModels",

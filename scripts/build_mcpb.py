@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the Claude Desktop extension bundle: dist/pal-mcp-server-<version>.mcpb.
+"""Build the Claude Desktop extension bundle: dist/palaver-mcp-server-<version>.mcpb.
 
 The bundle uses the MCPB ``uv`` server type (manifest_version 0.4): it ships
 the source, ``pyproject.toml`` and ``uv.lock``, and the host installs the
@@ -92,7 +92,7 @@ def main() -> None:
 
         dist = REPO_ROOT / "dist"
         dist.mkdir(exist_ok=True)
-        output = dist / f"pal-mcp-server-{version}.mcpb"
+        output = dist / f"palaver-mcp-server-{version}.mcpb"
         run([*MCPB_CLI, "validate", str(staging / "manifest.json")])
         run([*MCPB_CLI, "pack", str(staging), str(output)])
 

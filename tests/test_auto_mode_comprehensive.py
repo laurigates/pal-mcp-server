@@ -10,7 +10,6 @@ from providers.gemini import GeminiModelProvider
 from providers.openai import OpenAIModelProvider
 from providers.registry import ModelProviderRegistry
 from providers.shared import ProviderType
-from providers.xai import XAIModelProvider
 from tools.analyze import AnalyzeTool
 from tools.chat import ChatTool
 from tools.debug import DebugIssueTool
@@ -66,7 +65,6 @@ class TestAutoModeComprehensive:
         # Re-register providers for subsequent tests (like conftest.py does)
         ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
         ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-        ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
 
     @pytest.mark.parametrize(
         "provider_config,expected_models",
@@ -76,7 +74,6 @@ class TestAutoModeComprehensive:
                 {
                     "GEMINI_API_KEY": "real-key",
                     "OPENAI_API_KEY": None,
-                    "XAI_API_KEY": None,
                     "OPENROUTER_API_KEY": None,
                 },
                 {
@@ -90,7 +87,6 @@ class TestAutoModeComprehensive:
                 {
                     "GEMINI_API_KEY": None,
                     "OPENAI_API_KEY": "real-key",
-                    "XAI_API_KEY": None,
                     "OPENROUTER_API_KEY": None,
                 },
                 {
@@ -99,40 +95,11 @@ class TestAutoModeComprehensive:
                     "BALANCED": "gpt-5.5",  # Prefer gpt-5.5 for balanced (new flagship)
                 },
             ),
-            # Only X.AI API available
-            (
-                {
-                    "GEMINI_API_KEY": None,
-                    "OPENAI_API_KEY": None,
-                    "XAI_API_KEY": "real-key",
-                    "OPENROUTER_API_KEY": None,
-                },
-                {
-                    "EXTENDED_REASONING": "grok-4.7",  # Latest Grok flagship
-                    "FAST_RESPONSE": "grok-4.7",  # Latest fast SKU
-                    "BALANCED": "grok-4.7",  # Latest balanced default
-                },
-            ),
             # Both Gemini and OpenAI available - Google comes first in priority
             (
                 {
                     "GEMINI_API_KEY": "real-key",
                     "OPENAI_API_KEY": "real-key",
-                    "XAI_API_KEY": None,
-                    "OPENROUTER_API_KEY": None,
-                },
-                {
-                    "EXTENDED_REASONING": "gemini-4-argon",  # Gemini flagship reasoning model comes first in priority
-                    "FAST_RESPONSE": "gemini-3.8-flash",  # Prefer flash for speed
-                    "BALANCED": "gemini-3.8-flash",  # Prefer flash for balanced
-                },
-            ),
-            # All native APIs available - Google still comes first
-            (
-                {
-                    "GEMINI_API_KEY": "real-key",
-                    "OPENAI_API_KEY": "real-key",
-                    "XAI_API_KEY": "real-key",
                     "OPENROUTER_API_KEY": None,
                 },
                 {
@@ -169,8 +136,6 @@ class TestAutoModeComprehensive:
                 ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
             if provider_config.get("OPENAI_API_KEY"):
                 ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-            if provider_config.get("XAI_API_KEY"):
-                ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
             if provider_config.get("OPENROUTER_API_KEY"):
                 ModelProviderRegistry.register_provider(ProviderType.OPENROUTER, OpenRouterProvider)
 
@@ -207,7 +172,6 @@ class TestAutoModeComprehensive:
         provider_config = {
             "GEMINI_API_KEY": "real-key",
             "OPENAI_API_KEY": None,
-            "XAI_API_KEY": None,
             "OPENROUTER_API_KEY": None,
             "DEFAULT_MODEL": "auto",
         }
@@ -245,7 +209,6 @@ class TestAutoModeComprehensive:
         provider_config = {
             "GEMINI_API_KEY": "real-key",
             "OPENAI_API_KEY": None,
-            "XAI_API_KEY": None,
             "OPENROUTER_API_KEY": None,
             "CUSTOM_API_URL": None,
             "DEFAULT_MODEL": "auto",
@@ -302,7 +265,6 @@ class TestAutoModeComprehensive:
         provider_config = {
             "GEMINI_API_KEY": "real-key",
             "OPENAI_API_KEY": "real-key",
-            "XAI_API_KEY": "real-key",
             "OPENROUTER_API_KEY": None,  # Don't include OpenRouter to avoid infinite models
             "DEFAULT_MODEL": "auto",
         }
@@ -323,7 +285,6 @@ class TestAutoModeComprehensive:
             # Register all native providers
             ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
             ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-            ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
 
             tool = AnalyzeTool()
             schema = tool.get_input_schema()
@@ -351,7 +312,6 @@ class TestAutoModeComprehensive:
         provider_config = {
             "GEMINI_API_KEY": "real-key",
             "OPENAI_API_KEY": None,
-            "XAI_API_KEY": None,
             "OPENROUTER_API_KEY": None,
             "DEFAULT_MODEL": "auto",
         }
@@ -402,7 +362,6 @@ class TestAutoModeComprehensive:
         provider_config = {
             "GEMINI_API_KEY": "real-key",
             "OPENAI_API_KEY": "real-key",
-            "XAI_API_KEY": None,
             "OPENROUTER_API_KEY": None,
             "DEFAULT_MODEL": "auto",
             "OPENAI_ALLOWED_MODELS": "gpt-5.6-terra",  # Restrict OpenAI to only gpt-5.6-terra
@@ -450,7 +409,6 @@ class TestAutoModeComprehensive:
         provider_config = {
             "GEMINI_API_KEY": None,
             "OPENAI_API_KEY": None,
-            "XAI_API_KEY": None,
             "OPENROUTER_API_KEY": "real-key",
             "DEFAULT_MODEL": "auto",
         }
@@ -502,7 +460,6 @@ class TestAutoModeComprehensive:
         provider_config = {
             "GEMINI_API_KEY": "real-key",
             "OPENAI_API_KEY": None,
-            "XAI_API_KEY": None,
             "OPENROUTER_API_KEY": None,
             "DEFAULT_MODEL": "auto",
         }

@@ -39,14 +39,14 @@ class TestDockerMCPValidation:
         mock_run.return_value.returncode = 0
 
         # Standard Docker MCP command
-        cmd = ["docker", "run", "--rm", "-i", "--env-file", ".env", "pal-mcp-server:latest", "python", "server.py"]
+        cmd = ["docker", "run", "--rm", "-i", "--env-file", ".env", "palaver-mcp-server:latest", "python", "server.py"]
 
         subprocess.run(cmd, capture_output=True)
         mock_run.assert_called_once_with(cmd, capture_output=True)
 
     def test_environment_variables_validation(self):
         """Test environment variables validation"""
-        required_vars = ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY"]
+        required_vars = ["GEMINI_API_KEY", "OPENAI_API_KEY"]
 
         # Test with variable present
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test"}):

@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [13.0.0](https://github.com/laurigates/palaver-mcp-server/compare/v12.1.0...v13.0.0) (2026-11-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* the package and its command are renamed to palaver-mcp-server; configure clients with `uvx palaver-mcp-server`. The container image moves to ghcr.io/laurigates/palaver-mcp-server. The old pal-mcp-server name is served by a one-time tombstone release that installs palaver and keeps the old command working.
+* **providers:** the xAI, Azure OpenAI and DIAL providers are removed. XAI_*, AZURE_OPENAI_*, AZURE_ALLOWED_MODELS, AZURE_MODELS_CONFIG_PATH and DIAL_* variables no longer configure anything, and the xai:, azure: and dial: prefixes in DISABLED_MODELS are no longer recognised. Use OpenRouter for Grok (x-ai/grok-* or the grok alias), the OpenAI provider in place of Azure, and OpenRouter or a native provider in place of DIAL (the Custom provider only if the DIAL installation also serves a standard OpenAI-compatible endpoint).
+
+### Features
+
+* **providers:** remove the xAI, Azure and DIAL providers ([#267](https://github.com/laurigates/palaver-mcp-server/issues/267)) ([c4b45dd](https://github.com/laurigates/palaver-mcp-server/commit/c4b45dd043b1650ffb6faa379b253211c9ea1afe))
+* rename the package to palaver-mcp-server ([#272](https://github.com/laurigates/palaver-mcp-server/issues/272)) ([1357119](https://github.com/laurigates/palaver-mcp-server/commit/13571194c26c8b62f807c9abf663beccf888c796)), closes [#95](https://github.com/laurigates/palaver-mcp-server/issues/95)
+
 ## [12.1.0](https://github.com/laurigates/pal-mcp-server/compare/v12.0.0...v12.1.0) (2026-11-23)
 
 

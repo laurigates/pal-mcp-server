@@ -285,9 +285,6 @@ class CommunicationSimulator:
             provider_env_vars = (
                 "GEMINI_API_KEY",
                 "OPENAI_API_KEY",
-                "AZURE_OPENAI_API_KEY",
-                "XAI_API_KEY",
-                "DIAL_API_KEY",
                 "CUSTOM_API_URL",
                 "OPENCODE_API_KEY",
                 "OPENROUTER_API_KEY",

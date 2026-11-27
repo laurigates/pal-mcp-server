@@ -2,8 +2,7 @@
 
 A provider cache lives on the server that handled a request, so consecutive
 requests of one thread hit it only when they are routed to the same place.
-OpenRouter (``x-session-id``), xAI (``x-grok-conv-id`` on Chat Completions,
-``prompt_cache_key`` on Responses) and OpenAI (``prompt_cache_key``) accept a
+OpenRouter (``x-session-id``) and OpenAI (``prompt_cache_key``) accept a
 routing key for that. PAL sends the thread id, published by
 ``utils.session_context`` as soon as the thread exists, so turn 1 already carries
 the key the later turns will.
@@ -21,7 +20,6 @@ import pytest
 from providers.custom import CustomProvider
 from providers.openai import OpenAIModelProvider
 from providers.openrouter import OpenRouterProvider
-from providers.xai import XAIModelProvider
 from utils.session_context import get_session_id, set_session_id
 
 THREAD = "8f3c1f2e-0f3a-4b7a-9f4e-2b6a1c0d5e77"
@@ -53,23 +51,6 @@ def test_openrouter_sends_the_thread_as_session_header(thread_session, model_nam
 
     assert request["params"]["extra_headers"]["x-session-id"] == THREAD
     assert "prompt_cache_key" not in request["params"]
-
-
-def test_xai_chat_completions_sends_the_thread_as_conversation_header(thread_session):
-    request = _request(XAIModelProvider("test-key"), "grok-4.7")
-
-    assert request["endpoint"] == "chat"
-    assert request["params"]["extra_headers"]["x-grok-conv-id"] == THREAD
-
-
-def test_xai_responses_sends_the_thread_as_prompt_cache_key(thread_session):
-    provider = XAIModelProvider("test-key")
-    responses_request = {"endpoint": "responses", "model": "grok-4.7", "params": {"model": "grok-4.7"}}
-    with patch("providers.openai_compatible.OpenAICompatibleProvider._build_request", return_value=responses_request):
-        request = _request(provider, "grok-4.7")
-
-    assert request["params"]["prompt_cache_key"] == THREAD
-    assert "x-grok-conv-id" not in (request["params"].get("extra_headers") or {})
 
 
 def test_the_shared_builder_sends_no_routing_key(thread_session):

@@ -26,7 +26,6 @@ class TestModelEnumeration:
             "DEFAULT_MODEL": os.environ.get("DEFAULT_MODEL", ""),
             "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
             "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
-            "XAI_API_KEY": os.environ.get("XAI_API_KEY", ""),
             "OPENROUTER_API_KEY": os.environ.get("OPENROUTER_API_KEY", ""),
             "CUSTOM_API_URL": os.environ.get("CUSTOM_API_URL", ""),
         }
@@ -54,7 +53,7 @@ class TestModelEnumeration:
     def _setup_environment(self, provider_config):
         """Helper to set up environment variables for testing."""
         # Clear all provider-related env vars first
-        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "CUSTOM_API_URL"]:
+        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "CUSTOM_API_URL"]:
             if key in os.environ:
                 del os.environ[key]
 
@@ -158,10 +157,8 @@ class TestModelEnumeration:
         [
             ("flash", False),  # Gemini - not available without API key
             ("o3", False),  # OpenAI - not available without API key
-            ("grok", False),  # X.AI - not available without API key
             ("gemini-2.5-flash", False),  # Full Gemini name - not available without API key
             ("gpt-5.6-terra", False),  # OpenAI variant - not available without API key
-            ("grok-4.1-fast", False),  # X.AI variant - not available without API key
         ],
     )
     def test_specific_native_models_only_with_api_keys(self, model_name, should_exist):

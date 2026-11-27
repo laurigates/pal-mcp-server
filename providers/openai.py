@@ -179,5 +179,5 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
             return preferred if preferred else allowed_models[0]
 
 
-# Load registry data at import time so dependent providers (Azure) can reuse it
+# Load registry data at import time
 OpenAIModelProvider._ensure_registry()

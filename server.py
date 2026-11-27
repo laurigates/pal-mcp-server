@@ -459,8 +459,12 @@ def configure_providers():
     """
     global _provider_configuration_error
     from providers import ModelProviderRegistry
-    from providers.registry import REGISTERED_PROVIDER_CLASSES, ModelRegistryConfigError
+    from providers.registry import REGISTERED_PROVIDER_CLASSES, REMOVED_PROVIDER_ENV_VARS, ModelRegistryConfigError
     from utils.model_restrictions import PREFERRED_MODELS_ENV, get_restriction_service
+
+    for env_var, notice in REMOVED_PROVIDER_ENV_VARS.items():
+        if get_env(env_var):
+            logger.warning("%s is set but ignored: %s.", env_var, notice)
 
     # Log environment variable status for debugging. Derived from the provider
     # classes, so a new provider's key is logged automatically.
@@ -1737,7 +1741,7 @@ async def main():
 
 
 def run():
-    """Console script entry point for pal-mcp-server."""
+    """Console script entry point for palaver-mcp-server."""
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
