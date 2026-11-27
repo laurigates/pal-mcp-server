@@ -67,19 +67,23 @@ class TestOpenAIChatCompletions:
             max_output_tokens=max_output_tokens,
         )
 
-    def test_declared_ceiling_is_sent_as_max_tokens(self):
+    def test_declared_ceiling_is_sent_as_max_completion_tokens(self):
+        """OpenAI rejects max_tokens for gpt-5 with HTTP 400 unsupported_parameter (#277)."""
         request = self._build("gpt-5", 128_000)
         assert request["endpoint"] == "chat"
-        assert request["params"]["max_tokens"] == 128_000
+        assert request["params"]["max_completion_tokens"] == 128_000
+        assert "max_tokens" not in request["params"]
 
     def test_no_ceiling_omits_the_field_entirely(self):
-        """Not `max_tokens: 0`, and not `max_tokens: None` — absent."""
+        """Not `max_completion_tokens: 0`, and not `None` — absent."""
         request = self._build("gpt-5", None)
         assert "max_tokens" not in request["params"]
+        assert "max_completion_tokens" not in request["params"]
 
     def test_zero_is_treated_as_unset_end_to_end(self):
         request = self._build("gpt-5", 0)
         assert "max_tokens" not in request["params"]
+        assert "max_completion_tokens" not in request["params"]
 
 
 class TestOpenAIResponsesEndpoint:
