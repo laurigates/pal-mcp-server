@@ -1,7 +1,7 @@
 """OpenAI model provider implementation."""
 
 import logging
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
@@ -40,6 +40,19 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
         kwargs.setdefault("base_url", "https://api.openai.com/v1")
         super().__init__(api_key, **kwargs)
         self._invalidate_capability_cache()
+
+    def _build_request(self, **kwargs: Any) -> dict[str, Any]:
+        """Name the Chat Completions output ceiling max_completion_tokens (#277).
+
+        OpenAI deprecated max_tokens on Chat Completions and rejects it for its
+        reasoning models (gpt-5: HTTP 400 unsupported_parameter). The shared
+        builder keeps max_tokens because other OpenAI-compatible backends expect it.
+        """
+        request = super()._build_request(**kwargs)
+        params = request["params"]
+        if request.get("endpoint") == "chat" and "max_tokens" in params:
+            params["max_completion_tokens"] = params.pop("max_tokens")
+        return request
 
     # ------------------------------------------------------------------
     # Capability surface
