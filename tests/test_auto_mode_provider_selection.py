@@ -37,13 +37,13 @@ class TestAutoModeProviderSelection:
 
         # Save original environment
         original_env = {}
-        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY"]:
             original_env[key] = os.environ.get(key)
 
         try:
             # Set up environment - only Gemini available
             os.environ["GEMINI_API_KEY"] = "test-key"
-            for key in ["OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["OPENAI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Register only Gemini provider
@@ -76,13 +76,13 @@ class TestAutoModeProviderSelection:
 
         # Save original environment
         original_env = {}
-        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY"]:
             original_env[key] = os.environ.get(key)
 
         try:
             # Set up environment - only OpenAI available
             os.environ["OPENAI_API_KEY"] = "test-key"
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Register only OpenAI provider
@@ -115,14 +115,14 @@ class TestAutoModeProviderSelection:
 
         # Save original environment
         original_env = {}
-        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY"]:
             original_env[key] = os.environ.get(key)
 
         try:
             # Set up environment - both Gemini and OpenAI available
             os.environ["GEMINI_API_KEY"] = "test-key"
             os.environ["OPENAI_API_KEY"] = "test-key"
-            for key in ["XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Register both providers
@@ -143,45 +143,6 @@ class TestAutoModeProviderSelection:
 
             # Should prefer Gemini for fast response
             assert fast_response == "gemini-3.8-flash"  # Gemini has higher priority now
-
-        finally:
-            # Restore original environment
-            for key, value in original_env.items():
-                if value is not None:
-                    os.environ[key] = value
-                else:
-                    os.environ.pop(key, None)
-
-    def test_xai_only_fallback_selection(self):
-        """Test auto mode fallback when only XAI is available."""
-
-        # Save original environment
-        original_env = {}
-        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
-            original_env[key] = os.environ.get(key)
-
-        try:
-            # Set up environment - only XAI available
-            os.environ["XAI_API_KEY"] = "test-key"
-            for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY"]:
-                os.environ.pop(key, None)
-
-            # Register only XAI provider
-            from providers.xai import XAIModelProvider
-
-            ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
-
-            # Test fallback selection for different categories
-            extended_reasoning = ModelProviderRegistry.get_preferred_fallback_model(
-                ToolModelCategory.EXTENDED_REASONING
-            )
-            fast_response = ModelProviderRegistry.get_preferred_fallback_model(ToolModelCategory.FAST_RESPONSE)
-
-            # Should fallback to available models or default fallbacks
-            # Since XAI models are not explicitly handled in fallback logic,
-            # it should fall back to the hardcoded defaults
-            assert extended_reasoning is not None
-            assert fast_response is not None
 
         finally:
             # Restore original environment
@@ -245,23 +206,20 @@ class TestAutoModeProviderSelection:
 
         # Save original environment
         original_env = {}
-        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY"]:
+        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY"]:
             original_env[key] = os.environ.get(key)
 
         try:
             # Set up all providers
             os.environ["GEMINI_API_KEY"] = "test-key"
             os.environ["OPENAI_API_KEY"] = "test-key"
-            os.environ["XAI_API_KEY"] = "test-key"
 
             # Register all providers
             from providers.gemini import GeminiModelProvider
             from providers.openai import OpenAIModelProvider
-            from providers.xai import XAIModelProvider
 
             ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
             ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-            ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
 
             # Test model validation - each provider should handle its own models
             # Gemini models
@@ -273,11 +231,6 @@ class TestAutoModeProviderSelection:
             openai_provider = ModelProviderRegistry.get_provider_for_model("o3")
             assert openai_provider is not None
             assert openai_provider.get_provider_type() == ProviderType.OPENAI
-
-            # XAI models
-            xai_provider = ModelProviderRegistry.get_provider_for_model("grok")
-            assert xai_provider is not None
-            assert xai_provider.get_provider_type() == ProviderType.XAI
 
             # Invalid model should return None
             invalid_provider = ModelProviderRegistry.get_provider_for_model("invalid-model-name")
@@ -296,23 +249,20 @@ class TestAutoModeProviderSelection:
 
         # Save original environment
         original_env = {}
-        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY"]:
+        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY"]:
             original_env[key] = os.environ.get(key)
 
         try:
             # Set up all providers
             os.environ["GEMINI_API_KEY"] = "test-key"
             os.environ["OPENAI_API_KEY"] = "test-key"
-            os.environ["XAI_API_KEY"] = "test-key"
 
             # Register all providers
             from providers.gemini import GeminiModelProvider
             from providers.openai import OpenAIModelProvider
-            from providers.xai import XAIModelProvider
 
             ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
             ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-            ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
 
             # Test that providers resolve aliases correctly
             test_cases = [
@@ -320,8 +270,6 @@ class TestAutoModeProviderSelection:
                 ("pro", ProviderType.GOOGLE, "gemini-4-argon"),  # "pro" follows the flagship reasoning model
                 ("mini", ProviderType.OPENAI, "gpt-5-mini"),  # "mini" now resolves to gpt-5-mini
                 ("nano", ProviderType.OPENAI, "gpt-5-nano"),
-                ("grok", ProviderType.XAI, "grok-4.7"),
-                ("grok-4.1-fast-reasoning", ProviderType.XAI, "grok-4.3"),
             ]
 
             for alias, expected_provider_type, expected_resolved_name in test_cases:

@@ -1,9 +1,7 @@
 """Test the MODEL_CAPABILITIES aliases structure across all providers."""
 
-from providers.dial import DIALModelProvider
 from providers.gemini import GeminiModelProvider
 from providers.openai import OpenAIModelProvider
-from providers.xai import XAIModelProvider
 
 
 class TestSupportedModelsAliases:
@@ -80,56 +78,6 @@ class TestSupportedModelsAliases:
         assert provider._resolve_model_name("NANO") == "gpt-5-nano"
         assert provider._resolve_model_name("Gpt5.1") == "gpt-5.2"
 
-    def test_xai_provider_aliases(self):
-        """Test XAI provider's alias structure."""
-        provider = XAIModelProvider("test-key")
-
-        # Check that all models have ModelCapabilities with aliases
-        for model_name, config in provider.MODEL_CAPABILITIES.items():
-            assert hasattr(config, "aliases"), f"{model_name} must have aliases attribute"
-            assert isinstance(config.aliases, list), f"{model_name} aliases must be a list"
-
-        # Test specific aliases
-        assert "grok" in provider.MODEL_CAPABILITIES["grok-4.7"].aliases
-        assert "grok4" in provider.MODEL_CAPABILITIES["grok-4.7"].aliases
-        assert "grok-4.1-fast-reasoning" in provider.MODEL_CAPABILITIES["grok-4.3"].aliases
-
-        # Test alias resolution
-        assert provider._resolve_model_name("grok") == "grok-4.7"
-        assert provider._resolve_model_name("grok4") == "grok-4.7"
-        assert provider._resolve_model_name("grok-4.1-fast-reasoning") == "grok-4.3"
-        assert provider._resolve_model_name("grok-4.1-fast-reasoning-latest") == "grok-4.3"
-
-        # Test case insensitive resolution
-        assert provider._resolve_model_name("Grok") == "grok-4.7"
-        assert provider._resolve_model_name("GROK-4.1-FAST-REASONING") == "grok-4.3"
-
-    def test_dial_provider_aliases(self):
-        """Test DIAL provider's alias structure."""
-        provider = DIALModelProvider("test-key")
-
-        # Check that all models have ModelCapabilities with aliases
-        for model_name, config in provider.MODEL_CAPABILITIES.items():
-            assert hasattr(config, "aliases"), f"{model_name} must have aliases attribute"
-            assert isinstance(config.aliases, list), f"{model_name} aliases must be a list"
-
-        # Test specific aliases
-        assert "o3" in provider.MODEL_CAPABILITIES["o3-2025-04-16"].aliases
-        assert "o4-mini" in provider.MODEL_CAPABILITIES["o4-mini-2025-04-16"].aliases
-        assert "sonnet-4.1" in provider.MODEL_CAPABILITIES["anthropic.claude-sonnet-4.1-20250805-v1:0"].aliases
-        assert "opus-4.1" in provider.MODEL_CAPABILITIES["anthropic.claude-opus-4.1-20250805-v1:0"].aliases
-        assert "gemini-2.5-pro" in provider.MODEL_CAPABILITIES["gemini-2.5-pro-preview-05-06"].aliases
-
-        # Test alias resolution
-        assert provider._resolve_model_name("o3") == "o3-2025-04-16"
-        assert provider._resolve_model_name("o4-mini") == "o4-mini-2025-04-16"
-        assert provider._resolve_model_name("sonnet-4.1") == "anthropic.claude-sonnet-4.1-20250805-v1:0"
-        assert provider._resolve_model_name("opus-4.1") == "anthropic.claude-opus-4.1-20250805-v1:0"
-
-        # Test case insensitive resolution
-        assert provider._resolve_model_name("O3") == "o3-2025-04-16"
-        assert provider._resolve_model_name("SONNET-4.1") == "anthropic.claude-sonnet-4.1-20250805-v1:0"
-
     def test_list_models_includes_aliases(self):
         """Test that list_models returns both base models and aliases."""
         # Test Gemini
@@ -147,20 +95,6 @@ class TestSupportedModelsAliases:
         assert "mini" in openai_models
         assert "gpt-5-nano" in openai_models
         assert "nano" in openai_models
-
-        # Test XAI
-        xai_provider = XAIModelProvider("test-key")
-        xai_models = xai_provider.list_models(respect_restrictions=False)
-        assert "grok-4.7" in xai_models
-        assert "grok" in xai_models
-        assert "grok-4.1-fast" in xai_models
-        assert "grok-4.1-fast-reasoning" in xai_models
-
-        # Test DIAL
-        dial_provider = DIALModelProvider("test-key")
-        dial_models = dial_provider.list_models(respect_restrictions=False)
-        assert "o3-2025-04-16" in dial_models
-        assert "o3" in dial_models
 
     def test_list_models_all_known_variant_includes_aliases(self):
         """Unified list_models should support lowercase, alias-inclusive listings."""
@@ -199,8 +133,6 @@ class TestSupportedModelsAliases:
         providers = [
             GeminiModelProvider("test-key"),
             OpenAIModelProvider("test-key"),
-            XAIModelProvider("test-key"),
-            DIALModelProvider("test-key"),
         ]
 
         for provider in providers:
@@ -218,8 +150,6 @@ class TestSupportedModelsAliases:
         providers = [
             GeminiModelProvider("test-key"),
             OpenAIModelProvider("test-key"),
-            XAIModelProvider("test-key"),
-            DIALModelProvider("test-key"),
         ]
 
         for provider in providers:

@@ -26,10 +26,10 @@ echo -e "${GREEN}Building Docker image...${NC}"
 docker-compose build --no-cache
 
 # Verify the build
-if docker images | grep -q "pal-mcp-server"; then
+if docker images | grep -q "palaver-mcp-server"; then
     echo -e "${GREEN}✓ Docker image built successfully${NC}"
     echo -e "${GREEN}Image details:${NC}"
-    docker images | grep pal-mcp-server
+    docker images | grep palaver-mcp-server
 else
     echo -e "${RED}✗ Failed to build Docker image${NC}"
     exit 1

@@ -48,9 +48,9 @@ jobs:
       github.head_ref == 'release-please--branches--main'
     uses: laurigates/.github/.github/workflows/reusable-container-build.yml@main
     with:
-      image-name: laurigates/pal-mcp-server
+      image-name: laurigates/palaver-mcp-server
       platforms: linux/amd64,linux/arm64
-      cache-scope: pal-mcp-server
+      cache-scope: palaver-mcp-server
       # The reusable default reads package.json; this project's version lives in
       # pyproject.toml, which release-please bumps on the release PR.
       version-command: >-
@@ -60,7 +60,7 @@ jobs:
     if: github.event_name == 'push'
     uses: laurigates/.github/.github/workflows/reusable-container-release.yml@main
     with:
-      image-name: laurigates/pal-mcp-server
+      image-name: laurigates/palaver-mcp-server
       tag-prefix: v
       platforms: linux/amd64,linux/arm64
-      cache-scope: pal-mcp-server
+      cache-scope: palaver-mcp-server

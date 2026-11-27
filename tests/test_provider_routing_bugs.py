@@ -61,7 +61,6 @@ class TestProviderRoutingBugs:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -71,7 +70,6 @@ class TestProviderRoutingBugs:
             # Set up bug scenario: only OpenRouter API key
             os.environ.pop("GEMINI_API_KEY", None)  # No Google API key
             os.environ.pop("OPENAI_API_KEY", None)
-            os.environ.pop("XAI_API_KEY", None)
             os.environ.pop("OPENROUTER_ALLOWED_MODELS", None)  # Clear any restrictions
             os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
@@ -123,7 +121,6 @@ class TestProviderRoutingBugs:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -134,7 +131,6 @@ class TestProviderRoutingBugs:
             for key in [
                 "GEMINI_API_KEY",
                 "OPENAI_API_KEY",
-                "XAI_API_KEY",
                 "OPENROUTER_API_KEY",
                 "OPENROUTER_ALLOWED_MODELS",
             ]:
@@ -173,7 +169,6 @@ class TestProviderRoutingBugs:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -184,7 +179,6 @@ class TestProviderRoutingBugs:
             os.environ["GEMINI_API_KEY"] = "test-gemini-key"
             os.environ["OPENAI_API_KEY"] = "test-openai-key"
             os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
-            os.environ.pop("XAI_API_KEY", None)
             os.environ.pop("OPENROUTER_ALLOWED_MODELS", None)  # Clear any restrictions
 
             # Register providers in priority order (like server.py)
@@ -257,7 +251,6 @@ class TestOpenRouterAliasRestrictions:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -267,7 +260,6 @@ class TestOpenRouterAliasRestrictions:
             # Set up bug scenario: Only OpenRouter with alias-based restrictions
             os.environ.pop("GEMINI_API_KEY", None)
             os.environ.pop("OPENAI_API_KEY", None)
-            os.environ.pop("XAI_API_KEY", None)
             os.environ["OPENROUTER_API_KEY"] = "test-key"
             os.environ["OPENROUTER_ALLOWED_MODELS"] = "o3-mini,pro,gpt4.1,flash,o4-mini,o3"  # User's exact config
 
@@ -325,7 +317,6 @@ class TestOpenRouterAliasRestrictions:
         for key in [
             "GEMINI_API_KEY",
             "OPENAI_API_KEY",
-            "XAI_API_KEY",
             "OPENROUTER_API_KEY",
             "OPENROUTER_ALLOWED_MODELS",
         ]:
@@ -335,7 +326,6 @@ class TestOpenRouterAliasRestrictions:
             # Set up mixed restrictions: some aliases, some full names
             os.environ.pop("GEMINI_API_KEY", None)
             os.environ.pop("OPENAI_API_KEY", None)
-            os.environ.pop("XAI_API_KEY", None)
             os.environ["OPENROUTER_API_KEY"] = "test-key"
             os.environ["OPENROUTER_ALLOWED_MODELS"] = "o3-mini,anthropic/claude-opus-4.1,flash"
 

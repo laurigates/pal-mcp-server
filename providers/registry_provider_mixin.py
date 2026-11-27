@@ -14,7 +14,7 @@ mix-in will take care of:
 
 Using this helper keeps individual provider implementations focused on their
 SDK-specific behaviour while ensuring capability loading is consistent across
-OpenAI, Gemini, X.AI, and other native backends.
+OpenAI, Gemini, and other native backends.
 """
 
 from __future__ import annotations

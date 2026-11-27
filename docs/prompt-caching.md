@@ -78,10 +78,10 @@ Chat-Completions-shaped extractor (`:427-428`), so the 18 models with
 
 | Mechanism | Providers | PAL must provide |
 |---|---|---|
-| Automatic prefix match | OpenAI ≤ 5.5, Azure, xAI, OpenRouter's automatic upstreams (OpenAI, DeepSeek, Grok, Moonshot, Z.AI, Gemini…), OpenCode Go upstreams, Gemini 2.5+ implicit caching, local KV-cache reuse | Byte-stable, append-only requests above the model's minimum |
-| Implicit caching at message endings | OpenAI / Azure GPT-5.6+ | Turn boundaries that are message boundaries; one message that grows each turn is never reused |
-| Nothing unless marked | Anthropic models via OpenRouter and DIAL | `cache_control` breakpoints on stable segments |
-| Routing affinity | OpenRouter `x-session-id`; xAI `x-grok-conv-id` (Chat Completions) or `prompt_cache_key` (Responses); OpenAI `prompt_cache_key`; OpenCode Go `x-opencode-session` (already sent) | A per-thread key that is identical from turn 1 |
+| Automatic prefix match | OpenAI ≤ 5.5, OpenRouter's automatic upstreams (OpenAI, DeepSeek, Grok, Moonshot, Z.AI, Gemini…), OpenCode Go upstreams, Gemini 2.5+ implicit caching, local KV-cache reuse | Byte-stable, append-only requests above the model's minimum |
+| Implicit caching at message endings | OpenAI GPT-5.6+ | Turn boundaries that are message boundaries; one message that grows each turn is never reused |
+| Nothing unless marked | Anthropic models via OpenRouter | `cache_control` breakpoints on stable segments |
+| Routing affinity | OpenRouter `x-session-id`; OpenAI `prompt_cache_key`; OpenCode Go `x-opencode-session` (already sent) | A per-thread key that is identical from turn 1 |
 
 Minimum cacheable prefix, from the providers' current documentation:
 
@@ -151,8 +151,7 @@ Nothing else can be judged without this, so it lands first.
    trailer already states the turn number after the history.
 3. **Per-thread routing key from turn 1.** Set the session id to the thread id as soon
    as the thread is created, before the model call. Add `_build_request` overrides
-   (modelled on `providers/opencode_go.py`) for OpenRouter (`x-session-id`), xAI
-   (header or `prompt_cache_key` depending on the endpoint PAL uses) and OpenAI
+   (modelled on `providers/opencode_go.py`) for OpenRouter (`x-session-id`) and OpenAI
    (`prompt_cache_key`). Never add these to the shared builder: strict OpenAI-compatible
    backends may reject unknown fields. Measure turn-1 hits with and without the key,
    since a per-thread key can reduce cross-thread reuse of a shared system prompt.
@@ -205,7 +204,7 @@ value is; if threads run long, A/B already captures most of it.
   explicit cache breakpoint on the last stable segment. Without Stage C the breakpoint
   is required; implicit mode writes only at the latest message, which is the volatile
   tail.
-- **Anthropic via OpenRouter and DIAL**: `cache_control` on the last stable segment
+- **Anthropic via OpenRouter**: `cache_control` on the last stable segment
   (at most four breakpoints).
 - **Write policy**: skip cache writes on one-shot calls (workflow expert analysis,
   consensus consults), where a 1.25×–2× write premium is never repaid.
@@ -266,7 +265,7 @@ that used the same tool and model as the previous request:
 - **Hit ratio** `Σ cached_input_tokens / Σ input_tokens`. The denominator is the
   provider-normalised total input; the Stage 0 control calls establish, per path,
   whether `prompt_tokens` includes cached tokens (unverified for `anthropic/*` via
-  OpenRouter and DIAL).
+  OpenRouter).
 - **Write share** `Σ cache_write_input_tokens / Σ input_tokens`.
 - **Effective cost** `Σ[(input − cached − written)·1 + cached·r_read + written·r_write]`
   relative to the same tokens uncached, using each model's read and write multipliers.
@@ -401,10 +400,7 @@ S6 consults share 9,640 characters, past the end of the context file at 9,505.
 ## Unverified provider facts
 
 - Whether OpenCode Go passes upstream cache fields through.
-- Whether OpenRouter's `prompt_tokens` includes cached tokens for `anthropic/*`, and the
-  same for DIAL.
-- Azure `prompt_cache_key` support at the api-version PAL uses.
-- Whether xAI on PAL's endpoint returns the cached field.
+- Whether OpenRouter's `prompt_tokens` includes cached tokens for `anthropic/*`.
 - The minimum prefix for Gemini models reached through OpenRouter.
 
 ## Noticed while investigating (not part of this work)

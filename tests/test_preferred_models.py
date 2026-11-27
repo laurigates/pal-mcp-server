@@ -4,7 +4,7 @@ The auto-mode fallback returns the first available, allowed entry regardless
 of tool category, and the ranked summary in tool descriptions lists the
 preferred models first, in the user's order. Entries resolve through aliases
 and respect ``*_ALLOWED_MODELS`` and ``DISABLED_MODELS``. Runs against the
-shipped Google, OpenAI and XAI manifests registered by ``conftest``.
+shipped Google and OpenAI manifests registered by ``conftest``.
 """
 
 from __future__ import annotations
@@ -36,26 +36,26 @@ def _summary_names(limit=5):
 class TestFallback:
     @pytest.mark.parametrize("category", [None, *ToolModelCategory])
     def test_first_preferred_model_wins_in_every_category(self, monkeypatch, category):
-        _set(monkeypatch, "PREFERRED_MODELS", "grok-4.3,gpt-5-mini")
-        assert ModelProviderRegistry.get_preferred_fallback_model(category) == "grok-4.3"
+        _set(monkeypatch, "PREFERRED_MODELS", "gemini-3.7-flash,gpt-5-mini")
+        assert ModelProviderRegistry.get_preferred_fallback_model(category) == "gemini-3.7-flash"
 
     def test_alias_resolves_to_canonical_name(self, monkeypatch):
         _set(monkeypatch, "PREFERRED_MODELS", "nano")
         assert ModelProviderRegistry.get_preferred_fallback_model() == "gpt-5-nano"
 
     def test_unknown_and_unconfigured_entries_are_skipped(self, monkeypatch):
-        # x-ai/grok-4.6 is an OpenRouter model; OpenRouter is not configured.
-        _set(monkeypatch, "PREFERRED_MODELS", "no-such-model,x-ai/grok-4.6,gpt-5-mini")
+        # openai/gpt-5.2 is an OpenRouter model; OpenRouter is not configured.
+        _set(monkeypatch, "PREFERRED_MODELS", "no-such-model,openai/gpt-5.2,gpt-5-mini")
         assert ModelProviderRegistry.get_preferred_fallback_model() == "gpt-5-mini"
 
     def test_disabled_models_entry_is_skipped(self, monkeypatch):
-        _set(monkeypatch, "PREFERRED_MODELS", "grok-4.3,gpt-5-mini")
-        _set(monkeypatch, "DISABLED_MODELS", "grok-4.3")
+        _set(monkeypatch, "PREFERRED_MODELS", "gemini-3.7-flash,gpt-5-mini")
+        _set(monkeypatch, "DISABLED_MODELS", "gemini-3.7-flash")
         assert ModelProviderRegistry.get_preferred_fallback_model() == "gpt-5-mini"
 
     def test_entry_outside_the_allowlist_is_skipped(self, monkeypatch):
-        _set(monkeypatch, "PREFERRED_MODELS", "grok-4.3,gpt-5-mini")
-        _set(monkeypatch, "XAI_ALLOWED_MODELS", "grok-4.6")
+        _set(monkeypatch, "PREFERRED_MODELS", "gemini-3.7-flash,gpt-5-mini")
+        _set(monkeypatch, "GOOGLE_ALLOWED_MODELS", "flash")
         assert ModelProviderRegistry.get_preferred_fallback_model() == "gpt-5-mini"
 
     def test_no_available_entry_falls_back_to_provider_preference(self, monkeypatch):
@@ -67,17 +67,17 @@ class TestFallback:
 class TestRankedSummary:
     def test_preferred_models_come_first_in_user_order(self, monkeypatch):
         default_names, default_total = _summary_names(limit=100)
-        assert default_names.index("gpt-5-nano") > 5 and default_names.index("grok-4.3") > 5
+        assert default_names.index("gpt-5-nano") > 5 and default_names.index("gemini-3.7-flash") > 5
         # The user's order below must disagree with score order, or keeping
         # score order among preferred models would pass too.
-        assert default_names.index("grok-4.3") < default_names.index("gpt-5-nano")
+        assert default_names.index("gemini-3.7-flash") < default_names.index("gpt-5-nano")
 
-        _set(monkeypatch, "PREFERRED_MODELS", "nano,no-such-model,grok-4.3")
+        _set(monkeypatch, "PREFERRED_MODELS", "nano,no-such-model,gemini-3.7-flash")
         names, total = _summary_names(limit=100)
 
-        assert names[:2] == ["gpt-5-nano", "grok-4.3"]
+        assert names[:2] == ["gpt-5-nano", "gemini-3.7-flash"]
         # The rest keep their score order.
-        assert names[2:] == [n for n in default_names if n not in ("grok-4.3", "gpt-5-nano")]
+        assert names[2:] == [n for n in default_names if n not in ("gemini-3.7-flash", "gpt-5-nano")]
         assert total == default_total
 
     def test_preferred_models_fill_the_top_slots(self, monkeypatch):
@@ -136,9 +136,9 @@ class TestDisabledByDefaultOptIn:
 
 class TestStartupWarning:
     def test_unavailable_entries_warn(self, monkeypatch, caplog):
-        _set(monkeypatch, "PREFERRED_MODELS", "no-such-model,grok-4.3")
+        _set(monkeypatch, "PREFERRED_MODELS", "no-such-model,gemini-3.7-flash")
         with caplog.at_level(logging.WARNING):
             server.configure_providers()
         warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
         assert any("no-such-model" in w and "PREFERRED_MODELS" in w for w in warnings)
-        assert not any("'grok-4.3'" in w for w in warnings)
+        assert not any("'gemini-3.7-flash'" in w for w in warnings)

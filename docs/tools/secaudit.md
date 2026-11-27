@@ -85,7 +85,7 @@ security remediation plan using planner
 - `images`: Architecture diagrams, security documentation, or visual references
 
 **Initial Security Configuration (used in step 1):**
-- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano|grok (default: server default)
+- `model`: auto|pro|flash|flash-lite|o3|gpt4.1|gpt5.2|sol|terra|luna|codex|codex-spark|gpt5|gpt5-mini|gpt5-nano (default: server default)
 - `security_scope`: Application context, technology stack, and security boundary definition (required)
 - `threat_level`: low|medium|high|critical (default: medium) - determines assessment depth and urgency
 - `compliance_requirements`: List of compliance frameworks to assess against (e.g., ["PCI DSS", "SOC2"])

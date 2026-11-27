@@ -55,7 +55,7 @@ class TestThinkingModes:
             os.environ["DEFAULT_MODEL"] = "o3-mini"  # Use a model that supports thinking
 
             # Clear other provider keys to isolate to OpenAI
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Reload config and clear registry
@@ -138,7 +138,7 @@ class TestThinkingModes:
             os.environ["DEFAULT_MODEL"] = "o3-mini"
 
             # Clear other provider keys
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Reload config and clear registry
@@ -217,7 +217,7 @@ class TestThinkingModes:
             os.environ["DEFAULT_MODEL"] = "o3-mini"
 
             # Clear other provider keys to isolate to OpenAI
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Reload config and clear registry
@@ -297,7 +297,7 @@ class TestThinkingModes:
             os.environ["DEFAULT_MODEL"] = "o3-mini"
 
             # Clear other provider keys
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Reload config and clear registry
@@ -378,7 +378,7 @@ class TestThinkingModes:
             os.environ["DEFAULT_THINKING_MODE_THINKDEEP"] = "high"  # Set default to high for thinkdeep
 
             # Clear other provider keys to isolate to OpenAI
-            for key in ["GEMINI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY"]:
+            for key in ["GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
                 os.environ.pop(key, None)
 
             # Reload config and clear registry

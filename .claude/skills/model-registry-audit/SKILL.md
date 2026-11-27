@@ -52,7 +52,7 @@ For `openrouter_models.json`, `STALE` reports `max_output_tokens` only when the
 configured value is **above** OpenRouter's `top_provider.max_completion_tokens`.
 That number belongs to whichever upstream provider OpenRouter ranks first that
 week and moves in both directions, so matching it exactly flipped back to
-STALE on the next run ([#234](https://github.com/laurigates/pal-mcp-server/issues/234)).
+STALE on the next run ([#234](https://github.com/laurigates/palaver-mcp-server/issues/234)).
 A value above it is sent as `max_tokens` and can fail the request.
 
 `ORPHAN_REF` is the one finding that is not about the config at all. Providers
@@ -62,7 +62,7 @@ strings. Remove a model from the config and those keep pointing at it, so
 category routing resolves to nothing while every test still passes: the suite
 exercises the resolver, not the constants.
 
-> Found 2026-08-28: `providers/xai.py` named `grok-4-1-fast-reasoning` and
+> Found 2026-08-28: `providers/xai.py` (since removed) named `grok-4-1-fast-reasoning` and
 > `grok-4` as PRIMARY/FALLBACK after xAI retired both, and `providers/openai.py`
 > listed the shut-down `gpt-5-codex` in three preference lists.
 
@@ -77,7 +77,7 @@ Two public catalogs back the audit, plus one keyed gateway list, and they carry 
 |---|---|---|
 | `openrouter.ai/api/v1/models` | `openrouter_models.json` | **Confirmed gone.** This is the provider's own live serving list. It also carries `expiration_date`, reported as a confirmed DEPRECATED finding. |
 | `opencode.ai/zen/go/v1/models` (only with `OPENCODE_API_KEY` set) | `opencode_go_models.json` | **Confirmed gone.** The gateway's own curated list; it replaces models.dev for this config, so CANDIDATE ADDITIONS and `models-generate` take only ids it lists. On 2026-11-16 models.dev listed `mimo-v2.5` and `mimo-v2.5-pro` as live while the gateway answered 410 for both (#235). The COVERAGE line reads `source=opencode_go` when it was used; without the key, or when the fetch fails, the audit falls back to models.dev. |
-| `models.dev/api.json` | gemini, openai, xai, opencode zen | **Review only.** Community-maintained. It lags new releases and omits live models outright. Its per-model `status: "deprecated"` keeps a model out of CANDIDATE ADDITIONS and `models-generate`, and a configured one gets a `[review]` DEPRECATED finding: on 2026-10-07 the flag sat on `kimi-k2.6`, `qwen3.6-plus` and `qwen3.7-max` while the OpenCode Go gateway still served all three. |
+| `models.dev/api.json` | gemini, openai, opencode zen | **Review only.** Community-maintained. It lags new releases and omits live models outright. Its per-model `status: "deprecated"` keeps a model out of CANDIDATE ADDITIONS and `models-generate`, and a configured one gets a `[review]` DEPRECATED finding: on 2026-10-07 the flag sat on `kimi-k2.6`, `qwen3.6-plus` and `qwen3.7-max` while the OpenCode Go gateway still served all three. |
 
 The script marks every models.dev-derived finding `[review]`. Treat that marker
 as a hard gate: **never delete a configured entry on a `[review]` finding
@@ -96,7 +96,6 @@ vendors in opposite directions. Before removing anything, read the vendor page:
 |---|---|
 | Gemini | Google's deprecations page — reachable via the `gemini-api-docs` MCP (`gemini_search_docs` for "deprecations"). It carries shutdown dates neither catalog has. |
 | OpenAI | `https://developers.openai.com/api/docs/deprecations` — a table of shutdown dates and named replacements. |
-| xAI | `https://docs.x.ai/docs/models` — a plain list of what is served. |
 
 Two directions of disagreement, both observed on 2026-08-28:
 
@@ -135,16 +134,11 @@ live before acting on any of it:
 python3 -c "import json;d=json.load(open('.cache/model-catalogs/modelsdev.json'));print([k for k in d if 'opencode' in k])"
 ```
 
-Three configs cannot be machine-verified at all, and the script says so rather
-than reporting them clean:
+One config cannot be machine-verified at all, and the script says so rather
+than reporting it clean:
 
-- **DIAL** — enterprise aggregator, no public keyless catalog. Audit it by
-  checking whether the *underlying* models (`o3-2025-04-16`,
-  `claude-sonnet-4.1`, `gemini-2.5-pro-preview-03-25`) are still current at
-  their origin providers, and treat every conclusion as advisory.
 - **Custom** — user-supplied local endpoints (Ollama, vLLM). Whatever the
   operator runs is correct by definition.
-- **Azure** — deployment names are chosen per-subscription by the operator.
 
 ## Applying findings
 
@@ -183,7 +177,7 @@ Untriaged catalog models enter the registry switched off:
 
 ```
 just models-generate                    # every catalog-backed config
-just models-generate --only xai_models.json --dry-run
+just models-generate --only openai_models.json --dry-run
 ```
 
 `scripts/generate_model_entries.py` writes one entry per `MISSING` candidate
@@ -249,8 +243,8 @@ tier rather than a specific version. Two rules:
   model keeps only its version-pinned alias (`flash3.5`). Leaving `flash` on
   the old model is how a registry silently rots while every test still passes.
 
-Across files the same alias legitimately appears more than once (`opus` in
-both `openrouter_models.json` and `dial_models.json`) — `providers/registry.py`
+Across files the same alias legitimately appears more than once (`flash` in
+both `gemini_models.json` and `openrouter_models.json`) — `providers/registry.py`
 resolves those by provider priority. That is not a collision.
 
 ## Verify before committing

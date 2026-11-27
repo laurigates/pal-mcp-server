@@ -34,10 +34,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 # Get from: https://platform.openai.com/api-keys
 
-# X.AI GROK API
-XAI_API_KEY=your_xai_api_key_here
-# Get from: https://console.x.ai/
-
 # OpenCode Go (flat-rate open-source coding gateway, OpenAI-compatible)
 OPENCODE_API_KEY=your_opencode_api_key_here
 # Subscribe / get a key from: https://opencode.ai/auth  (docs: https://opencode.ai/docs/go/)
@@ -74,9 +70,7 @@ DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
 - **Available Models:** The canonical capability data for native providers lives in JSON manifests under `conf/`:
   - `conf/openai_models.json` – OpenAI catalogue (can be overridden with `OPENAI_MODELS_CONFIG_PATH`)
   - `conf/gemini_models.json` – Gemini catalogue (`GEMINI_MODELS_CONFIG_PATH`)
-  - `conf/xai_models.json` – X.AI / GROK catalogue (`XAI_MODELS_CONFIG_PATH`)
   - `conf/openrouter_models.json` – OpenRouter catalogue (`OPENROUTER_MODELS_CONFIG_PATH`)
-  - `conf/dial_models.json` – DIAL aggregation catalogue (`DIAL_MODELS_CONFIG_PATH`)
   - `conf/opencode_go_models.json` – OpenCode Go gateway catalogue (`OPENCODE_GO_MODELS_CONFIG_PATH`)
   - `conf/custom_models.json` – Custom/OpenAI-compatible endpoints (`CUSTOM_MODELS_CONFIG_PATH`)
 
@@ -88,7 +82,6 @@ DEFAULT_MODEL=auto  # Claude picks best model for each task (recommended)
   |----------|-----------------|-----------------|
   | OpenAI | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5-pro`, `gpt-5.5`, `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`, `gpt-5.2-pro`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `o3`, `o3-pro` | `astra`, `gpt6`, `sol`, `gpt6.1`, `luna`, `terra`, `gpt5.6`, `5.6`, `codex`, `codex-5.3`, `codex-spark`, `gpt5.2`, `5.2`, `gpt5pro`, `mini`, `nano`, `o3pro` |
   | Gemini | `gemini-4-argon`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-2.5-pro`, `gemini-2.5-flash` | `flash`, `flash3.8`, `flash3.7`, `flash-lite`, `pro`, `gemini-pro`, `argon`, `pro3.1`, `flash2.5` |
-  | X.AI | `grok-4.7`, `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-build-0.1` | `grok`, `grok4`, `grok-4.1-fast`, `grok-4.1-fast-reasoning`, `grok-build` |
   | OpenCode Go | `glm-5.3`, `qwen3.8-max`, `mimo-v2.6-pro`, `deepseek-v4-pro`, `deepseek-v4.1-flash`, `kimi-k2.7-code`, `minimax-m3`, … (13 models) | `glm`, `glm-flash`, `qwen`, `qwen-flash`, `mimo`, `mimo-flash`, `deepseek`, `deepseek-flash`, `kimi`, `minimax` |
   | OpenRouter | See `conf/openrouter_models.json` for the continually evolving catalogue | e.g., `opus`, `sonnet`, `flash`, `pro`, `mistral` |
   | Custom | User-managed entries such as `llama3.2` | Define your own aliases per entry |
@@ -184,9 +177,6 @@ OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra,mini
 # Gemini model restrictions  
 GOOGLE_ALLOWED_MODELS=flash,pro
 
-# X.AI GROK model restrictions
-XAI_ALLOWED_MODELS=grok-4.6,grok-4.3
-
 # OpenCode Go model restrictions
 OPENCODE_GO_ALLOWED_MODELS=glm-5.2,deepseek-v4-pro,deepseek-v4.1-flash
 
@@ -204,7 +194,7 @@ DISABLED_MODELS=grok,gpt-5-nano
 DISABLED_MODELS=openrouter:x-ai/grok-4.6
 ```
 
-A blocked model is left out of auto mode, the ranked model summary and `listmodels`, and a request that names it is rejected. The provider prefix is one of `google`, `openai`, `azure`, `xai`, `openrouter`, `custom`, `dial`, `opencode_go`; any other text before a colon is part of the model name (`llama3.2:1b`). Names no configured provider recognizes produce a startup warning, not an error.
+A blocked model is left out of auto mode, the ranked model summary and `listmodels`, and a request that names it is rejected. The provider prefix is one of `google`, `openai`, `openrouter`, `custom`, `opencode_go`; any other text before a colon is part of the model name (`llama3.2:1b`). Names no configured provider recognizes produce a startup warning, not an error.
 
 **Preferring models in auto mode:** `PREFERRED_MODELS` is an ordered list that auto mode prefers over the default ranking by score. The auto-mode fallback picks the first available entry regardless of tool category, and the model summary in tool descriptions lists the available entries first, in your order, before filling the remaining slots by score.
 
@@ -245,7 +235,6 @@ GOOGLE_ALLOWED_MODELS=pro
 # Balanced selection
 GOOGLE_ALLOWED_MODELS=flash,pro
 OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra
-XAI_ALLOWED_MODELS=grok,grok-4.3
 ```
 
 ### Advanced Configuration
@@ -255,9 +244,7 @@ XAI_ALLOWED_MODELS=grok,grok-4.3
 # Override default location of built-in catalogues
 OPENAI_MODELS_CONFIG_PATH=/path/to/openai_models.json
 GEMINI_MODELS_CONFIG_PATH=/path/to/gemini_models.json
-XAI_MODELS_CONFIG_PATH=/path/to/xai_models.json
 OPENROUTER_MODELS_CONFIG_PATH=/path/to/openrouter_models.json
-DIAL_MODELS_CONFIG_PATH=/path/to/dial_models.json
 CUSTOM_MODELS_CONFIG_PATH=/path/to/custom_models.json
 ```
 
@@ -367,7 +354,6 @@ GEMINI_API_KEY=your-gemini-key
 OPENAI_API_KEY=your-openai-key
 GOOGLE_ALLOWED_MODELS=flash,pro
 OPENAI_ALLOWED_MODELS=gpt-5.3-codex-spark,gpt-5-mini,gpt-5.6-terra
-XAI_API_KEY=your-xai-key
 LOG_LEVEL=DEBUG
 CONVERSATION_TIMEOUT_HOURS=1
 ```

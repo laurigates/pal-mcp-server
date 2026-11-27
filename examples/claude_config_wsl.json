@@ -6,7 +6,7 @@
   "mcpServers": {
     "pal": {
       "command": "wsl.exe",
-      "args": ["--", "uvx", "pal-mcp-server"],
+      "args": ["--", "uvx", "palaver-mcp-server"],
       "env": {
         "GEMINI_API_KEY": "${GEMINI_API_KEY}"
       }

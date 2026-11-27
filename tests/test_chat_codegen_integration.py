@@ -60,7 +60,7 @@ async def test_chat_codegen_saves_file(monkeypatch, tmp_path):
         m.setenv("PAL_WORKSPACE_ROOT", str(tmp_path))
 
         # Clear other provider keys to avoid unintended routing
-        for key in ["OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "CUSTOM_API_KEY"]:
+        for key in ["OPENAI_API_KEY", "OPENROUTER_API_KEY", "CUSTOM_API_KEY"]:
             m.delenv(key, raising=False)
 
         ModelProviderRegistry.reset_for_testing()

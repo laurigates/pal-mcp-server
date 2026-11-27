@@ -8,7 +8,7 @@ set -euo pipefail
 # and optionally tails the log file.
 #
 # This does NOT register the server with an MCP client. The published package
-# is the registration path — point your client at `uvx pal-mcp-server` and let
+# is the registration path — point your client at `uvx palaver-mcp-server` and let
 # it own the environment (see README). Self-registration used to hand-maintain
 # a list of env keys to forward, which drifted from the provider registry.
 #
@@ -33,8 +33,6 @@ LOG_DIR=""
 readonly PLACEHOLDER_KEYS=(
     "GEMINI_API_KEY:your_gemini_api_key_here"
     "OPENAI_API_KEY:your_openai_api_key_here"
-    "XAI_API_KEY:your_xai_api_key_here"
-    "DIAL_API_KEY:your_dial_api_key_here"
     "OPENROUTER_API_KEY:your_openrouter_api_key_here"
 )
 
@@ -84,7 +82,7 @@ Development setup (linting, formatting, tests):
   ./code_quality_checks.sh
 
 For more information:
-  https://github.com/laurigates/pal-mcp-server
+  https://github.com/laurigates/palaver-mcp-server
 EOF
 }
 
@@ -154,7 +152,7 @@ check_api_keys() {
     if [[ $has_real_key -eq 0 ]]; then
         print_warning "No real API keys detected in .env (all values look like placeholders)"
         echo "  Edit .env and set at least one of: GEMINI_API_KEY, OPENAI_API_KEY," >&2
-        echo "  XAI_API_KEY, DIAL_API_KEY, OPENROUTER_API_KEY, or CUSTOM_API_URL." >&2
+        echo "  OPENROUTER_API_KEY, OPENCODE_API_KEY, or CUSTOM_API_URL." >&2
         echo "  Setup will continue; the server won't talk to any model until keys are set." >&2
     fi
 }
@@ -240,7 +238,7 @@ main() {
     echo ""
     echo "To use PAL from an MCP client, add this to its config:"
     echo ""
-    echo '  "pal": { "command": "uvx", "args": ["pal-mcp-server"],'
+    echo '  "pal": { "command": "uvx", "args": ["palaver-mcp-server"],'
     echo '           "env": { "GEMINI_API_KEY": "${GEMINI_API_KEY}" } }'
     echo ""
     echo "  To run this checkout instead of the published package:"

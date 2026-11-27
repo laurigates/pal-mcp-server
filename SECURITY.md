@@ -16,7 +16,7 @@ PAL MCP is an open-source Model Context Protocol (MCP) server that acts as middl
 - **No Warranty**: This software is provided "AS IS" under the Apache 2.0 License, without warranties of any kind. See the [LICENSE](LICENSE) file for full terms.
 - **User Responsibility**: The AI client (not PAL MCP) controls tool invocations and workflows. Users are responsible for reviewing AI-generated outputs and actions.
 - **API Key Security**: You are responsible for securing your own API keys. Never commit keys to version control or share them publicly.
-- **Third-Party Services**: PAL MCP connects to external AI providers (Google, OpenAI, Azure, etc.). Their terms of service and privacy policies apply to data sent through this server.
+- **Third-Party Services**: PAL MCP connects to external AI providers (Google, OpenAI, OpenRouter, etc.). Their terms of service and privacy policies apply to data sent through this server.
 
 ## Reporting a Vulnerability
 

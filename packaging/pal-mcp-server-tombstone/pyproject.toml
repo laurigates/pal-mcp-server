@@ -1,0 +1,38 @@
+# Final release of the old PyPI name. The project moved to palaver-mcp-server
+# at 13.0.0 (issue #95). This package exists so `uvx pal-mcp-server` keeps
+# working: it depends on palaver-mcp-server, provides the `pal-mcp-server`
+# command, prints a notice on stderr and starts palaver.
+#
+# Published once, by the publish-tombstone job in
+# .github/workflows/release-please.yml for v13.0.0 only. The version below is
+# fixed on purpose and release-please does not manage it. Delete this directory
+# and that job after 13.0.0 ships; tests/test_tombstone_package.py fails once
+# the main version passes 13.0.0 while either still exists.
+
+[project]
+name = "pal-mcp-server"
+version = "13.0.0"
+description = "Renamed to palaver-mcp-server. This final release installs palaver-mcp-server and keeps the pal-mcp-server command working."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+classifiers = [
+    "Development Status :: 7 - Inactive",
+    "Programming Language :: Python :: 3",
+]
+# A floor, not a pin: this single release keeps resolving the newest palaver.
+dependencies = ["palaver-mcp-server>=13.0.0"]
+
+[project.urls]
+Homepage = "https://pypi.org/project/palaver-mcp-server/"
+Source = "https://github.com/laurigates/palaver-mcp-server"
+
+[project.scripts]
+pal-mcp-server = "pal_mcp_server_tombstone:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["pal_mcp_server_tombstone"]
