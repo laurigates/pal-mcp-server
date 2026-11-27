@@ -36,15 +36,16 @@
       "response": {
         "status_code": 200,
         "headers": {
+          "x-gemini-service-tier": "standard",
           "content-type": "application/json; charset=UTF-8",
           "vary": "Origin, X-Origin, Referer",
           "content-encoding": "gzip",
-          "date": "Sat, 04 Oct 2025 10:14:27 GMT",
+          "date": "Fri, 27 Nov 2026 19:27:22 GMT",
           "server": "scaffolding on HTTPServer2",
           "x-xss-protection": "0",
           "x-frame-options": "SAMEORIGIN",
           "x-content-type-options": "nosniff",
-          "server-timing": "gfet4t7; dur=1246",
+          "server-timing": "gfet4t7; dur=916",
           "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
           "transfer-encoding": "chunked"
         },
@@ -65,19 +66,20 @@
               }
             ],
             "usageMetadata": {
-              "promptTokenCount": 1085,
+              "promptTokenCount": 1395,
               "candidatesTokenCount": 1,
-              "totalTokenCount": 1149,
+              "totalTokenCount": 1487,
               "promptTokensDetails": [
                 {
                   "modality": "TEXT",
-                  "tokenCount": 1085
+                  "tokenCount": 1395
                 }
               ],
-              "thoughtsTokenCount": 63
+              "thoughtsTokenCount": 91,
+              "serviceTier": "standard"
             },
             "modelVersion": "gemini-2.5-flash",
-            "responseId": "g_PgaIL5LL6VkdUPgr3q2A8"
+            "responseId": "mdkJa_vVJuiT3boPnpiMuQM"
           }
         ],
         "byte_segments": [],
@@ -85,15 +87,16 @@
           {
             "sdk_http_response": {
               "headers": {
+                "x-gemini-service-tier": "standard",
                 "content-type": "application/json; charset=UTF-8",
                 "vary": "Origin, X-Origin, Referer",
                 "content-encoding": "gzip",
-                "date": "Sat, 04 Oct 2025 10:14:27 GMT",
+                "date": "Fri, 27 Nov 2026 19:27:22 GMT",
                 "server": "scaffolding on HTTPServer2",
                 "x-xss-protection": "0",
                 "x-frame-options": "SAMEORIGIN",
                 "x-content-type-options": "nosniff",
-                "server-timing": "gfet4t7; dur=1246",
+                "server-timing": "gfet4t7; dur=916",
                 "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
                 "transfer-encoding": "chunked"
               }
@@ -113,18 +116,18 @@
               }
             ],
             "model_version": "gemini-2.5-flash",
-            "response_id": "g_PgaIL5LL6VkdUPgr3q2A8",
+            "response_id": "mdkJa_vVJuiT3boPnpiMuQM",
             "usage_metadata": {
               "candidates_token_count": 1,
-              "prompt_token_count": 1085,
+              "prompt_token_count": 1395,
               "prompt_tokens_details": [
                 {
                   "modality": "TEXT",
-                  "token_count": 1085
+                  "token_count": 1395
                 }
               ],
-              "thoughts_token_count": 63,
-              "total_token_count": 1149
+              "thoughts_token_count": 91,
+              "total_token_count": 1487
             }
           }
         ]

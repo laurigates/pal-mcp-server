@@ -102,12 +102,14 @@ class TestO3TemperatureParameterFixSimple:
             prompt="Test prompt", model_name="gpt-4.1-2025-04-14", temperature=0.5, max_output_tokens=100
         )
 
-        # Verify the API call was made WITH temperature and max_tokens
+        # Verify the API call was made WITH temperature and the output ceiling
         mock_client.chat.completions.create.assert_called_once()
         call_kwargs = mock_client.chat.completions.create.call_args[1]
 
         assert call_kwargs["temperature"] == 0.5, "Regular models should include temperature parameter"
-        assert call_kwargs["max_tokens"] == 100, "Regular models should include max_tokens parameter"
+        # OpenAI's name for the Chat Completions ceiling; it rejects max_tokens for gpt-5 (#277)
+        assert call_kwargs["max_completion_tokens"] == 100, "Regular models should include the output ceiling"
+        assert "max_tokens" not in call_kwargs
         assert call_kwargs["model"] == "gpt-4.1-2025-04-14"
 
     @patch("utils.model_restrictions.get_restriction_service")

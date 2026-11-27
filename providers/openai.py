@@ -44,9 +44,19 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
         self._invalidate_capability_cache()
 
     def _build_request(self, **kwargs: Any) -> dict[str, Any]:
-        """Route a thread's requests to one cache: prompt_cache_key is the thread id (#194)."""
+        """Adapt the shared request to api.openai.com.
+
+        - prompt_cache_key routes a thread's requests to one cache: the thread id (#194).
+        - The Chat Completions output ceiling is named max_completion_tokens (#277).
+          OpenAI deprecated max_tokens there and rejects it for its reasoning
+          models (gpt-5: HTTP 400 unsupported_parameter). The shared builder keeps
+          max_tokens because other OpenAI-compatible backends expect it.
+        """
         request = super()._build_request(**kwargs)
-        request["params"]["prompt_cache_key"] = get_session_id()
+        params = request["params"]
+        params["prompt_cache_key"] = get_session_id()
+        if request.get("endpoint") == "chat" and "max_tokens" in params:
+            params["max_completion_tokens"] = params.pop("max_tokens")
         return request
 
     # ------------------------------------------------------------------
