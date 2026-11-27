@@ -167,3 +167,21 @@ class TestNonce:
         assert "abc123" in prompts[0]
         assert all("abc123" not in p for p in prompts[1:])
         assert len(prompts) == 6
+
+
+class TestFixturesEmbedded:
+    """A file PAL refuses to read (macOS /var temp dirs) must stop the run, not shrink it (#260)."""
+
+    def test_missing_contents_are_reported(self):
+        text = "Error: Access to system directory denied: /var/folders/x/gemini.py"
+        assert ce.missing_fixtures(text, ["gemini.py"]) == ["gemini.py"]
+
+    def test_embedded_file_passes(self):
+        text = "--- BEGIN FILE: /home/u/m3/gemini.py ---\ncode\n--- END FILE: /home/u/m3/gemini.py ---"
+        assert ce.missing_fixtures(text, ["gemini.py"]) == []
+
+    def test_default_work_root_is_outside_system_directories(self):
+        from utils.security_config import DANGEROUS_SYSTEM_PATHS
+
+        root = str(ce.default_work_root())
+        assert not any(root == d or root.startswith(d.rstrip("/") + "/") for d in DANGEROUS_SYSTEM_PATHS if d != "/")

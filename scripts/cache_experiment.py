@@ -39,6 +39,7 @@ import asyncio
 import json
 import os
 import random
+import re
 import statistics
 import subprocess
 import sys
@@ -248,6 +249,20 @@ def arm_schedule(arms: list[str], *, runs: int, seed: int | None) -> list[list[s
     return schedule
 
 
+def missing_fixtures(request_text: str, names: list[str]) -> list[str]:
+    """Fixture names whose contents (a ``BEGIN FILE`` block) are absent from a request."""
+    return [name for name in names if not re.search(rf"--- BEGIN FILE: \S*{re.escape(name)}[ \n]", request_text)]
+
+
+def default_work_root() -> Path:
+    """Where run workspaces go: the harness checkout's git-ignored ``tmp/``.
+
+    Not the system temp dir: PAL refuses to read files under /var, where macOS puts
+    tempfile's directories, and under /root, a container's usual home.
+    """
+    return SCRIPTS_DIR.parent / "tmp" / "pal-m3"
+
+
 def thread_prompts(nonce: str) -> list[str]:
     return [T_A_PROMPTS[0].format(nonce=nonce), *T_A_PROMPTS[1:]]
 
@@ -319,7 +334,9 @@ def _write_fixtures(directory: Path, source_repo: Path) -> dict[str, str]:
 
 async def _run_worker(args: argparse.Namespace) -> list[dict[str, Any]]:
     arm_repo = Path.cwd()
-    state_dir = Path(tempfile.mkdtemp(prefix="pal-m3-"))
+    work_root = Path(args.work_root) if args.work_root else default_work_root()
+    work_root.mkdir(parents=True, exist_ok=True)
+    state_dir = Path(tempfile.mkdtemp(prefix="run-", dir=work_root))
     workspace = state_dir / "workspace"
     workspace.mkdir()
     fixtures = _write_fixtures(workspace, Path(args.fixture_repo))
@@ -370,6 +387,14 @@ async def _run_worker(args: argparse.Namespace) -> list[dict[str, Any]]:
         if continuation_id:
             arguments["continuation_id"] = continuation_id
         response = await call("chat", arguments)
+        expected = [Path(p).name for p in FIXTURES_TURN_1] + (
+            [Path(p).name for p in FIXTURES_TURN_4] if turn >= 4 else []
+        )
+        missing = missing_fixtures(recorder.records[-1]["request_text"], expected) if recorder.records else expected
+        if missing:
+            raise RuntimeError(
+                f"T-A turn {turn}: fixture contents not in the request: {missing} (workspace {workspace})"
+            )
         continuation_id = continuation_id or (response.get("continuation_offer") or {}).get("continuation_id")
         if not continuation_id:
             raise RuntimeError(f"T-A turn {turn} returned no continuation_id: {response}")
@@ -454,6 +479,8 @@ def _orchestrate(args: argparse.Namespace) -> int:
                         nonce,
                         "--fixture-repo",
                         str(SCRIPTS_DIR.parent),
+                        "--work-root",
+                        str(Path(args.work_root).resolve() if args.work_root else default_work_root()),
                     ],
                     capture_output=True,
                     text=True,
@@ -479,6 +506,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--out", default="cache-experiment.jsonl")
     parser.add_argument("--report", help="summarise an existing results file and exit")
+    parser.add_argument(
+        "--work-root", help="directory for run workspaces (default <harness repo>/tmp/pal-m3; not under /var)"
+    )
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--label", help=argparse.SUPPRESS)
     parser.add_argument("--run", type=int, help=argparse.SUPPRESS)
