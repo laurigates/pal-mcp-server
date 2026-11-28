@@ -196,7 +196,8 @@ class TestConversationHistoryBuilding:
 
         # Verify structure
         assert "=== CONVERSATION HISTORY (CONTINUATION) ===" in history
-        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" in history
+        # Files render inside the turn that attached them, not in a separate section (#195).
+        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" not in history
         assert "--- Turn 1 (Agent) ---" in history
 
         # Verify file content is embedded
@@ -342,11 +343,13 @@ class TestCrossToolFileContext:
         assert f"Files used in this turn: {src_file}, {test_file}" in history
 
         # Verify both files are embedded
-        files_section_start = history.find("=== FILES REFERENCED IN THIS CONVERSATION ===")
-        first_file_pos = history.find(src_file, files_section_start)
-        second_file_pos = history.find(test_file, files_section_start)
-
-        assert first_file_pos > 0 and second_file_pos > 0
+        # Each file is embedded once, inside the first turn that listed it (#195);
+        # turn 3 lists both again and gets pointers.
+        assert history.count(f"--- BEGIN FILE: {src_file}") == 1
+        assert history.count(f"--- BEGIN FILE: {test_file}") == 1
+        turn_2 = history.index("--- Turn 2 (Agent) ---")
+        assert history.index(f"--- BEGIN FILE: {test_file}") > turn_2
+        assert f"[File {src_file}: see Turn 1]" in history
 
 
 class TestLargeConversations:
@@ -399,7 +402,8 @@ class TestLargeConversations:
 
         # Verify structure
         assert "=== CONVERSATION HISTORY (CONTINUATION) ===" in history
-        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" in history
+        # Files render inside the turn that attached them, not in a separate section (#195).
+        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" not in history
 
         # Should handle large conversation gracefully
         assert len(history) > 1000  # Should have substantial content
@@ -467,7 +471,8 @@ class TestSmallAndNewConversations:
 
         # Should work correctly for single turn
         assert "=== CONVERSATION HISTORY (CONTINUATION) ===" in history
-        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" in history
+        # Files render inside the turn that attached them, not in a separate section (#195).
+        assert "=== FILES REFERENCED IN THIS CONVERSATION ===" not in history
         assert "--- Turn 1 (Agent) ---" in history
         assert "Quick question about this file" in history
         assert test_file in history

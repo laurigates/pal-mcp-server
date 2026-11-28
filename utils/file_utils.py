@@ -49,7 +49,6 @@ multi-turn file handling:
 import json
 import logging
 import os
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .file_types import BINARY_EXTENSIONS, CODE_EXTENSIONS, IMAGE_EXTENSIONS, TEXT_EXTENSIONS
@@ -508,9 +507,8 @@ def read_file_content(
         logger.debug(f"[FILES] File size for {file_path}: {file_size:,} bytes")
         if file_size > max_size:
             logger.debug(f"[FILES] File too large: {file_path} ({file_size:,} > {max_size:,} bytes)")
-            modified_at = datetime.fromtimestamp(stat_result.st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
             content = (
-                f"\n--- FILE TOO LARGE: {file_path} (Last modified: {modified_at}) ---\n"
+                f"\n--- FILE TOO LARGE: {file_path} ---\n"
                 f"File size: {file_size:,} bytes (max: {max_size:,})\n"
                 "--- END FILE ---\n"
             )
@@ -535,9 +533,8 @@ def read_file_content(
                 f"[FILES] File exceeded max_size during read despite reporting "
                 f"{file_size:,} bytes via stat: {file_path}"
             )
-            modified_at = datetime.fromtimestamp(stat_result.st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
             content = (
-                f"\n--- FILE TOO LARGE: {file_path} (Last modified: {modified_at}) ---\n"
+                f"\n--- FILE TOO LARGE: {file_path} ---\n"
                 f"File exceeded the {max_size:,} byte limit while reading.\n"
                 "--- END FILE ---\n"
             )
@@ -558,12 +555,9 @@ def read_file_content(
         # NOTE: These markers ("--- BEGIN FILE: ... ---") are distinct from git diff markers
         # ("--- BEGIN DIFF: ... ---") to allow AI to distinguish between complete file content
         # vs. partial diff content when files appear in both sections
-        modified_at = datetime.fromtimestamp(stat_result.st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
-        formatted = (
-            f"\n--- BEGIN FILE: {file_path} (Last modified: {modified_at}) ---\n"
-            f"{file_content}\n"
-            f"--- END FILE: {file_path} ---\n"
-        )
+        # No modification time in the header: a touch without a content change would
+        # otherwise invalidate every cached prompt byte after this file (#195).
+        formatted = f"\n--- BEGIN FILE: {file_path} ---\n{file_content}\n--- END FILE: {file_path} ---\n"
         tokens = estimate_tokens(formatted)
         logger.debug(f"[FILES] Formatted content for {file_path}: {len(formatted)} chars, {tokens} tokens")
         return formatted, tokens

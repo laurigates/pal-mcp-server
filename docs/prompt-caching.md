@@ -13,7 +13,7 @@ All file references are at `288d446` (release 11.7.0) unless stated otherwise.
 |---|---|---|
 | 0 — Measurement | #193 | code landed; Gemini control calls recorded, the others pending |
 | A — Stable continuation prefix | #194 | code and offline gates done; cassette re-record and M3 pending |
-| B — Append-only files and history | #195 | open |
+| B — Append-only files and history | #195 | code and offline gates done; cassette re-record and M3 pending |
 | C — Strict prefix (decide after A/B results) | #196 | deferred |
 | D — Provider-specific explicit caching (decide after traffic data) | #197 | deferred |
 
@@ -185,6 +185,32 @@ re-recorded with `OPENAI_API_KEY`. PR #191 rewrites both; land it first.
    rendered turn. The prefix is then rewritten once per compaction instead of on every
    call after overflow.
 
+As built (2026-11-23):
+
+- A file's content is read from disk on every call and appears at its first reference,
+  so an edited file changes in place there. Later references are one-line pointers.
+  A file the budget leaves out is a one-line marker at its first reference.
+- The files of the request being answered come after the history's trailer, next to
+  NEW USER INPUT. On the next request their turn block takes the position after the
+  last turn, and nothing before it changes.
+- Compaction persists nothing. `_compaction_start` replays it over the thread's turns
+  in order: whenever the kept turns outgrow the budget, the oldest are dropped down to
+  60% of it. The result depends only on the turns and the budget, so consecutive
+  requests agree on it until the next compaction. The files of dropped turns stay, in
+  a block after the "Turns 1–K omitted" note.
+- Known limit: 60% hysteresis frees 40% of the budget, so compactions are spaced out
+  only while one request (prompt plus reply) stays below about 20% of the history
+  budget. Simulated with `_compaction_start` on equal-sized turns: at 10% per request
+  the start moved 5 times in 30 requests, never on two consecutive requests; at 30% it
+  moved on 18 of 29 requests. This matters for small-context models; #262 tracks it.
+- Known limit: the compaction budget is the history budget minus the tokens of every
+  embedded file, including the new input's attachments. Once a thread has compacted,
+  attaching, editing or evicting a file changes that budget, and `_compaction_start`
+  replays against it, so the start can move retroactively and rewrite the prefix from
+  the "Turns 1–K omitted" note on. `_compaction_start([5]*30, 90)` is 18 and
+  `_compaction_start([5]*30, 85)` is 16. Below the first overflow the turns are
+  unaffected. S3 never overflows and S5 attaches no files, so G2 and G7 do not cover it.
+
 ### Stage C — Strict prefix (#196, deferred)
 
 Move the constant end-of-prompt guidance (follow-up instructions without the
@@ -244,7 +270,15 @@ Gates are structural, so they cannot be passed by sending less:
 | G3 | S1–S3: `ser(r_{j+1}).startswith(ser(r_j))` for every *j* | Stage C |
 | G4 | S7: request sha256 identical under `PYTHONHASHSEED` 1, 2, 3, with a same-seed control run first and one untouched fixture directory | Stage A |
 | G5 | S6: the two consults first differ at the stance block | Stage A |
-| G7 | S5: at most 2 pairs over 12 turns where `L_j` falls before the last turn block of *r_j* | Stage B |
+| G7 | S5: every pair where `L_j` falls before the last turn block of *r_j* is a compaction (the "Turns 1–K omitted" note changed), and no two consecutive pairs break | Stage B |
+
+G7 first allowed at most 2 such pairs over 12 turns. That was refuted when Stage B
+was built: each S5 request adds about 20% of the turn budget, so 60% hysteresis
+compacts on every second request (4 breaks, against 10 at baseline), and only a keep
+ratio below about 0.14 passes it, which leaves roughly one turn after a compaction. The
+gate now tests the mechanism instead of a count. A sliding window, or compaction
+without hysteresis, still fails it, and meta-tests in
+`tests/test_prompt_prefix_stability.py` keep both failing.
 
 Reported but not gated: the simulated cache-hit ratio `SCHR = Σ cacheable(L_j) / Σ tokens(r_{j+1})`,
 with `tokens(c) ≈ c // 4` and `cacheable` model-aware (minimum length, and 2,048-token
@@ -396,6 +430,19 @@ request's last turn block. The first pair stops at 5,694 characters, where
 turn 1 puts the request and turn 2 starts its history block (Stage C). In S3 the pairs that attach a new
 file stop at 6,118, where the newest-first file section changes (Stage B). The
 S6 consults share 9,640 characters, past the end of the context file at 9,505.
+
+Offline, `just cache-prefix` on the Stage B code (2026-11-23): G0, G1, G2, G4, G5 and
+G7 pass; G3 fails, as expected before Stage C.
+
+| Scenario | SCHR, Stage A | SCHR, Stage B | `L_j` after Stage B |
+|---|---|---|---|
+| S1 chat, no files | 0.709 | 0.709 | 5,694 · 6,081 · 6,258 |
+| S2 same file each turn | 0.677 | 0.666 | 5,694 · 8,882 · 9,397 |
+| S3 new file at turns 1, 3, 5 | 0.512 | 0.622 | 5,694 · 8,882 · 9,228 · 12,159 |
+| S5 small context, 12 turns | 0.409 | 0.533 | breaks at pairs 4, 6, 8, 10 (one per compaction) |
+
+S3's pairs that attach a file now reach past the previous request's last turn
+block. S2 drops slightly because each re-reference adds a one-line pointer.
 
 ## Unverified provider facts
 

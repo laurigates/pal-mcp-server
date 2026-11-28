@@ -15,6 +15,7 @@
             }
           ],
           "model": "gpt-5",
+          "prompt_cache_key": "95d60035-1aa3-4398-9936-fca71989d906",
           "stream": false,
           "temperature": 1.0
         },
@@ -94,6 +95,7 @@
             }
           ],
           "model": "gpt-5",
+          "prompt_cache_key": "95d60035-1aa3-4398-9936-fca71989d906",
           "stream": false,
           "temperature": 1.0
         },
