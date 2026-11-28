@@ -1231,13 +1231,30 @@ async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str |
 
         original_prompt = arguments.get("prompt", "")
         follow_up_instructions = get_follow_up_instructions(previous_turn_count)
-        enhanced_prompt, remaining_tokens = build_enhanced_prompt(
-            thread_context=context,
-            model_context=model_context,
-            user_prompt=original_prompt,
-            follow_up_instructions=follow_up_instructions,
-            latest_turn_is_input=latest_turn_is_input,
+        from utils.message_history import build_history_messages, message_history_enabled
+
+        history_messages = (
+            build_history_messages(context, tool_name=tool_name or context.tool_name)
+            if message_history_enabled(model_context.provider)
+            else None
         )
+        if history_messages is not None:
+            # Stage D prototype: earlier turns go to the provider as the messages
+            # they were sent as, so this prompt carries only the new input.
+            from utils.token_utils import estimate_tokens
+
+            enhanced_prompt = f"{original_prompt}\n\n{follow_up_instructions}"
+            history_tokens = sum(estimate_tokens(m["content"]) for m in history_messages)
+            remaining_tokens = max(0, model_context.calculate_token_allocation().content_tokens - history_tokens)
+            enhanced_arguments["_history_messages"] = history_messages
+        else:
+            enhanced_prompt, remaining_tokens = build_enhanced_prompt(
+                thread_context=context,
+                model_context=model_context,
+                user_prompt=original_prompt,
+                follow_up_instructions=follow_up_instructions,
+                latest_turn_is_input=latest_turn_is_input,
+            )
 
         enhanced_arguments["prompt"] = enhanced_prompt
         enhanced_arguments["_original_user_prompt"] = original_prompt

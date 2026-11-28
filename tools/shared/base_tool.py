@@ -764,6 +764,11 @@ class BaseTool(ABC):
             # Thread not found, no files embedded
             return []
 
+        if (getattr(self, "_current_arguments", None) or {}).get("_history_messages"):
+            # Stage D prototype: earlier turns' files are in the user messages they
+            # were sent with; the request being answered (the last turn) embeds its own.
+            return list(dict.fromkeys(f for turn in thread_context.turns[:-1] for f in turn.files or []))
+
         # A listed file the history's budget left out is not embedded: count
         # only what the history built for this model holds, so the tool embeds
         # the rest itself (or the size gate refuses it) instead of dropping it.

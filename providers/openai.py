@@ -33,6 +33,8 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
     OPTIONAL_ENV = ("OPENAI_MODELS_CONFIG_PATH",)
 
     REGISTRY_CLASS = OpenAIModelRegistry
+    #: Accepts ``history_messages`` (Stage D prototype, utils/message_history.py).
+    SUPPORTS_MESSAGE_HISTORY = True
     MODEL_CAPABILITIES: ClassVar[dict[str, ModelCapabilities]] = {}
 
     def __init__(self, api_key: str, **kwargs):
