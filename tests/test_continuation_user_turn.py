@@ -181,6 +181,25 @@ class TestServerContinuationReloadsTheThread:
         assert FIRST_REPLY in enhanced["prompt"]
         assert FOLLOW_UP in enhanced["prompt"]
 
+    @pytest.mark.asyncio
+    async def test_unrecorded_turn_keeps_an_earlier_trailing_user_turn(self, tmp_path):
+        # A thread can end with a user turn left by an earlier call that failed
+        # before replying. When this call records nothing (turn cap), that turn
+        # is history, not this request, and must stay in the prompt (#194).
+        import utils.conversation_memory as cm
+
+        thread_id = _chat_thread(tmp_path)
+        add_turn(thread_id, "user", "EARLIER UNANSWERED REQUEST", tool_name="chat")
+
+        with patch.object(cm, "MAX_CONVERSATION_TURNS", 3):
+            enhanced = await reconstruct_thread_context(
+                {"prompt": FOLLOW_UP, "continuation_id": thread_id, "model": "flash"}
+            )
+
+        assert len(get_thread(thread_id).turns) == 3
+        assert "EARLIER UNANSWERED REQUEST" in enhanced["prompt"]
+        assert FOLLOW_UP in enhanced["prompt"]
+
 
 def _write_file_over_history_budget(path, model_context):
     """Write a file the history's file budget cannot hold but the remaining content budget can."""

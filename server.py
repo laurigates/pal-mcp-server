@@ -1159,7 +1159,7 @@ async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str |
     # Append the current user turn (best-effort; raises only on
     # genuine storage-backend failures, never on turn-limit / expired
     # races between get_thread and add_turn).
-    _record_user_turn_or_raise(continuation_id, context, arguments)
+    turn_recorded = _record_user_turn_or_raise(continuation_id, context, arguments)
 
     # Turns before this one: the follow-up budget and the logs count these.
     previous_turn_count = len(context.turns)
@@ -1171,9 +1171,14 @@ async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str |
     from utils.conversation_memory import ConversationMemoryStorageError, get_thread
 
     try:
-        context = get_thread(continuation_id) or context
+        reloaded = get_thread(continuation_id)
     except ConversationMemoryStorageError:
+        reloaded = None
         logger.warning(f"Reloading thread {continuation_id} failed; building history from the loaded copy")
+    # Only a reloaded thread ends with this request's turn; the loaded copy
+    # predates it, and its last user turn is an earlier request's.
+    latest_turn_is_input = turn_recorded and reloaded is not None
+    context = reloaded or context
 
     # Resolve the model used to rebuild conversation history. The
     # resolver encapsulates the fallback cascade
@@ -1231,6 +1236,7 @@ async def reconstruct_thread_context(arguments: dict[str, Any], tool_name: str |
             model_context=model_context,
             user_prompt=original_prompt,
             follow_up_instructions=follow_up_instructions,
+            latest_turn_is_input=latest_turn_is_input,
         )
 
         enhanced_arguments["prompt"] = enhanced_prompt
@@ -1311,7 +1317,7 @@ def _load_thread_or_raise(continuation_id: str):
     return context
 
 
-def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[str, Any]) -> None:
+def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[str, Any]) -> bool:
     """
     Append the current request's user turn to the loaded thread.
 
@@ -1320,6 +1326,9 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
     unavailable" message rather than a silently-lost turn. False
     return values from ``add_turn`` (turn-limit / racing expiration)
     degrade to a ``WARNING`` log without aborting the request.
+
+    Returns ``True`` when the turn was recorded, so the caller knows whether the
+    thread's last turn is this request (issue #194).
     """
     from utils.conversation_memory import ConversationMemoryStorageError, add_turn
 
@@ -1327,7 +1336,7 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
     # ``step`` (issue #174).
     user_prompt = arguments.get("prompt") or arguments.get("step") or ""
     if not user_prompt:
-        return
+        return False
 
     # The history embeds only regular files, and the tool skips any path the
     # history already lists, so a directory recorded as-is would reach the model
@@ -1365,6 +1374,7 @@ def _record_user_turn_or_raise(continuation_id: str, context, arguments: dict[st
         logger.debug("[CONVERSATION_DEBUG] Failed to add user turn - thread may be at turn limit or expired")
     else:
         logger.debug(f"[CONVERSATION_DEBUG] Successfully added user turn to thread {continuation_id}")
+    return success
 
 
 def _log_activity(message: str, scope: str) -> None:
