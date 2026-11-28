@@ -15,7 +15,7 @@ All file references are at `288d446` (release 11.7.0) unless stated otherwise.
 | A — Stable continuation prefix | #194 | code and offline gates done; cassette re-record and M3 pending |
 | B — Append-only files and history | #195 | code and offline gates done; cassette re-record and M3 pending |
 | C — Strict prefix (decide after A/B results) | #196 | deferred |
-| D — Provider-specific explicit caching (decide after traffic data) | #197 | deferred |
+| D — Provider-specific explicit caching (decide after traffic data) | #197 | GPT-5.6+ message history prototyped behind `PAL_MESSAGE_HISTORY` (2026-11-28); M3 pending |
 
 Decisions taken (2026-10-09): implement Stages 0, A and B; decide Stage C from the
 Stage A/B measurements; build explicit caching only for the provider families
@@ -238,6 +238,19 @@ value is; if threads run long, A/B already captures most of it.
 Build only for the families that carry real traffic in `just cache-report`, unless the
 Stage 0 GPT-5.6+ control call confirms a current cost bug.
 
+**Prototype (2026-11-28), pulled forward by the probes in [Results](#results).** GPT-5.6+
+reuses only the whole previous request, cut at a message boundary, so no layout of one
+growing user message can hit, whatever Stages A–C do to its bytes. With
+`PAL_MESSAGE_HISTORY=true`, for providers that set `SUPPORTS_MESSAGE_HISTORY` (the OpenAI
+provider), `utils/message_history.py` sends a simple-tool continuation as the system
+prompt, then each earlier turn's user message exactly as it was sent (stored as
+`sent_prompt` on the reply's `model_metadata`) and the reply, then the new input. Request
+j+1 is request j plus two messages (`tests/test_message_history_e2e.py`). Earlier turns'
+files stay in the message that attached them, so they are read from disk once, when sent.
+Falls back to the rendered history for a reply stored without `sent_prompt`, a cross-tool
+thread or a chained thread. Not yet handled: compaction when the messages outgrow the
+history budget, workflow tools, and an explicit breakpoint.
+
 Not planned: Gemini explicit `CachedContent` (implicit caching is already on for every
 listed Gemini model, and explicit caching adds per-hour storage cost and a lifecycle per
 thread); `previous_response_id` (OpenAI-only, breaks on model switches).
@@ -443,6 +456,27 @@ G7 pass; G3 fails, as expected before Stage C.
 
 S3's pairs that attach a file now reach past the previous request's last turn
 block. S2 drops slightly because each re-reference adds a one-line pointer.
+
+Cache-shape probes (2026-11-28), through PAL's own providers on stage B code, ~14k-token
+OpenAI and ~18.7k-token Gemini prompts, one sample per case. M3's first live runs had
+read 0 cached tokens on all 144 calls, on every arm, and these probes locate why:
+
+| Case | gpt-6-luna read: cached / input | gemini-3.8-flash read: cached / input |
+|---|---|---|
+| Exact repeat, 0.5–10 s after the write | 14,438 / 14,441 (every gap) | 16,679–16,683 / ~18,733 (every gap) |
+| Last message's tail changed | 0 / 14,441 | 0 |
+| Last message extended | 0 / 14,445 | 0 |
+| New message appended after the unchanged request | 14,437 / 14,451 | 0 (as a part or a second content) |
+| Diverging after the 1st or 2nd of 2–3 messages | 0 | 0 |
+
+- gpt-6-luna writes one cache entry, at the end of the request
+  (`input_tokens_details.cache_write_tokens` ≈ input, 30-minute TTL), and reads it only
+  when the next request starts with the whole previous request, message for message.
+  PAL's continuations change the last message every turn, so every call paid the 1.25×
+  write premium and none read: effective input cost 1.25 of uncached on all arms. This
+  is the Stage 0 cost bug the GPT-5.6+ control call was meant to detect.
+- gemini-3.8-flash hit only on exact repeats; one write in the boundary case reported
+  16,683 cached on a fresh nonce. Too few samples to say what it reuses.
 
 ## Unverified provider facts
 

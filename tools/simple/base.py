@@ -338,12 +338,17 @@ class SimpleTool(BaseTool):
             continuation_id = self.get_request_continuation_id(request)
 
             # Handle conversation history and prompt preparation
+            history_messages = (getattr(self, "_current_arguments", None) or {}).get("_history_messages")
             if continuation_id:
                 # Check if conversation history is already embedded
                 from utils.conversation_memory import CONVERSATION_HISTORY_MARKER
 
                 field_value = self.get_request_prompt(request)
-                if CONVERSATION_HISTORY_MARKER in field_value:
+                if history_messages:
+                    # Stage D prototype: server.py put the earlier turns in
+                    # _history_messages; the prompt holds only the new input.
+                    prompt = await self.prepare_prompt(request)
+                elif CONVERSATION_HISTORY_MARKER in field_value:
                     # server.py already recorded the user turn and embedded the history.
                     # prepare_prompt still runs for files, prompt.txt and the size check.
                     prompt = await self.prepare_prompt(request)
@@ -474,6 +479,7 @@ class SimpleTool(BaseTool):
                     # without it the provider's own default governs, which differs
                     # per provider and is not what we advertise (issue #114).
                     max_output_tokens=capabilities.get_effective_max_output_tokens(),
+                    **({"history_messages": history_messages} if history_messages else {}),
                 )
 
             logger.info(f"Received response from {provider.get_provider_type().value} API for {self.get_name()}")
@@ -489,6 +495,11 @@ class SimpleTool(BaseTool):
                     "model_name": model_name,
                     "model_response": model_response,
                 }
+                from utils.message_history import message_history_enabled
+
+                if message_history_enabled(provider):
+                    # Kept with the reply so the next request can replay it verbatim.
+                    model_info["sent_prompt"] = prompt
 
                 # Parse response using the same logic as old base.py
                 tool_output = self._parse_response(raw_text, request, model_info, new_thread_id)
@@ -821,6 +832,10 @@ class SimpleTool(BaseTool):
             model_response = model_info.get("model_response")
             if model_response:
                 model_metadata = {"usage": model_response.usage, "metadata": model_response.metadata}
+            if model_info.get("sent_prompt") is not None:
+                from utils.message_history import SENT_PROMPT_KEY
+
+                model_metadata = {**(model_metadata or {}), SENT_PROMPT_KEY: model_info["sent_prompt"]}
 
         try:
             add_turn(

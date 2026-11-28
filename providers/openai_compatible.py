@@ -290,9 +290,14 @@ class OpenAICompatibleProvider(ModelProvider):
         temperature: float,
         max_output_tokens: int | None,
         images: list[str] | None = None,
+        history_messages: list[dict[str, str]] | None = None,
         **kwargs,
     ) -> dict[str, Any]:
-        """Assemble an OpenAI-compatible request payload (chat or responses)."""
+        """Assemble an OpenAI-compatible request payload (chat or responses).
+
+        ``history_messages`` (Stage D prototype, utils/message_history.py) are earlier
+        user/assistant messages placed between the system prompt and this input.
+        """
         if not self.validate_model_name(model_name):
             raise ValueError(
                 f"Model SQ{model_name}SQ not in allowed models list. Allowed models: {self.allowed_models}".replace(
@@ -324,6 +329,7 @@ class OpenAICompatibleProvider(ModelProvider):
         messages: list[dict[str, Any]] = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
+        messages.extend(dict(message) for message in history_messages or [])
 
         user_content: list[dict[str, Any]] = []
         user_content.append({"type": "text", "text": prompt})
