@@ -233,7 +233,11 @@ class RecordingTransport(httpx.HTTPTransport):
         try:
             if content.strip():
                 data = json.loads(content)
-                # Don't sanitize request content for now - it's user input
+                # Don't sanitize request content for now - it's user input.
+                # Routing keys are dropped: replay ignores them, and a
+                # prompt_cache_key UUID reads as a generic-api-key to gitleaks.
+                if isinstance(data, dict):
+                    data = {k: v for k, v in data.items() if k not in ReplayTransport.ROUTING_KEY_FIELDS}
                 return data
         except json.JSONDecodeError:
             pass

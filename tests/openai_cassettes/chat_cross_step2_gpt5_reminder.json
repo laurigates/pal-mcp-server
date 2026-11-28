@@ -15,7 +15,6 @@
             }
           ],
           "model": "gpt-5",
-          "prompt_cache_key": "dbadc23e-c0f4-4853-982f-6c5bc722b5de",
           "stream": false,
           "temperature": 1.0
         },

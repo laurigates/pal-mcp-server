@@ -47,6 +47,25 @@ def test_async_client_records_through_the_transport(tmp_path):
     assert "sk-live-secret-value" not in cassette.read_text()
 
 
+def test_recording_drops_routing_keys_from_the_request_body(tmp_path):
+    # prompt_cache_key is the thread id, a fresh UUID per run that replay
+    # ignores; written to a cassette it only trips gitleaks' generic-api-key rule.
+    cassette = tmp_path / "async.json"
+    transport = RecordingTransport(str(cassette), async_upstream=httpx.MockTransport(_upstream))
+
+    async def _post_with_routing_key() -> None:
+        async with httpx.AsyncClient(transport=transport) as client:
+            await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                json={**BODY, "prompt_cache_key": "thread-under-test"},
+            )
+
+    asyncio.run(_post_with_routing_key())
+
+    saved = json.loads(cassette.read_text())["interactions"]
+    assert saved[0]["request"]["content"] == BODY
+
+
 def test_an_async_recording_replays(tmp_path):
     cassette = tmp_path / "async.json"
     asyncio.run(_post(RecordingTransport(str(cassette), async_upstream=httpx.MockTransport(_upstream))))
