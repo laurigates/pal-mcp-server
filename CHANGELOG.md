@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## [13.1.0](https://github.com/laurigates/palaver-mcp-server/compare/v13.0.0...v13.1.0) (2026-11-28)
+
+
+### Features
+
+* **cache:** add the M3 live experiment harness (just cache-experiment) ([#280](https://github.com/laurigates/palaver-mcp-server/issues/280)) ([bbbd018](https://github.com/laurigates/palaver-mcp-server/commit/bbbd01894973c41527213aa0c028753ad09cc987))
+* **cache:** append-only files and history (stage B) ([#263](https://github.com/laurigates/palaver-mcp-server/issues/263)) ([0abe0a3](https://github.com/laurigates/palaver-mcp-server/commit/0abe0a3f31a1f1d1f787d69bdcee287fd8bf0b46))
+* **cache:** send continuations as role messages for GPT-5.6+ (stage D prototype) ([#282](https://github.com/laurigates/palaver-mcp-server/issues/282)) ([f039503](https://github.com/laurigates/palaver-mcp-server/commit/f039503e5c43898232e40313a48a7f13f0f5952b))
+* **cache:** stable continuation prefix (stage A) ([#261](https://github.com/laurigates/palaver-mcp-server/issues/261)) ([d8f060a](https://github.com/laurigates/palaver-mcp-server/commit/d8f060a3ce4db340895fdcbf6de3ba1e64c2756c))
+
+
+### Bug Fixes
+
+* **pre-commit:** stop excluding .git/ so commit-msg gets the message file ([#279](https://github.com/laurigates/palaver-mcp-server/issues/279)) ([b35d32d](https://github.com/laurigates/palaver-mcp-server/commit/b35d32d14fe8df1d4ddd9ad9cfa61f31267f52a2))
+* **providers:** send max_completion_tokens to OpenAI Chat Completions ([#278](https://github.com/laurigates/palaver-mcp-server/issues/278)) ([dd850fc](https://github.com/laurigates/palaver-mcp-server/commit/dd850fc49d0392ca1838974320dc48c4e21f061b)), closes [#277](https://github.com/laurigates/palaver-mcp-server/issues/277)
+
 ## [13.0.0](https://github.com/laurigates/palaver-mcp-server/compare/v12.1.0...v13.0.0) (2026-11-25)
 
 
