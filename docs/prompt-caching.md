@@ -15,7 +15,7 @@ All file references are at `288d446` (release 11.7.0) unless stated otherwise.
 | A — Stable continuation prefix | #194 | code and offline gates done; cassette re-record and M3 pending |
 | B — Append-only files and history | #195 | code and offline gates done; cassette re-record and M3 pending |
 | C — Strict prefix (decide after A/B results) | #196 | deferred |
-| D — Provider-specific explicit caching (decide after traffic data) | #197 | GPT-5.6+ message history prototyped behind `PAL_MESSAGE_HISTORY` (2026-11-28); M3 pending |
+| D — Provider-specific explicit caching (decide after traffic data) | #197 | GPT-5.6+ message history prototyped behind `PAL_MESSAGE_HISTORY` (2026-11-28): M3 hit ratio 0.94 on gpt-6-luna, against 0.00 for Stage B |
 
 Decisions taken (2026-10-09): implement Stages 0, A and B; decide Stage C from the
 Stage A/B measurements; build explicit caching only for the provider families
@@ -406,6 +406,20 @@ recorded in the results table.
 
 | Date | Commit | Arm | Model | Hit ratio 3–6 (median, range) | SCHR | Realisation | Σ input / cached / written | Effective cost vs uncached |
 |---|---|---|---|---|---|---|---|---|
+| 2026-11-28 | `8b38818`+`d53f53d` | baseline | gpt-6-luna | 0.00 (0.00–0.00) | 0.00 | – | 1,144,825 / 0 / 1,144,801 | 1.25 |
+| 2026-11-28 | `84b0a0e` | Stage B | gpt-6-luna | 0.00 (0.00–0.00) | 0.63 | 0.00 | 88,683 / 0 / 88,659 | 1.25 |
+| 2026-11-28 | `473fa34` | Stage D prototype | gpt-6-luna | 0.94 (0.55–0.96) | 0.84 | 1.11 | 126,883 / 106,697 / 20,162 | 0.28 |
+
+T-A, runs 2–3, `just cache-experiment --seed 282` (harness `bab5862`, #280), run 1 identical
+in ratio. The baseline is `288d446` plus the Stage 0 parser and #278 (branch
+`m3/baseline-288d446`). Stage D ran with `PAL_MESSAGE_HISTORY=true`; each request read
+back exactly the previous request's write (cached(n) = input(n−1) − 3). Turn 4's 0.55 is
+the third fixture entering as new content (~7.8k tokens written), with the prefix before
+it fully reused. T-B (consensus) stays at 0.00 in every arm: the prototype covers simple
+tools only. Effective cost uses the harness defaults (reads 0.1×, writes 1.25×).
+Earlier runs the same day on gpt-6-luna and gemini-3.8-flash (baseline, Stage A, Stage B)
+read 0 on all 144 calls; the first of them sent no fixtures, because PAL refuses files
+under macOS's `/var` temp directories (fixed in the harness).
 
 Control calls. Each sends a ~8.2k-token prompt that starts with a fresh nonce
 (guaranteed miss), then the identical request a few seconds later. Gemini was
