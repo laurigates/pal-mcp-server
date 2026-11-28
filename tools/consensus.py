@@ -36,6 +36,17 @@ from .workflow.base import WorkflowTool
 
 logger = logging.getLogger(__name__)
 
+STANCE_BLOCK_START = "=== YOUR PERSPECTIVE ==="
+STANCE_BLOCK_END = "=== END PERSPECTIVE ==="
+
+# The system prompt for a consulted model, the same for every stance: the stance
+# itself ends the user message (issue #194).
+CONSULT_SYSTEM_PROMPT = CONSENSUS_PROMPT.replace(
+    "{stance_prompt}",
+    f"Your assigned perspective is given at the end of the user message, between {STANCE_BLOCK_START} and "
+    f"{STANCE_BLOCK_END}, after the proposal and its context files. Follow it within the constraints it states.",
+)
+
 # Tool-specific field descriptions for consensus workflow
 CONSENSUS_WORKFLOW_FIELD_DESCRIPTIONS = {
     "step": (
@@ -652,10 +663,12 @@ of the evidence, even when it strongly points in one direction.""",
                 if file_content:
                     prompt = f"{prompt}\n\n=== CONTEXT FILES ===\n{file_content}\n=== END CONTEXT ==="
 
-            # Get stance-specific system prompt
+            # The stance goes last, after the proposal and its files, and the system
+            # prompt is the same for every stance: consults of one model then share
+            # everything up to the stance, which a provider cache can reuse (#194).
             stance = model_config.get("stance", "neutral")
-            stance_prompt = model_config.get("stance_prompt")
-            system_prompt = self._get_stance_enhanced_prompt(stance, stance_prompt)
+            prompt = f"{prompt}\n\n{self._stance_block(stance, model_config.get('stance_prompt'))}"
+            system_prompt = CONSULT_SYSTEM_PROMPT
 
             # Validate temperature against model constraints (respects supports_temperature)
             validated_temperature, temp_warnings = self.validate_and_correct_temperature(
@@ -723,12 +736,14 @@ of the evidence, even when it strongly points in one direction.""",
                 "error": str(e),
             }
 
-    def _get_stance_enhanced_prompt(self, stance: str, custom_stance_prompt: str | None = None) -> str:
-        """Get the system prompt with stance injection."""
-        base_prompt = CONSENSUS_PROMPT
+    def _stance_block(self, stance: str, custom_stance_prompt: str | None = None) -> str:
+        """The perspective a consulted model argues from, rendered for the end of its user message."""
+        return f"{STANCE_BLOCK_START}\n{self._stance_text(stance, custom_stance_prompt)}\n{STANCE_BLOCK_END}"
 
+    def _stance_text(self, stance: str, custom_stance_prompt: str | None = None) -> str:
+        """The caller's stance_prompt if given, else the built-in text for the stance (neutral if unknown)."""
         if custom_stance_prompt:
-            return base_prompt.replace("{stance_prompt}", custom_stance_prompt)
+            return custom_stance_prompt
 
         stance_prompts = {
             "for": """SUPPORTIVE PERSPECTIVE WITH INTEGRITY
@@ -797,8 +812,7 @@ Remember: Artificial balance that misrepresents reality is not helpful. True bal
 of the evidence, even when it strongly points in one direction.""",
         }
 
-        stance_prompt = stance_prompts.get(stance, stance_prompts["neutral"])
-        return base_prompt.replace("{stance_prompt}", stance_prompt)
+        return stance_prompts.get(stance, stance_prompts["neutral"])
 
     def customize_workflow_response(self, response_data: dict, request) -> dict:
         """Customize response for consensus workflow."""

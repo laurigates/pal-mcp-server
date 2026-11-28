@@ -762,7 +762,9 @@ def get_history_embedded_files(context: ThreadContext, model_context) -> list[st
     return files_to_include
 
 
-def build_conversation_history(context: ThreadContext, model_context=None, read_files_func=None) -> tuple[str, int]:
+def build_conversation_history(
+    context: ThreadContext, model_context=None, read_files_func=None, *, latest_turn_is_input: bool = False
+) -> tuple[str, int]:
     """
     Build formatted conversation history for tool prompts with embedded file contents.
 
@@ -810,6 +812,10 @@ def build_conversation_history(context: ThreadContext, model_context=None, read_
         context: ThreadContext containing the conversation to format
         model_context: ModelContext for token allocation (optional, uses DEFAULT_MODEL fallback)
         read_files_func: Optional function to read files (primarily for testing)
+        latest_turn_is_input: The thread's last turn is the request being answered,
+            recorded before the history is built so its files reach the model on
+            this turn. Its files are embedded, but its text is left to the caller's
+            NEW USER INPUT slot, so the request is not sent twice (issue #194).
 
     Returns:
         tuple[str, int]: (formatted_conversation_history, total_tokens_used)
@@ -819,7 +825,6 @@ def build_conversation_history(context: ThreadContext, model_context=None, read_
         === CONVERSATION HISTORY (CONTINUATION) ===
         Thread: <thread_id>
         Tool: <original_tool_name>
-        Turn <current>/<max_allowed>
         You are continuing this conversation thread from where it left off.
 
         === FILES REFERENCED IN THIS CONVERSATION ===
@@ -860,10 +865,14 @@ def build_conversation_history(context: ThreadContext, model_context=None, read_
         - Graceful degradation when files are inaccessible or too large
     """
     all_turns, all_files = _history_turns_and_files(context)
-    total_turns = len(all_turns)
 
     if not all_turns:
         return "", 0
+
+    # The files of every recorded turn are embedded; the turn being answered is
+    # rendered by the caller, after the history.
+    if latest_turn_is_input and all_turns[-1].role == "user":
+        all_turns = all_turns[:-1]
 
     logger.debug(f"[FILES] Found {len(all_files)} unique files in conversation history")
 
@@ -895,7 +904,8 @@ def build_conversation_history(context: ThreadContext, model_context=None, read_
         CONVERSATION_HISTORY_MARKER,
         f"Thread: {context.thread_id}",
         f"Tool: {context.tool_name}",  # Original tool that started the conversation
-        f"Turn {total_turns}/{MAX_CONVERSATION_TURNS}",
+        # No turn counter here: it would be the first byte to change between
+        # consecutive requests, and providers cache only an unchanged prefix (#194).
         "You are continuing this conversation thread from where it left off.",
         "",
     ]

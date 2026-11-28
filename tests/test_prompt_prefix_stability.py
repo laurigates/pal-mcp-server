@@ -82,12 +82,10 @@ def test_g4_control_runs_agree(report):
 # -- gates (switched on by the stage that makes each pass) -------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="#187 records the prompt twice; Stage A (#194)")
 def test_g0_completeness(report):
     assert report["gates"]["G0"]["passed"], report["gates"]["G0"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="Turn N/50 header is the first varying byte; Stage A (#194)")
 def test_g1_chat_prefix_reaches_past_last_turn(report):
     assert report["gates"]["G1"]["passed"], report["gates"]["G1"]["problems"]
 
@@ -102,12 +100,10 @@ def test_g3_requests_are_append_only(report):
     assert report["gates"]["G3"]["passed"], report["gates"]["G3"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="expert prompts iterate sets; Stage A (#194)")
 def test_g4_expert_prompts_ignore_hash_seed(report):
     assert report["gates"]["G4"]["passed"], report["gates"]["G4"]["problems"]
 
 
-@pytest.mark.xfail(strict=True, reason="stance spliced into the system prompt; Stage A (#194)")
 def test_g5_consensus_consults_differ_only_at_the_stance(report):
     assert report["gates"]["G5"]["passed"], report["gates"]["G5"]["problems"]
 

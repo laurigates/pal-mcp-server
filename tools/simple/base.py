@@ -361,8 +361,11 @@ class SimpleTool(BaseTool):
                         # Add user's new input to conversation
                         user_prompt = self.get_request_prompt(request)
                         user_files = self.get_request_files(request)
+                        # add_turn returns False at the turn cap, and then the
+                        # thread's last turn is not this request (#194).
+                        turn_recorded = False
                         if user_prompt:
-                            add_turn(continuation_id, "user", user_prompt, files=user_files)
+                            turn_recorded = add_turn(continuation_id, "user", user_prompt, files=user_files)
 
                             # Get updated thread context after adding the turn
                             thread_context = get_thread(continuation_id)
@@ -372,7 +375,7 @@ class SimpleTool(BaseTool):
 
                         # Build conversation history with updated thread context
                         conversation_history, conversation_tokens = build_conversation_history(
-                            thread_context, model_context
+                            thread_context, model_context, latest_turn_is_input=turn_recorded
                         )
 
                         # Get the base prompt from the tool
@@ -689,9 +692,12 @@ class SimpleTool(BaseTool):
         continuation offer, as it did when creation failed after the reply.
         """
         from utils.conversation_memory import add_turn, create_thread
+        from utils.session_context import set_session_id
 
         try:
             thread_id = create_thread(tool_name=self.get_name(), initial_request=self.get_request_as_dict(request))
+            # The model call below already carries this thread's cache routing key (#194).
+            set_session_id(thread_id)
             add_turn(
                 thread_id,
                 "user",

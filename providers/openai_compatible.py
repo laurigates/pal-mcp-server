@@ -20,6 +20,13 @@ from .shared import (
 from .shared.usage import CACHE_WRITE_INPUT_TOKENS, CACHED_INPUT_TOKENS, int_field
 
 
+def add_request_header(request: dict[str, Any], name: str, value: str) -> dict[str, Any]:
+    """Add a per-request header to a ``_build_request`` result, keeping any already set."""
+    params = request["params"]
+    params["extra_headers"] = {**(params.get("extra_headers") or {}), name: value}
+    return request
+
+
 class OpenAICompatibleProvider(ModelProvider):
     """Shared implementation for OpenAI API lookalikes."""
 

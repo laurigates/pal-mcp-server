@@ -131,4 +131,23 @@ class TestBuildEnhancedPrompt:
                 follow_up_instructions="f",
             )
 
-        bch.assert_called_once_with(thread, model)
+        # The current turn is recorded first; its text belongs to NEW USER INPUT (#194).
+        bch.assert_called_once_with(thread, model, latest_turn_is_input=True)
+
+    def test_forwards_an_unrecorded_turn_to_build_conversation_history(self):
+        thread = _make_thread_context()
+        model = _make_model_context()
+
+        with patch(
+            "utils.context_builder.build_conversation_history",
+            return_value=("h", 10),
+        ) as bch:
+            build_enhanced_prompt(
+                thread_context=thread,
+                model_context=model,
+                user_prompt="u",
+                follow_up_instructions="f",
+                latest_turn_is_input=False,
+            )
+
+        bch.assert_called_once_with(thread, model, latest_turn_is_input=False)

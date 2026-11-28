@@ -30,8 +30,17 @@ logger = logging.getLogger(__name__)
 class RecordingTransport(httpx.HTTPTransport):
     """Transport that wraps default httpx transport and records all interactions."""
 
-    def __init__(self, cassette_path: str, capture_content: bool = True, sanitize: bool = True):
+    def __init__(
+        self,
+        cassette_path: str,
+        capture_content: bool = True,
+        sanitize: bool = True,
+        async_upstream: httpx.AsyncBaseTransport | None = None,
+    ):
         super().__init__()
+        # Async clients (the OpenAI provider builds an httpx.AsyncClient) call
+        # handle_async_request; HTTPTransport alone serves only sync clients.
+        self._async_upstream = async_upstream
         self.cassette_path = Path(cassette_path)
         self.recorded_interactions = []
         self.capture_content = capture_content
@@ -94,6 +103,44 @@ class RecordingTransport(httpx.HTTPTransport):
             response_data = self._serialize_response(response)
             self._record_interaction(request_data, response_data)
             return response
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """Async twin of handle_request: record the interaction around a real async call."""
+        if self._async_upstream is None:
+            self._async_upstream = httpx.AsyncHTTPTransport()
+        request_data = self._serialize_request(request)
+        response = await self._async_upstream.handle_async_request(request)
+        # httpx yields decoded bytes; drop the encoding header so replay and the
+        # caller do not try to decompress them again.
+        content_bytes = await httpx.Response(
+            status_code=response.status_code, headers=response.headers, stream=response.stream
+        ).aread()
+        await response.aclose()
+        headers = httpx.Headers(response.headers)
+        headers.pop("content-encoding", None)
+        headers["content-length"] = str(len(content_bytes))
+        buffered = httpx.Response(
+            status_code=response.status_code,
+            headers=headers,
+            content=content_bytes,
+            request=request,
+            extensions=response.extensions,
+        )
+        if self.capture_content:
+            self._record_interaction(request_data, self._serialize_response_with_content(buffered, content_bytes))
+        else:
+            self._record_interaction(request_data, self._serialize_response(buffered))
+        return buffered
+
+    async def __aenter__(self) -> "RecordingTransport":
+        return self
+
+    async def __aexit__(self, *exc_info: Any) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        if self._async_upstream is not None:
+            await self._async_upstream.aclose()
 
     def _record_interaction(self, request_data: dict[str, Any], response_data: dict[str, Any]):
         """Helper method to record interaction and save cassette."""
@@ -186,7 +233,11 @@ class RecordingTransport(httpx.HTTPTransport):
         try:
             if content.strip():
                 data = json.loads(content)
-                # Don't sanitize request content for now - it's user input
+                # Don't sanitize request content for now - it's user input.
+                # Routing keys are dropped: replay ignores them, and a
+                # prompt_cache_key UUID reads as a generic-api-key to gitleaks.
+                if isinstance(data, dict):
+                    data = {k: v for k, v in data.items() if k not in ReplayTransport.ROUTING_KEY_FIELDS}
                 return data
         except json.JSONDecodeError:
             pass
@@ -347,11 +398,19 @@ class ReplayTransport(httpx.MockTransport):
     #: not leave that behaviour unpinned.
     TOKEN_LIMIT_FIELDS = ("max_tokens", "max_completion_tokens", "max_output_tokens")
 
+    #: Cache routing keys, also dropped before hashing. prompt_cache_key carries
+    #: the conversation thread id (issue #194), a fresh UUID on every run, so a
+    #: hash that included it could never match. Like a ceiling it routes the
+    #: request without changing the reply; tests/test_cache_routing_keys.py pins
+    #: that it is sent.
+    ROUTING_KEY_FIELDS = ("prompt_cache_key",)
+
     def _without_token_limits(self, content_dict: dict) -> dict:
-        """Return the request body with output-ceiling fields removed."""
+        """Return the request body without the output-ceiling and routing-key fields."""
         if not isinstance(content_dict, dict):
             return content_dict
-        return {key: value for key, value in content_dict.items() if key not in self.TOKEN_LIMIT_FIELDS}
+        unmatched = (*self.TOKEN_LIMIT_FIELDS, *self.ROUTING_KEY_FIELDS)
+        return {key: value for key, value in content_dict.items() if key not in unmatched}
 
     def _extract_semantic_fields(self, content_dict: dict) -> dict:
         """Extract only semantic fields for matching, ignoring volatile prompts.

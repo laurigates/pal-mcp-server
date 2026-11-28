@@ -193,3 +193,12 @@ class TestWorkflowRecordsRequestAndModel:
 
         (turn,) = get_thread(thread_id).turns
         assert turn.content == "the prompt"
+
+    def test_reports_whether_a_turn_was_recorded(self):
+        # The history builder drops the thread's last user turn only when it is
+        # this request, so the caller needs to know a turn was written (#194).
+        thread_id = create_thread("chat", {"prompt": "first"})
+        context = get_thread(thread_id)
+
+        assert _record_user_turn_or_raise(thread_id, context, {"prompt": ""}) is False
+        assert _record_user_turn_or_raise(thread_id, context, {"prompt": "the prompt"}) is True

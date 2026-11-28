@@ -199,18 +199,18 @@ class TestConsensusTool:
         tool = ConsensusTool()
 
         # Test different stances
-        for_prompt = tool._get_stance_enhanced_prompt("for")
+        for_prompt = tool._stance_block("for")
         assert "SUPPORTIVE PERSPECTIVE" in for_prompt
 
-        against_prompt = tool._get_stance_enhanced_prompt("against")
+        against_prompt = tool._stance_block("against")
         assert "CRITICAL PERSPECTIVE" in against_prompt
 
-        neutral_prompt = tool._get_stance_enhanced_prompt("neutral")
+        neutral_prompt = tool._stance_block("neutral")
         assert "BALANCED PERSPECTIVE" in neutral_prompt
 
         # Test custom stance prompt
         custom = "Focus on specific aspects"
-        custom_prompt = tool._get_stance_enhanced_prompt("for", custom)
+        custom_prompt = tool._stance_block("for", custom)
         assert custom in custom_prompt
         assert "SUPPORTIVE PERSPECTIVE" not in custom_prompt
 
@@ -262,10 +262,10 @@ class TestConsensusTool:
         """Test basic model consultation structure."""
         tool = ConsensusTool()
 
-        # Test that _get_stance_enhanced_prompt works
-        for_prompt = tool._get_stance_enhanced_prompt("for")
-        against_prompt = tool._get_stance_enhanced_prompt("against")
-        neutral_prompt = tool._get_stance_enhanced_prompt("neutral")
+        # Test that _stance_block works
+        for_prompt = tool._stance_block("for")
+        against_prompt = tool._stance_block("against")
+        neutral_prompt = tool._stance_block("neutral")
 
         assert "SUPPORTIVE PERSPECTIVE" in for_prompt
         assert "CRITICAL PERSPECTIVE" in against_prompt
@@ -362,7 +362,6 @@ class TestConsensusTool:
         with (
             patch.object(tool, "get_model_provider") as mock_get_provider,
             patch.object(tool, "_prepare_file_content_for_prompt") as mock_prepare_files,
-            patch.object(tool, "_get_stance_enhanced_prompt") as mock_get_prompt,
             patch.object(tool, "get_name", return_value="consensus"),
         ):
             # Setup mocks. provider.generate_content is a synchronous method
@@ -374,7 +373,6 @@ class TestConsensusTool:
             mock_provider.generate_content = Mock(return_value=Mock(content="test response"))
             mock_get_provider.return_value = mock_provider
             mock_prepare_files.return_value = ("file content", [])
-            mock_get_prompt.return_value = "system prompt"
 
             # Set up the tool's attributes that would be set during normal execution
             tool.original_proposal = "Test proposal"

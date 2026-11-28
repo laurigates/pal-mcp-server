@@ -135,13 +135,16 @@ class ConsolidatedFindings(BaseModel):
     BaseWorkflowMixin to track progress across workflow steps.
     """
 
-    files_checked: set[str] = Field(default_factory=set, description="All files examined across all steps")
-    relevant_files: set[str] = Field(
-        default_factory=set,
+    # Lists in first-seen order, without duplicates, rather than sets: they are
+    # rendered into expert prompts, and set order changes with PYTHONHASHSEED,
+    # which made the same request differ between server processes (issue #194).
+    files_checked: list[str] = Field(default_factory=list, description="All files examined across all steps")
+    relevant_files: list[str] = Field(
+        default_factory=list,
         description="Subset of files_checked identified as relevant for work at hand",
     )
-    relevant_context: set[str] = Field(
-        default_factory=set, description="All methods/functions identified during overall work"
+    relevant_context: list[str] = Field(
+        default_factory=list, description="All methods/functions identified during overall work"
     )
     findings: list[str] = Field(default_factory=list, description="Chronological findings from each work step")
     hypotheses: list[dict] = Field(default_factory=list, description="Evolution of hypotheses across steps")
