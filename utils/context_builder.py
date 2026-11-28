@@ -36,6 +36,7 @@ def build_enhanced_prompt(
     model_context: ModelContext,
     user_prompt: str,
     follow_up_instructions: str,
+    latest_turn_is_input: bool = True,
 ) -> tuple[str, int]:
     """
     Build the enhanced prompt and compute the remaining token budget.
@@ -49,6 +50,9 @@ def build_enhanced_prompt(
         user_prompt: The current turn's user input. May be empty.
         follow_up_instructions: Pre-computed follow-up instructions
             (from ``get_follow_up_instructions``).
+        latest_turn_is_input: The thread's last turn is this request, recorded
+            by server.py before the call. ``False`` when nothing was recorded
+            (empty request, turn cap), so an earlier user turn stays in the history.
 
     Returns:
         Tuple of ``(enhanced_prompt, remaining_tokens_for_files)``.
@@ -57,7 +61,7 @@ def build_enhanced_prompt(
     # server.py records the current turn before calling this, so its files are in
     # the history; its text goes in the NEW USER INPUT slot below.
     conversation_history, conversation_tokens = build_conversation_history(
-        thread_context, model_context, latest_turn_is_input=True
+        thread_context, model_context, latest_turn_is_input=latest_turn_is_input
     )
 
     if conversation_history:

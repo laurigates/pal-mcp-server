@@ -34,7 +34,8 @@ asserted directly against the provider request in
 (`ReplayTransport.ROUTING_KEY_FIELDS` in `http_transport_recorder.py`). It carries the conversation thread id
 (issue #194), a fresh UUID on every run, so a hash including it could never
 match a recording. That PAL sends it is asserted in
-`tests/test_cache_routing_keys.py`.
+`tests/test_cache_routing_keys.py`. `RecordingTransport` also leaves it out of
+the cassette it writes, since gitleaks reads the UUID as a `generic-api-key`.
 
 > **Gemini cassettes are a different mechanism and are NOT covered by this.**
 > `tests/gemini_cassettes/**` are replayed by the google-genai SDK's own

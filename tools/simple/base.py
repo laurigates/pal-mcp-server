@@ -366,8 +366,11 @@ class SimpleTool(BaseTool):
                         # Add user's new input to conversation
                         user_prompt = self.get_request_prompt(request)
                         user_files = self.get_request_files(request)
+                        # add_turn returns False at the turn cap, and then the
+                        # thread's last turn is not this request (#194).
+                        turn_recorded = False
                         if user_prompt:
-                            add_turn(continuation_id, "user", user_prompt, files=user_files)
+                            turn_recorded = add_turn(continuation_id, "user", user_prompt, files=user_files)
 
                             # Get updated thread context after adding the turn
                             thread_context = get_thread(continuation_id)
@@ -377,7 +380,7 @@ class SimpleTool(BaseTool):
 
                         # Build conversation history with updated thread context
                         conversation_history, conversation_tokens = build_conversation_history(
-                            thread_context, model_context, latest_turn_is_input=bool(user_prompt)
+                            thread_context, model_context, latest_turn_is_input=turn_recorded
                         )
 
                         # Get the base prompt from the tool
