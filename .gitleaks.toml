@@ -21,3 +21,11 @@ paths = [
     # A deliberately insecure config file written for the model to review.
     '''(^|/)simulator_tests/test_codereview_validation\.py$''',
 ]
+# OpenAI prompt_cache_key values in recorded cassettes are per-thread routing
+# UUIDs (the conversation thread id), not credentials; generic-api-key matches
+# them by key name. Scoped to the whole JSON line so any other value on a
+# line still reports.
+regexTarget = "line"
+regexes = [
+    '''^[+-]?\s*"prompt_cache_key":\s*"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",?\s*$''',
+]
