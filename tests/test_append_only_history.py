@@ -120,6 +120,13 @@ class TestCompactionStart:
         assert kept <= 100 * COMPACTION_KEEP_RATIO
         assert start == 2
 
+    def test_newest_turn_that_fits_is_never_dropped(self):
+        assert _compaction_start([300, 300, 300, 650], budget=1000) == 3
+        assert _compaction_start([100] * 5 + [900], budget=1000) == 5
+
+    def test_newest_turn_larger_than_the_budget_is_dropped(self):
+        assert _compaction_start([100, 100, 1200], budget=1000) == 3
+
     def test_start_is_stable_between_compactions(self):
         """Request k+1 sees the turns of request k plus two more; start moves only at a compaction.
 

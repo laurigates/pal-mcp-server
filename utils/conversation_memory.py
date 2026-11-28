@@ -70,16 +70,16 @@ FILE PRIORITIZATION (Newest-First Throughout):
 4. This strategy works across conversation chains - files from newer turns in ANY
    thread take precedence over files from older turns in ANY thread
 
-CONVERSATION TURN PRIORITIZATION (Newest-First Collection, Chronological Presentation):
-1. COLLECTION PHASE: Processes turns newest-to-oldest to prioritize recent context
-   - When token budget is tight, OLDER turns are excluded first
-   - Ensures most contextually relevant recent exchanges are preserved
-2. PRESENTATION PHASE: Reverses collected turns to chronological order (oldest-first)
-   - LLM sees natural conversation flow: "Turn 1 → Turn 2 → Turn 3..."
-   - Maintains proper sequential understanding while preserving recency prioritization
+CONVERSATION TURN PRIORITIZATION (Compaction, Chronological Presentation):
+1. Turns are rendered oldest-first, so the history only grows at its end and a
+   provider's prompt cache can reuse the prefix of the previous request.
+2. When the turns outgrow the history budget, the OLDEST turns are dropped in one
+   step, down to COMPACTION_KEEP_RATIO of the budget, and a note says which turns
+   were omitted ("Turns 1-K omitted"). The newest turn is kept whenever it fits.
+3. The files of dropped turns are kept, in a block after that note.
 
-This dual approach ensures optimal context preservation (newest-first) with natural
-conversation flow (chronological) for maximum LLM comprehension and relevance.
+This keeps recent context while leaving the rendered prefix unchanged between
+compactions (docs/prompt-caching.md, Stage B).
 
 USAGE EXAMPLE:
 1. Tool A creates thread: create_thread("analyze", request_data) → returns UUID
@@ -88,17 +88,14 @@ USAGE EXAMPLE:
 4. Tool B sees conversation history via build_conversation_history()
 5. Tool B adds its response: add_turn(UUID, "assistant", response, tool_name="codereview")
 
-DUAL STRATEGY EXAMPLE:
-Conversation has 5 turns, token budget allows only 3 turns:
+COMPACTION EXAMPLE:
+Conversation has 5 equal-sized turns and the budget holds 4 of them. When turn 5
+overflows, the oldest turns are dropped until the rest fill at most 60% of the budget:
 
-Collection Phase (Newest-First Priority):
-- Evaluates: Turn 5 → Turn 4 → Turn 3 → Turn 2 → Turn 1
-- Includes: Turn 5, Turn 4, Turn 3 (newest 3 fit in budget)
-- Excludes: Turn 2, Turn 1 (oldest, dropped due to token limits)
-
-Presentation Phase (Chronological Order):
-- LLM sees: "--- Turn 3 (Agent) ---", "--- Turn 4 (Model) ---", "--- Turn 5 (Agent) ---"
-- Natural conversation flow maintained despite prioritizing recent context
+- LLM sees: "[Note: Turns 1-2 omitted to fit the history budget]", then
+  "--- Turn 3 (Agent) ---", "--- Turn 4 (Model) ---", "--- Turn 5 (Agent) ---"
+- Requests 6 and 7 add turns at the end without changing anything before them,
+  until the budget overflows again.
 
 This enables true AI-to-AI collaboration across the entire tool ecosystem with optimal
 context preservation and natural conversation understanding.
@@ -779,13 +776,20 @@ def _compaction_start(turn_tokens: list[int], budget: int) -> int:
     start as request k until the next compaction, so the rendered history is
     rewritten once per compaction instead of on every call after the first
     overflow, as a newest-first fill did (issue #195).
+
+    The newest turn is dropped only when it alone exceeds ``budget``, as the
+    newest-first fill did; otherwise it stays even if it is larger than the keep ratio,
+    so the model keeps the reply it is meant to continue from.
     """
     start = 0
     total = 0
     for index, tokens in enumerate(turn_tokens):
         total += tokens
         if total > budget:
-            while start <= index and total > budget * COMPACTION_KEEP_RATIO:
+            while start < index and total > budget * COMPACTION_KEEP_RATIO:
+                total -= turn_tokens[start]
+                start += 1
+            if total > budget:
                 total -= turn_tokens[start]
                 start += 1
     return start

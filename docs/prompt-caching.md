@@ -203,6 +203,13 @@ As built (2026-11-23):
   budget. Simulated with `_compaction_start` on equal-sized turns: at 10% per request
   the start moved 5 times in 30 requests, never on two consecutive requests; at 30% it
   moved on 18 of 29 requests. This matters for small-context models; #262 tracks it.
+- Known limit: the compaction budget is the history budget minus the tokens of every
+  embedded file, including the new input's attachments. Once a thread has compacted,
+  attaching, editing or evicting a file changes that budget, and `_compaction_start`
+  replays against it, so the start can move retroactively and rewrite the prefix from
+  the "Turns 1–K omitted" note on. `_compaction_start([5]*30, 90)` is 18 and
+  `_compaction_start([5]*30, 85)` is 16. Below the first overflow the turns are
+  unaffected. S3 never overflows and S5 attaches no files, so G2 and G7 do not cover it.
 
 ### Stage C — Strict prefix (#196, deferred)
 
